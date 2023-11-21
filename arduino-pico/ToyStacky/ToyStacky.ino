@@ -1,4 +1,6 @@
 /*
+(C) Anirban Banerjee 2023
+License: GNU GPL v3
 */
 #pragma GCC diagnostic ignored "-Wstringop-truncation"
 #pragma GCC diagnostic ignored "-Wformat-overflow"
@@ -19,16 +21,15 @@ const char* __TS_PI_STR__ = "3.141592653589793";
 const char* __TS_E_STR__ = "2.718281828459045";
 
 uint32_t core1msg;
-const byte ROWS = 8;
+const byte ROWS = 12;
 const byte COLS = 4;
 //define the cymbols on the buttons of the keypads
 char numKeys[ROWS][COLS] = 
 {
-
-	//{'u','m','[','('},  //up mean [ (
-	//{'d','q',']',')'},  //down sum ] )
-	//{'S','V','P','?'},  //shift sdv pi ?
-	//{'a','U','J','@'},   //alt ABS J @
+	{'u','m','[','('},  //up mean [ (
+	{'d','q',']',')'},  //down sum ] )
+	{'S','V','P','?'},  //shift sdv pi ?
+	{'a','U','J','@'},   //alt ABS J @
 
 	{'B','A','r','\b'}, //B A sqrt backspace
 	{'D','s','c','t'},  //D sin cos tan
@@ -43,8 +44,9 @@ char numKeys[ROWS][COLS] =
 };
 //LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 LiquidCrystal lcd(18, 19, 20, 21, 22, 26);
-//byte rowPins[ROWS] = {15, 14, 13, 12, 11, 10, 9, 8, 3, 2, 1, 0}; //these are inputs
-byte rowPins[ROWS] = {11, 10, 9, 8, 3, 2, 1, 0}; //these are inputs
+byte rowPins[ROWS] = {15, 14, 13, 12, 11, 10, 9, 8, 3, 2, 1, 0}; //these are inputs
+//byte rowPins[ROWS] = {15, 14, 13, 12, 3, 2, 1, 0}; //these are inputs
+//byte rowPins[ROWS] = {11, 10, 9, 8, 3, 2, 1, 0}; //these are inputs
 byte colPins[COLS] = {7, 6, 5, 4}; //these are outputs
 Keypad customKeypad = Keypad( makeKeymap(numKeys), rowPins, colPins, ROWS, COLS); 
 
@@ -498,6 +500,8 @@ void loop() {
 	int bsp;
 	int len;
 	if (keyc) {
+		debug0[0] = keyc; debug0[1] = '\0';
+		SerialPrint(3, "Key stroke -- got ", debug0, "\n\r");
 		bsp = 0;
 		len = strlen(vm.userInput);
 		if (vm.lastFnOp[0] != '\0') {

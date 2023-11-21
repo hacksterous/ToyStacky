@@ -1,3 +1,7 @@
+/*
+(C) Anirban Banerjee 2023
+License: GNU GPL v3
+*/
 #ifndef __TS_CORE_H__
 #define __TS_CORE_H__
 

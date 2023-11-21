@@ -1,3 +1,7 @@
+/*
+(C) Anirban Banerjee 2023
+License: GNU GPL v3
+*/
 #include <stdio.h>
 #include <stdint.h>
 #include <ctype.h>

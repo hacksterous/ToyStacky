@@ -1,3 +1,7 @@
+/*
+(C) Anirban Banerjee 2023
+License: GNU GPL v3
+*/
 #pragma GCC diagnostic ignored "-Wstringop-truncation"
 #pragma GCC diagnostic ignored "-Wformat-overflow"
 #pragma GCC diagnostic ignored "-Wformat-truncation"
