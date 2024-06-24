@@ -1342,9 +1342,16 @@ char* tokenize(char* input, char* output) {
 	else if ((*input == '[') && (input[1] == '('))
 		//a vector with a complex number
 		quoteOrParens = 3;
-	//printf ("tokenize: quoteOrParens = %d\n", quoteOrParens);
+	else if (*input == ']') 
+		//closing vector, could be with trailing commands
+		quoteOrParens = -1;
+	printf ("tokenize: quoteOrParens = %d\n", quoteOrParens);
 
-	if (quoteOrParens > 0) {
+	if (quoteOrParens == -1) {
+		*output = ']';
+		input++;
+	} else if (quoteOrParens > 0) {
+		//quoteOrParens = 1, 2, 3
 		int i = 0;
 		if (*input == '?') {
 			output[i++] = '?';
@@ -1380,7 +1387,7 @@ char* tokenize(char* input, char* output) {
 		//skip trailing spaces after the double-quoted string
 		input += strspn(input, " \t\r\n");
 	} else {
-		//if the current token is not a double-quoted string, it is a regular word
+		//if the current token is not a double-quoted or delimited string, it is a regular word
 
 		//find the length of the word (until the next space or end of the input)
 		size_t wordLength = strcspn(input, " \t\r\n");
@@ -2040,7 +2047,7 @@ bool processPop(Machine* vm, char* token) {
 	} else { 
 		//a pop but the var does not have a variable name
 		//or is a number -- number means pop n entities out of stack
-		int howMany = -1;
+		int howMany = 0;
 		if (POSTFIX_BEHAVE) { //@<number> is the postfix behavior -- we want <number> @@
 			if (stringToDouble(token, &dbl)) howMany = (int) dbl;
 		} else if (strcmp(token, "@") == 0) {
@@ -2048,7 +2055,7 @@ bool processPop(Machine* vm, char* token) {
 			if (stringToDouble(vm->bak, &dbl)) howMany = (int) dbl;
 		}
 		if (howMany >= 0) popNItems(vm, howMany);
-		else FAILANDRETURN(true, vm->error, "Error: illegal POP B", NULLFN)
+		else FAILANDRETURN(true, vm->error, "Error: illegal POP B", NULLFN); //should never happen
 	}
 	return true;
 }

@@ -7,7 +7,7 @@ INC = linenoise.h utf8.h
 
 all: toystacky
 
-toystacky:
+toystacky: bigint.c linenoise.h toystacky.c bigint.h utf8.c linenoise.c utf8.h
 	$(CC) -Wall -Os utf8.c linenoise.c bigint.c toystacky.c -o $@ -lm
 
 .c.o:

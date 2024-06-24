@@ -1670,8 +1670,14 @@ char* tokenize(char* input, char* output) {
 	else if ((*input == '[') && (input[1] == '('))
 		//a vector with a complex number
 		quoteOrParens = 3;
+	else if (*input == ']') 
+		//closing vector, could be with trailing commands
+		quoteOrParens = -1;
 
-	if (quoteOrParens > 0) {
+	if (quoteOrParens == -1) {
+		*output = ']';
+		input++;
+	} else if (quoteOrParens > 0) {
 		int i = 0;
 		if (*input == '?') {
 			output[i++] = '?';
@@ -2335,7 +2341,7 @@ bool processPop(Machine* vm, char* token) {
 	} else { 
 		//a pop but the var does not have a variable name
 		//or is a number -- number means pop n entities out of stack
-		int howMany = -1;
+		int howMany = 0;
 		if (POSTFIX_BEHAVE) { //@<number> is the postfix behavior -- we want <number> @@
 			if (stringToDouble(token, &dbl)) howMany = (int) dbl;
 		} else if (strcmp(token, "@") == 0) {
@@ -2343,7 +2349,7 @@ bool processPop(Machine* vm, char* token) {
 			if (stringToDouble(vm->bak, &dbl)) howMany = (int) dbl;
 		}
 		if (howMany >= 0) popNItems(vm, howMany);
-		else FAILANDRETURN(true, vm->error, "illegal POP B", NULLFN)
+		else FAILANDRETURN(true, vm->error, "illegal POP B", NULLFN); //should never happen
 	}
 	return true;
 }
