@@ -7,6 +7,8 @@ License: GNU GPL v3
 
 #define DISPLAY_STATUS_WIDTH 2
 #define DISPLAY_LINESIZE 20
+#define DISPLAY_LINECOUNT 4
+#define NUMBER_LINESIZE 18
 #define MAX_VARNAME_LEN 33
 #define MAX_VARIABLES 1000
 #define MEMORY_SIZE 32000 //in bytes
@@ -24,12 +26,12 @@ License: GNU GPL v3
 
 #define RIGHTOFIND 1
 #define LEFTOFIND 2
-#define SHIFTIND 3
+#define CMDIND 3
 #define ALTIND 4
 #define MATSTARTIND 5
 #define MATENDIND 6
-#define SLOCKIND 7
-#define ALOCKIND 0
+#define LOCKIND 7
+#define UNUSEDIND 0
 
 #define VECSTARTTOKENC '['
 #define VECLASTTOKENC ']'
@@ -139,9 +141,9 @@ typedef struct {
 	char coadiutor[STRING_SIZE]; //coadiutor = helper
 	char userInput[STRING_SIZE];
 	char userInputInterpret[STRING_SIZE];
-	char lastFnOp[SHORT_STRING_SIZE];
+	char lastFnOp[STRING_SIZE];
 	int userInputPos; //for userInput buffer
-	int shiftState;
+	int cmdState;
 	int altState;
 	//view page - 
 	//0: normal, 1: variable view, 
@@ -180,6 +182,8 @@ void interpret(Machine* vm, char* sourceCode);
 void initMachine(Machine* vm);
 bool doubleToString(double value, char* buf);
 void showUserEntryLine(int bsp);
+void showStackEntries(Machine* vm, int linecount);
+void showStackHP(Machine* vm, int linecount);
 void showStack(Machine* vm);
 void eraseUserEntryLine();
 void toggleLED();

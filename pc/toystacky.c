@@ -2047,12 +2047,17 @@ bool processPop(Machine* vm, char* token) {
 	} else { 
 		//a pop but the var does not have a variable name
 		//or is a number -- number means pop n entities out of stack
-		int howMany = 0;
+		int howMany = -1;
 		if (POSTFIX_BEHAVE) { //@<number> is the postfix behavior -- we want <number> @@
 			if (stringToDouble(token, &dbl)) howMany = (int) dbl;
-		} else if (strcmp(token, "@") == 0) {
+		} else if (strcmp(token, "@") == 0) { //@@
+			//if last item was not a number or 0, all of stack is emptied
 			pop(&vm->userStack, vm->bak);
 			if (stringToDouble(vm->bak, &dbl)) howMany = (int) dbl;
+			else howMany = 0;			
+		} else if (strcmp(token, "!") == 0) { //@!
+			//clear stack
+			howMany = 0;
 		}
 		if (howMany >= 0) popNItems(vm, howMany);
 		else FAILANDRETURN(true, vm->error, "Error: illegal POP B", NULLFN); //should never happen

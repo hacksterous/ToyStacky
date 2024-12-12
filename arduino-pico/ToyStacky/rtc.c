@@ -51,7 +51,7 @@ static bool valid_datetime(datetime_t *t) {
     return true;
 }
 
-bool rtc_set_datetime(datetime_t *t) {
+bool rtc_set_datetime(const datetime_t *t) {
     if (!valid_datetime(t)) {
         return false;
     }
@@ -143,7 +143,7 @@ static bool rtc_alarm_repeats(datetime_t *t) {
     return false;
 }
 
-void rtc_set_alarm(datetime_t *t, rtc_callback_t user_callback) {
+void rtc_set_alarm(const datetime_t *t, rtc_callback_t user_callback) {
     rtc_disable_alarm();
 
     // Only add to setup if it isn't -1

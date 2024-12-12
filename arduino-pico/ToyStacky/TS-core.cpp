@@ -588,16 +588,17 @@ void printStack(Strack* s, int count, bool firstLast) {
 	}
 }
 
-int calcRightOFPos(char* dest) {
-	int slen = strlen(dest);
+int calcRightOFPos(char* str) {
+	int slen = strlen(str);
 	for (int i = slen - 1; i >= 0; i--) {
-		if ((dest[i] == 'e') || (dest[i] == 'E'))
+		if ((str[i] == 'e') || (str[i] == 'E'))
 			return i - 1;
 	}
 	return slen - 1;
 }
 
 int makeStringFit(char*dest, const char* src, int len) {
+	//returns 1 if string is to be shortened, 0 if it fits in the size
 	char debug0[VSHORT_STRING_SIZE];
 	char debug1[VSHORT_STRING_SIZE];
 	char srcCopy[STRING_SIZE];
@@ -636,9 +637,13 @@ int makeStringFit(char*dest, const char* src, int len) {
 			//bigint --  show right overflow
 			strncpy(dest, srcCopy, len);
 			dest[len] = '\0';
+			
 			//printf("------------makeStringFit - B dest = %s len of dest = %lu\n", dest, strlen(dest));
 			//printf("------------makeStringFit: Returning. B dest = %s\n", dest);
-			return 1;
+
+			//NOTE: we could have /should have returned 1 
+			//as the non-expo format number has been shortened
+			return 0;
 		} else {
 			//printf("------------makeStringFit: BBB slen %d <= len %d\n", slen, len);
 			strncpy(dest, srcCopy, slen);
@@ -649,6 +654,7 @@ int makeStringFit(char*dest, const char* src, int len) {
 		}
 	}
 
+	//Expo-format number
 	int partMantissaLen = len - (slen - expoIndex);
 	//printf("------------makeStringFit: partMantissaLen = %d\n", partMantissaLen);
 	//we want to remove some digits from the mantissa
@@ -693,7 +699,7 @@ int makeComplexStringFit(char*dest, const char* src, int len) {
 
 	if (src[0] != '(') {
 		//number is real
-		charPos = makeStringFit(re, src, len);
+		charPos = makeStringFit(re, src, NUMBER_LINESIZE);
 		//printf("------------makeComplexStringFit - number is real, charPos = %d\n", charPos);
 		//printf("------------makeComplexStringFit - number is real, charPos - 1 = %d\n", charPos - 1);
 		strcat(dest, re);
@@ -718,7 +724,8 @@ int makeComplexStringFit(char*dest, const char* src, int len) {
 	if (spacePos > (slen - 2)) {
 		//space was not found, so this is a pure imaginary number
 		memset(im, 0, sizeof(im));
-		charPos = makeStringFit(im, re, len - 2); //keep space for '(' & ')'
+		//charPos = makeStringFit(im, re, len - 2); //keep space for '(' & ')'
+		charPos = makeStringFit(im, re, NUMBER_LINESIZE - 2); //keep space for '(' & ')'
 		//printf("------------makeComplexStringFit  - a pure imaginary - re = %s\n", re);
 		//printf("------------makeComplexStringFit  - a pure imaginary - now dest = %s\n", dest);
 		strcat(dest, im);
@@ -731,7 +738,8 @@ int makeComplexStringFit(char*dest, const char* src, int len) {
 		//printf("------------makeComplexStringFit  - a complex number - re = %s\n", re);
 		memset(im, 0, sizeof(im));
 		re[spacePos] = '\0'; //just the part before the space - real part
-		makeStringFit(im, re, ((len - 2) >> 1) - 1);
+		//makeStringFit(im, re, ((len - 2) >> 1) - 1);
+		makeStringFit(im, re, ((NUMBER_LINESIZE - 2) >> 1) - 1);
 		//printf("------------makeComplexStringFit  - a complex number - done real before cat, dest = %s\n", dest);
 		strcat(dest, im); //im is now the real part
 		strcat(dest, " ");
@@ -755,77 +763,7 @@ int makeComplexStringFit(char*dest, const char* src, int len) {
 	}
 }
 
-void showStack(Machine* vm) {
-	//SerialPrint(1, "===================================\r\n");
-	int len;
-	int8_t meta;
-	char debug0[VSHORT_STRING_SIZE];
-	for (int i = 0; i < 3; i++) {
-		//print userline status here
-		lcd.setCursor(0, 2 - i);
-		if ((2 - i) == 0) //row 0
-			lcd.print((vm->shiftState)? "S ": "  "); 
-		else if ((2 - i) == 1)
-			lcd.print((vm->altState)? "A ": "  ");
-		else
-			lcd.print((vm->modeDegrees)? "D ": "  ");
-
-		for (int j = DISPLAY_STATUS_WIDTH; j < DISPLAY_LINESIZE; j++)
-			lcd.print(' ');
-		memset(vm->userDisplay, 0, STRING_SIZE);
-		lcd.setCursor(DISPLAY_STATUS_WIDTH, 2 - i);
-		meta = peekn(&vm->userStack, vm->coadiutor, i);
-		if (meta != -1) {
-			int rightOfPos = -1;
-			SerialPrint(3, "showStack: calling makeString/Complex/Fit. vm->coadiutor = ", vm->coadiutor, "\r\n");
-			rightOfPos = makeComplexStringFit(vm->userDisplay, vm->coadiutor, DISPLAY_LINESIZE - DISPLAY_STATUS_WIDTH);
-			SerialPrint(3, "showStack: returned from makeComplexStringFit. vm->display = ", vm->display, "\r\n");
-			lcd.print(vm->userDisplay);
-			if (rightOfPos != -1) {
-				//show the right overflow indicator
-				lcd.setCursor(DISPLAY_STATUS_WIDTH + rightOfPos, 2 - i);
-				lcd.write(RIGHTOFIND);
-			}
-			int tempLen = strlen(vm->userDisplay);
-			//doubleToString(tempLen, debug0);
-			SerialPrint(3, "showStack: long str: vm->display = ", vm->userDisplay, "\r\n");
-			//SerialPrint(5, "showStack: long str: vm->display = ", vm->display, " len display = ", debug0, "\r\n");
-			//SerialPrint(3, "showStack: len display = ", debug0, "\r\n");
-		} else {
-			lcd.print("..................");
-			//lcd.print("                  ");
-		}
-	}
-	printStack(&vm->userStack, 3, true);
-	//SerialPrint(1, "-----------------------------------");
-	//printRegisters(vm);
-	//SerialPrint(3, "Last Op = ", vm->lastFnOp, "\r\n");
-	SerialPrint(3, (strcmp(vm->error, "") == 0)? "": "ERR = ", (strcmp(vm->error, "") == 0)? "Ok": vm->error, "\r\n");
-	//char buf[129];
-	//sprintf(buf, "execStack: matrix = %d, vector = %d IFstate = %x\r\n", (int) (execData >> 4) & 0x1, (int) (execData >> 3) & 0x1, (int) execData & 0x7);
-	//SerialPrint(1, buf);
-	//SerialPrint(1, "===================================\r\n");
-
-	if (strcmp(vm->error, "") != 0) {
-		char line[DISPLAY_LINESIZE];
-		eraseUserEntryLine();
-		fitstr(line, vm->error, DISPLAY_LINESIZE - DISPLAY_STATUS_WIDTH);
-		lcd.setCursor(DISPLAY_STATUS_WIDTH, 3); 
-		lcd.print("E:"); 
-		lcd.print(line);
-		lcd.setCursor(vm->cursorPos, 3); //col, row
-	} else if (strcmp(vm->lastFnOp, "") != 0) {
-		char line[DISPLAY_LINESIZE];
-		SerialPrint(3, "Doing Last Op = ", vm->lastFnOp, "\r\n");
-		eraseUserEntryLine();
-		//no error, show previous operator or function on user entry line
-		fitstr(line, vm->lastFnOp, DISPLAY_LINESIZE - DISPLAY_STATUS_WIDTH);
-		lcd.setCursor(DISPLAY_STATUS_WIDTH, 3); lcd.print(line);
-		lcd.setCursor(vm->cursorPos, 3); //col, row
-	} else {
-		eraseUserEntryLine();
-	}
-}
+#include "TS-core-showStack.h"
 
 void showUserEntryLine(int bsp){ 
 	char debug0[VSHORT_STRING_SIZE];
@@ -1575,7 +1513,7 @@ const int NUMREAL1PARAMFN = 4;
 const char* miscelfn1paramname[] = {"dup"};
 
 const char* vecprefnname[] = {"var", "stdev", "ssdev"}; //these functions require a pre subtraction operation
-const char* vecfn1paramname[] = {"sum", "sqsum", "var", "stdev", "mean", "rsum"};
+const char* vecfn1paramname[] = {"sum", "sqsum", "var", "sd", "mean", "rs"};
 const int NUMVECFNS = 6;
 
 const char* mathfnop2paramname[] = {"swp", 
@@ -1656,77 +1594,7 @@ bool variableVetted(char* var) {
 	else return false;
 }
 
-char* tokenize(char* input, char* output) {
-	//printf ("tokenize: START input = %p\n", input);
-	//skip leading spaces
-	input += strspn(input, " \t\r\n");
-	int quoteOrParens = 0;
-	//check if the current token is a double-quoted string or a complex or a print command
-	if (*input == '"' || (*input == '?' && input[1] == '"') || (*input == '@' && input[1] == '"'))
-		quoteOrParens = 1;
-	else if (*input == '(') 
-		//a complex number
-		quoteOrParens = 2;
-	else if ((*input == '[') && (input[1] == '('))
-		//a vector with a complex number
-		quoteOrParens = 3;
-	else if (*input == ']') 
-		//closing vector, could be with trailing commands
-		quoteOrParens = -1;
-
-	if (quoteOrParens == -1) {
-		*output = ']';
-		input++;
-	} else if (quoteOrParens > 0) {
-		int i = 0;
-		if (*input == '?') {
-			output[i++] = '?';
-			input++;
-		} else if (*input == '@') {
-			output[i++] = '@';
-			input++;
-		}
-		input++; // skip the opening delim
-		if (quoteOrParens == 3) {
-			input++; // skip 2 chars if [( is found
-			output[i++] = '[';
-		}
-		output[i++] = (quoteOrParens >= 2)? '(':'"';
-
-		//copy characters until the closing double-quote or closing parenthesis or 
-		//the end of the input string is found
-		while (*input && *input != ((quoteOrParens >= 2)? ')':'"')) {
-			output[i++] = *input++;
-		}
-
-		//add null-terminator to the output string
-		output[i++] = (quoteOrParens >= 2)? ')':'"';
-		output[i] = '\0';
-
-		//if a closing double-quote  or closing parenthesis was found, advance to the next character after it
-		if (*input == ((quoteOrParens >= 2)? ')':'"')) {
-			input++;
-		}
-
-		//skip trailing spaces after the double-quoted string
-		input += strspn(input, " \t\r\n");
-	}
-	else {
-		//if the current token is not a double-quoted string, it is a regular word
-
-		//find the length of the word (until the next space or end of the input)
-		size_t wordLength = strcspn(input, " \t\r\n");
-		//printf ("tokenize: NOT string. wordLength = %lu\n", wordLength);
-
-		//copy the word to the output buffer
-		strncpy(output, input, wordLength);
-		output[wordLength] = '\0';
-		input += wordLength;
-		//printf ("tokenize: NOT string. input = %s\n", input);
-	}
-	//printf ("tokenize: END input = %p\n", input);
-	return input;
-}
+#include "TS-core-tokenize.h"
 
 uint8_t conditionalData(size_t execData) {
 	//data being currently entered is a conditional if/else
@@ -1749,99 +1617,7 @@ bool makeStrNum(char* input, size_t maxstrlen, uint8_t num){
 	return true;
 }
 
-bool fnOrOpVec2Param(Machine* vm, const char* token, int fnindex) {
-	//printf ("fnOrOpVec2Param: entered vec 2 param ------------------- last = %s bak = %s\n", vm->coadiutor, vm->bak);
-	bool success;
-	bool ifCondition, doingIf, conditional;
-	ifCondition = doingIf = false;
-	size_t execData = UintStackPeek(&vm->execStack);
-	//last instruction on exec stack was not an IF or ELSE
-	GETEXECSTACKDATA(conditional, ifCondition, doingIf, execData)
-
-	if ((ifCondition && doingIf) || (!ifCondition && !doingIf) || (!conditional)) {
-		int8_t meta;
-		char varName[MAX_VARNAME_LEN];
-		ComplexDouble c;
-		ComplexDouble numXCount;
-		numXCount.real = 0.0;
-		uint8_t numTCount = 0;
-		meta = peek(&vm->userStack, NULL);
-		//T vector
-		do {
-			//from stack, we can do a vector operation or a pop into a vector
-			if (stackIsEmpty(&vm->userStack)) break;
-			meta = pop(&vm->userStack, vm->coadiutor);
-			if (meta == METANONE) break; //safe
-			//printf("-----fnOrOpVec2Param: do-while loop: meta = %d -- %s -- popped data = %s\n", meta, DEBUGMETA[meta], vm->coadiutor);
-			success = false;
-			if (isComplexNumber(vm->coadiutor)) { //complex
-				success = stringToComplex(vm->coadiutor, &c);
-			} else if (isRealNumber(vm->coadiutor)) { //real number
-				success = stringToDouble(vm->coadiutor, &c.real);
-				c.imag = 0.0;
-			} else {
-				FAILANDRETURN(true, vm->error, "Error: Unexpected string.", NULLFN)
-			}
-			FAILANDRETURNVAR(!success, vm->error, "Error: Math fn '%s' failed.", fitstr(vm->coadiutor, token, 9))
-			numTCount++;
-		} while (meta != METASTARTVECTOR); //start of the vector or empty stack
-
-		//X vector from stack or variable memory
-		bool vectorFromStack = true;//get vector from stack, not variables
-		uint8_t count = 0;
-		meta = peek(&vm->userStack, NULL);
-		if (meta != METAENDVECTOR) {
-			//there's no vector on the stack
-			//find out if a vector was recently popped
-			//and placed in the acc
-			//does a vacc variable exist?
-			int variableIndex = findVariable(&vm->ledger, VACC);
-			//if no vector variable VACC, return error
-			FAILANDRETURN((variableIndex == -1), vm->error, "Error: Expected vector.", NULLFN)
-			if (variableIndex >= 0) {
-				numXCount = fetchVariableComplexValue(&vm->ledger, VACC);
-				FAILANDRETURN((numXCount.real == 0.0), vm->error, "Error: Expected vector. A", NULLFN)
-				FAILANDRETURN((numXCount.imag != 0.0), vm->error, "Error: Expected vector. B", NULLFN)
-				//if not failed - we get vector from variables
-				vectorFromStack = false;
-			}
-		}
-		//X vector -- if it is from the stack, copy it to a variable vector
-		do {
-			if (vectorFromStack) { //from stack
-				//since it's from stack, we can do a vector operation or a pop into a vector
-				if (stackIsEmpty(&vm->userStack)) return false;
-				meta = pop(&vm->userStack, vm->coadiutor);
-				if (meta == METANONE) return false; //safe
-				//printf("-----fnOrOpVec2Param: do-while loop: meta = %d -- %s -- popped data = %s\n", meta, DEBUGMETA[meta], vm->coadiutor);
-				success = false;
-				if (isComplexNumber(vm->coadiutor)) { //complex
-					success = stringToComplex(vm->coadiutor, &c);
-				} else if (isRealNumber(vm->coadiutor)) { //real number
-					success = stringToDouble(vm->coadiutor, &c.real);
-					c.imag = 0.0;
-				} else {
-					FAILANDRETURN(true, vm->error, "Error: Unexpected string.", NULLFN)
-				}
-				FAILANDRETURNVAR(!success, vm->error, "Error: Math fn '%s' failed.", fitstr(vm->coadiutor, token, 9))
-				strcpy(varName, VACC); //vector operation
-				makeStrNum(varName, MAX_VARNAME_LEN, count);
-				//printf("-----fnOrOpVec2Param: do-while loop: from stack: variable name is %s of value (%g, %g)\n", varName, c.real, c.imag);
-				createVariable(&vm->ledger, varName, VARIABLE_TYPE_COMPLEX, c, "");
-			} else { //from variable
-				//since it's from a variable, we can do a vector operation but not pop into a vector
-				if (count == (int)numXCount.real) break;
-				strcpy(varName, VACC); //vector operation -- can't have pop
-				makeStrNum(varName, MAX_VARNAME_LEN, count);
-				c = fetchVariableComplexValue(&vm->ledger, varName);
-				//printf("-----fnOrOpVec2Param: do-while loop: from memory: variable name is %s of value (%g, %g)\n", varName, c.real, c.imag);
-			}
-			count++;
-		} while (meta != METASTARTVECTOR); //start of the vector or empty stack
-	}
-
-	return true;
-}
+#include "TS-core-fnOrOpVec2Param.h"
 
 bool hasDblQuotes(char* input) {
     if (input == NULL)
@@ -1880,177 +1656,8 @@ bool addDblQuotes(char *input) {
 	return true;
 }
 
-bool fnOrOp2Param(Machine* vm, const char* token, int fnindex) {
-	bool ifCondition, doingIf, conditional;
-	size_t execData = UintStackPeek(&vm->execStack);
-	bool success;
-	FAILANDRETURN(vectorMatrixData(execData) != 0, vm->error, "no scalar op here.H", NULLFN)
-	ifCondition = doingIf = false;
-	GETEXECSTACKDATA(conditional, ifCondition, doingIf, execData)
-	//printf ("fnOrOp2Param: 0 ------------------- last = %s bak = %s\n", vm->coadiutor, vm->bak);
-	//printf("fnOrOp2Param: ------------------- token = %s\n", token);
-	int8_t cmeta = peek(&vm->userStack, vm->coadiutor); //c
-	//if current stack has end of vector, call the 2-param vector function
-	if (cmeta == METAENDVECTOR) return fnOrOpVec2Param(vm, token, fnindex);
-	int8_t meta = peekn(&vm->userStack, vm->bak, 1);  //b
-	//printf("fnOrOp2Param --- meta for var a = %d\n", meta);
-	if ((ifCondition && doingIf) || (!ifCondition && !doingIf) || (!conditional)) {
-		FAILANDRETURN((meta == -1), vm->error, "stack empty", NULLFN)		
-		//printf("fnOrOp2Param --- ifcondition is true or is unconditional. meta for var a = %d\n", meta);
-		FAILANDRETURN((meta != METANONE), vm->error, "no scalar op here.L.", NULLFN)
-		if (fnindex == 0) { //swap
-			FAILANDRETURN((meta == -1), vm->error, "stack empty.B", NULLFN)			
-			FAILANDRETURN((meta != METANONE), vm->error, "no scalar op here.E", NULLFN)
-			pop(&vm->userStack, NULL);
-			pop(&vm->userStack, NULL);
-			push(&vm->userStack, vm->coadiutor, cmeta);
-			push(&vm->userStack, vm->bak, meta);
-			return true;
-		}
-		//printf("fnOrOp2Param --- meta for var b = %d\n", meta);
-		FAILANDRETURN((meta == -1), vm->error, "stack empty.C", NULLFN)		
-		FAILANDRETURN((meta != METANONE), vm->error, "no scalar op here.A", NULLFN)
-		//printf ("fnOrOp2Param: 1 ------------------- coadiutor = %s bak = %s\n", vm->coadiutor, vm->bak);
-		//printf ("fnOrOp2Param: 0 ------------------- got ADD\n");
-		ComplexDouble c, d;
-		success = false;
-
-		if (hasDblQuotes(vm->coadiutor) || hasDblQuotes(vm->bak)) {
-			char* coadiutor = removeDblQuotes(vm->coadiutor);
-			char* bak = removeDblQuotes(vm->bak);
-			if ((isBigIntDecString(coadiutor)) && 
-					(isBigIntDecString(bak))) { 
-				success = bigint_create_str(coadiutor, &(vm->bigC));
-				success = bigint_create_str(bak, &vm->bigB) && success;
-				FAILANDRETURN(!success, vm->error, "bad operand X2", NULLFN)
-				success = (fnindex > 2) && (fnindex < 16);
-				FAILANDRETURN(!success, vm->error, "bad bigint fn", NULLFN)
-				if (fnindex > 2) {
-					if ((fnindex - 3) < 7) { //void functions
-						call2ParamBigIntVoidFunction(fnindex - 3, &vm->bigB, &(vm->bigC), &vm->bigA);
-						FAILANDRETURN(((&vm->bigA)->length == -1), vm->error, "bigint div by 0", NULLFN)
-						char* acc = &vm->acc[0];
-						success = bigint_tostring (&vm->bigA, acc);
-						success = addDblQuotes(acc) && success;
-						FAILANDRETURN(!success, vm->error, "bigint fail", NULLFN)
-					} else { //compare functions, return int
-						vm->acc[0] = '0' +  call2ParamBigIntIntFunction(fnindex - 5, &vm->bigC, &vm->bigB);
-						vm->acc[1] = '\0';
-					}
-				}
-				pop(&vm->userStack, NULL);
-				pop(&vm->userStack, NULL);
-				push(&vm->userStack, vm->acc, METANONE);
-				return true;
-			}
-		}
-		c.imag = 0.0;
-		if (isComplexNumber(vm->coadiutor)) { //complex
-			success = stringToComplex(vm->coadiutor, &c);
-		} else if (isRealNumber(vm->coadiutor)) { //real number
-			char rlc = strIsRLC(vm->coadiutor);			
-			success = stringToDouble(vm->coadiutor, &c.real);
-			if (rlc) {
-				//does a frequency variable exist?
-				ComplexDouble f = fetchVariableComplexValue(&vm->ledger, "f");
-				if (f.real <= 0) f.real = 1;
-				if (rlc == 'c'){
-					c.imag = -1/(2 * 3.141592653589793 * f.real * c.real);
-					c.real = 0;
-				} else if (rlc == 'l') {
-					c.imag = 2 * 3.141592653589793 * f.real * c.real;
-					c.real = 0;
-				} //else keep value of c.real
-			}
-		} else {
-			FAILANDRETURN(true, vm->error, "bad operand.A", NULLFN)
-		}
-		FAILANDRETURN(!success, vm->error, "bad operand.A2", NULLFN)
-		d.imag = 0.0;
-		if (isComplexNumber(vm->bak)) { //looks like complex number '(## ##)'
-			success = stringToComplex(vm->bak, &d);
-		} else if (isRealNumber(vm->bak)) { //real number
-			char rlc = strIsRLC(vm->bak);
-			success = stringToDouble(vm->bak, &d.real);
-			if (rlc) {
-				//does a frequency variable exist?
-				ComplexDouble f = fetchVariableComplexValue(&vm->ledger, "f");
-				if (f.real <= 0) f.real = 1;
-				if (rlc == 'c'){
-					d.imag = -1/(2 * 3.141592653589793 * f.real * d.real);
-					d.real = 0;
-				} else if (rlc == 'l') {
-					d.imag = 2 * 3.141592653589793 * f.real * d.real;
-					d.real = 0;
-				} //else keep value of d.real
-			}
-			//printf("fnOrOp2Param: d = %s returned %d ", vm->bak, success);
-		}  else {
-			FAILANDRETURN(true, vm->error, "bad operand.B", NULLFN)
-		}
-		FAILANDRETURN(!success, vm->error, "bad operand.B2", NULLFN)
-		//SerialPrint(1, "fnOrOp2Param:------------------- d = %g + %gi", d.real, d.imag);
-		//call 2-parameter function
-		c = call2ParamMathFunction(fnindex - 1, d, c);
-		if (abs(c.real) < DOUBLE_EPS) c.real = 0.0;
-		if (abs(c.imag) < DOUBLE_EPS) c.imag = 0.0;
-		//printf("fnOrOp2Param: rounded c.real = %g c.imag = %g\n", c.real, c.imag);
-		success = complexToString(c, vm->coadiutor) && success; //result in coadiutor
-		SerialPrint(5, "fnOrOp2Param: 2 ------------------- got ", token, " data returned from function = ", vm->coadiutor, "\r\n");
-		//printf ("-------------------success = %d, acc = %s\n", success, vm->coadiutor);
-		FAILANDRETURNVAR(!success, vm->error, "Bad fn %s", fitstr(vm->coadiutor, token, 8))
-		strcpy(vm->bak, vm->acc); //backup
-		strcpy(vm->acc, vm->coadiutor);
-		//when no errors are present, actually pop the vars
-		pop(&vm->userStack, NULL);
-		pop(&vm->userStack, NULL);
-		push(&vm->userStack, vm->acc, METANONE);
-	}
-	return true;
-}
-
-bool fn1Param(Machine* vm, const char* token, int fnindex) {
-	bool ifCondition, doingIf, conditional;
-	size_t execData = UintStackPeek(&vm->execStack);
-	FAILANDRETURN((vectorMatrixData(execData) != 0), vm->error, "No scalar op here.Z", NULLFN)
-	ifCondition = doingIf = false;
-	GETEXECSTACKDATA(conditional, ifCondition, doingIf, execData)
-	//SerialPrint(1, "is1ParamFunction:------------------- execData = %lu", execData);
-	if ((ifCondition && doingIf) || (!ifCondition && !doingIf) || (!conditional)) {
-		int8_t meta;
-		char debug0[VSHORT_STRING_SIZE];
-		meta = peek(&vm->userStack, vm->coadiutor);
-		FAILANDRETURN((meta == -1), vm->error, "stack empty.D", NULLFN)
-		FAILANDRETURN((meta != METANONE), vm->error, "No scalar op here.Y", NULLFN)
-		peek(&vm->userStack, vm->acc);
-		if (vm->acc[0] != '\0') {
-			ComplexDouble c;
-			bool success = false;
-			c.imag = 0.0;
-			if (isComplexNumber(vm->acc)) { //complex
-				success = stringToComplex(vm->acc, &c);
-			} else if (isRealNumber(vm->acc)) { //real number
-				success = stringToDouble(vm->acc, &c.real);
-			}
-			FAILANDRETURNVAR(!success, vm->error, "%s bad.A", fitstr(vm->coadiutor, token, 8))
-			doubleToString((double)success, debug0);
-			SerialPrint(3, "fn1Param: ---  success = ", debug0, "\r\n");
-			if (fnindex < NUMMATH1PARAMFN)
-				c = call1ParamMathFunction(fnindex, c);
-			else if (fnindex < NUMMATH1PARAMFN + NUMREAL1PARAMFN)
-				c.real = call1ParamRealFunction(fnindex - NUMMATH1PARAMFN, c);
-			FAILANDRETURNVAR((c.real == INFINITY || c.imag == INFINITY || c.real == -INFINITY || c.imag == -INFINITY), 
-				vm->error, "'%s' inf!", fitstr(vm->coadiutor, token, 8))
-			if (abs(c.real) < DOUBLEFN_EPS) c.real = 0.0;
-			if (abs(c.imag) < DOUBLEFN_EPS) c.imag = 0.0;
-			success = complexToString(c, vm->acc);
-			FAILANDRETURNVAR(!success, vm->error, "%s bad.B", fitstr(vm->coadiutor, token, 8))
-			pop(&vm->userStack, NULL);
-			push(&vm->userStack, vm->acc, METANONE);
-		}
-	}
-	return true;
-}
+#include "TS-core-fnOrOp2Param.h"
+#include "TS-core-fn1Param.h"
 
 void cleanupVec(Machine* vm, int vecOrMat){
 	//vecOrMat = 0 - cleanup till start of previous vector
@@ -2065,108 +1672,7 @@ void cleanupVec(Machine* vm, int vecOrMat){
 		UintStackPop(&vm->execStack);
 }
 
-bool fnOrOpVec1Param(Machine* vm, const char* token, int fnindex, bool isVoidFunction) {
-	bool success;
-	bool ifCondition, doingIf, conditional;
-	ifCondition = doingIf = false;
-	size_t execData = UintStackPeek(&vm->execStack);
-	//last instruction on exec stack was not an IF or ELSE
-	GETEXECSTACKDATA(conditional, ifCondition, doingIf, execData)
-	//SerialPrint(1, "fnOrOpVec1Param:------------------- execData = %lu", execData);
-	//lcase(token);
-	if ((ifCondition && doingIf) || (!ifCondition && !doingIf) || (!conditional)) {
-		int8_t meta;
-		char varName[MAX_VARNAME_LEN];
-		ComplexDouble crunningsum = makeComplex(0.0, 0.0);
-		ComplexDouble crunningsqsum = makeComplex(0.0, 0.0);
-		ComplexDouble crunningrsum = makeComplex(0.0, 0.0);
-		ComplexDouble crunning = makeComplex(0.0, 0.0);
-		ComplexDouble c;
-		ComplexDouble numTCount = makeComplex(0.0, 0.0);
-		uint8_t count = 0;
-		bool vectorFromStack = true;//get vector from stack, not variables
-		meta = peek(&vm->userStack, NULL);
-		FAILANDRETURN((meta == -1), vm->error, "Stack empty", NULLFN)		
-		//SerialPrint(1, "fnOrOpVec1Param:------------------- called with token = %s fnindex = %d", token, fnindex);
-		if (meta == METASTARTVECTOR) {
-			//only start of vector, return it as scalar
-			pop(&vm->userStack, vm->coadiutor);
-			UintStackPop(&vm->execStack); 
-			push(&vm->userStack, vm->coadiutor, METANONE);
-			return true;
-		} else if (meta == METAMIDVECTOR) {
-			pop(&vm->userStack, vm->coadiutor);
-			push(&vm->userStack, vm->coadiutor, METAENDVECTOR);
-			UintStackPop(&vm->execStack); 
-		} else if (meta == METANONE) {
-			//there's no vector on the stack, just scalar
-			//find out if a vector was recently popped
-			//and placed in the acc
-			//does a vacc variable exist?
-			int variableIndex = findVariable(&vm->ledger, VACC);
-			FAILANDRETURN((variableIndex == -1), vm->error, "Expected vector", NULLFN)
-			if (variableIndex >= 0) {
-				numTCount = fetchVariableComplexValue(&vm->ledger, VACC);
-				FAILANDRETURN((numTCount.real == 0.0), vm->error, "Expected vector. A", NULLFN)
-				FAILANDRETURN((numTCount.imag != 0.0), vm->error, "Expected vector. B", NULLFN)
-				//if not failed - we get vector from variables
-				vectorFromStack = false;
-			}
-		}
-		do {
-			if (vectorFromStack) { //from stack
-				//since it's from stack, we can do a vector operation or a pop into a vector
-				if (stackIsEmpty(&vm->userStack)) return false;
-				meta = pop(&vm->userStack, vm->coadiutor);
-				if (meta == METANONE) return false; //safe
-				//SerialPrint(1, "-----fnOrOpVec1Param: do-while loop: meta = %d -- %s -- popped data = %s", meta, DEBUGMETA[meta], vm->coadiutor);
-				success = false;
-				c.imag = 0.0;
-				if (isComplexNumber(vm->coadiutor)) { //complex
-					success = stringToComplex(vm->coadiutor, &c);
-				} else if (isRealNumber(vm->coadiutor)) { //real number
-					success = stringToDouble(vm->coadiutor, &c.real);
-				} else {
-					FAILANDRETURN(true, vm->error, "Unexpected string", NULLFN)
-				}
-				FAILANDRETURNVAR(!success, vm->error, "Math fn %s failed", fitstr(vm->coadiutor, token, 9))
-				if (fnindex != -1) strcpy(varName, VACC); //vector operation
-				else strncpy(varName, token, MAX_VARNAME_LEN); //vector pop
-				makeStrNum(varName, MAX_VARNAME_LEN, count);
-				//SerialPrint(1, "-----fnOrOpVec1Param: do-while loop: from stack: variable name is %s of value (%g, %g)", varName, c.real, c.imag);
-				createVariable(&vm->ledger, varName, VARIABLE_TYPE_COMPLEX, c, "");
-			} else { //from variable
-				//since it's from a variable, we can do a vector operation but not pop into a vector
-				if (count == (int)numTCount.real) break;
-				strcpy(varName, VACC); //vector operation -- can't have pop
-				makeStrNum(varName, MAX_VARNAME_LEN, count);
-				c = fetchVariableComplexValue(&vm->ledger, varName);
-				//SerialPrint(1, "-----fnOrOpVec1Param: do-while loop: from memory: variable name is %s of value (%g, %g)", varName, c.real, c.imag);
-			}
-			crunningsum = suminternal(crunningsum, c);
-			crunningsqsum = suminternal(crunningsqsum, cmul(c, c));
-			crunningrsum = suminternal(crunningrsum, cdiv(makeComplex(1.0, 0.0), c));
-			count++;
-		} while (meta != METASTARTVECTOR); //start of the vector or empty stack
-
-		if (fnindex != -1) strcpy(varName, VACC); //vector operation
-		else strncpy(varName, token, MAX_VARNAME_LEN); //vector pop
-		if (vectorFromStack)
-			createVariable(&vm->ledger, varName, VARIABLE_TYPE_VECMAT, MKCPLX(count), ""); //the meta vector var - num of elements
-		if (!isVoidFunction) {
-			//not vector vector pop
-			crunning = callVectorMath1ParamFunction(fnindex, crunningsum, crunningsqsum, crunningrsum, count);
-			c.real = crealpart(crunning);
-			c.imag = cimagpart(crunning);
-			success = complexToString(c, vm->coadiutor);
-			FAILANDRETURNVAR(!success, vm->error, "Math fn %s failed", fitstr(vm->coadiutor, token, 9))
-			strcpy(vm->bak, vm->acc); //backup
-			strcpy(vm->acc, vm->coadiutor);
-			push(&vm->userStack, vm->acc, METANONE);
-		}
-	}
-	return true;
-}
+#include "TS-core-fnOrOpVec1Param.h"
 
 int is2ParamFunction(char* token) {
 	//lcase(token);
@@ -2305,7 +1811,7 @@ bool processPop(Machine* vm, char* token) {
 	//check if the user was in the middle of entering a vector
 	//or matrix
 	meta = peek(&vm->userStack, NULL);
-	FAILANDRETURN((meta == -1), vm->error, "Error: Stack empty", NULLFN)		
+	FAILANDRETURN((meta == -1), vm->error, "Stack empty", NULLFN)		
 	double dbl;
 	if (token[0] == '\0') {
 		//@ will pop 1 element of a vector/matrix
@@ -2338,15 +1844,20 @@ bool processPop(Machine* vm, char* token) {
 			//printf("processPop:------ calling createVar string with varname = %s and value = %s\n", token, vm->bak);
 			createVariable(&vm->ledger, token, VARIABLE_TYPE_STRING, MKCPLX(0), vm->bak);
 		}
-	} else { 
+	} else {
 		//a pop but the var does not have a variable name
 		//or is a number -- number means pop n entities out of stack
-		int howMany = 0;
+		int howMany = -1;
 		if (POSTFIX_BEHAVE) { //@<number> is the postfix behavior -- we want <number> @@
 			if (stringToDouble(token, &dbl)) howMany = (int) dbl;
-		} else if (strcmp(token, "@") == 0) {
+		} else if (strcmp(token, "@") == 0) { //@@
+			//if last item was not a number or 0, all of stack is emptied			
 			pop(&vm->userStack, vm->bak);
 			if (stringToDouble(vm->bak, &dbl)) howMany = (int) dbl;
+			else howMany = 0;
+		} else if (strcmp(token, "!") == 0) { //@!
+			//clear stack
+			howMany = 0;
 		}
 		if (howMany >= 0) popNItems(vm, howMany);
 		else FAILANDRETURN(true, vm->error, "illegal POP B", NULLFN); //should never happen
@@ -2354,394 +1865,8 @@ bool processPop(Machine* vm, char* token) {
 	return true;
 }
 
-bool processDefaultPush(Machine* vm, char* token, int8_t meta) {
-	//SerialPrint(1, "processDefaultPush:-------------------Default condition with token = %s", token);
-	//handle shorthands
-	ComplexDouble c;
-	char varName[MAX_VARNAME_LEN];
-	if (strlen(token) == 1) {
-		switch (token[0]) {
-			case 'T': strcpy(token, "T0"); break;
-			case 'X': strcpy(token, "T1"); break;
-			case 'Y': strcpy(token, "T2"); break;
-			case 'Z': strcpy(token, "T3"); break;
-			case 'W': strcpy(token, "T4"); break;
-			case 'V': strcpy(token, "T5"); break;
-		}
-	} 
-	if (strlen(token) == 2) {
-		//handle T0 - T9
-		if (token[0] == 'T' && token[1] <= '9' && token[1] >= '0') {
-			int n = (int)(token[1] - '0');
-			int8_t localmeta = peekn(&vm->userStack, vm->coadiutor, n);
-			//SerialPrint(1, "processDefaultPush:------------------- token = %s 'token[1]' = %d '0' = %d found T for %d = %s", token, token[1], '0', n, vm->coadiutor);
-			FAILANDRETURN((localmeta == -1), vm->error, "stack full", NULLFN)
-			push(&vm->userStack, vm->coadiutor, METANONE);
-			return true;
-		}
-	} else if (strlen(token) == 3) {
-		//handle T10 - T99
-		if (token[0] == 'T' && token[1] <= '9' && token[1] > '0' && 
-				token[2] <= '9' && token[2] >= '0') {
-			int n = (int)((token[1] - '0') * 10 + (token[2] - '0'));
-			int8_t localmeta = peekn(&vm->userStack, vm->coadiutor, n);
-			FAILANDRETURN((localmeta == -1), vm->error, "stack full", NULLFN)
-			push(&vm->userStack, vm->coadiutor, METANONE);
-			return true;
-		}
-	}
-	if (strcmp(token, "b") == 0) {
-		push(&vm->userStack, vm->bak, meta);
-	} else if (strcmp(token, "a") == 0) {
-		push(&vm->userStack, vm->acc, meta);
-		//SerialPrint(1, "-------------------Default condition - found acc");
-	} else if (variableVetted(token) || (strcmp(token, "va") == 0)) {
-		if (strcmp(token, "va") == 0) strcpy(token, VACC);;
-		if (findVariable(&vm->ledger, token) == VARIABLE_TYPE_VECMAT) {
-			c = fetchVariableComplexValue(&vm->ledger, token);
-			//SerialPrint(1, "-------------------Default condition - found token got c.real = %g", c.real);
-			int count = (int) c.real;
-			for (int i = (int) count - 1; i >= 0; i--) {
-				int8_t localmeta;
-				strcpy(varName, token);
-				makeStrNum(varName, MAX_VARNAME_LEN, i);
-				c = fetchVariableComplexValue(&vm->ledger, varName);
-				if (i == (int) count - 1) localmeta = METASTARTVECTOR;
-				else if (i == 0) localmeta = METAENDVECTOR;
-				else localmeta = METAMIDVECTOR;
-				//SerialPrint(1, "-------------------Default condition - found vacc i = %d got c.real = %g", i, c.real);
-				if (complexToString(c, vm->coadiutor)) {
-					push(&vm->userStack, vm->coadiutor, localmeta);
-				}
-			}
-		} else if (findVariable(&vm->ledger, token) == VARIABLE_TYPE_COMPLEX) {
-			c = fetchVariableComplexValue(&vm->ledger, token);
-			if (complexToString(c, vm->coadiutor)) {
-				push(&vm->userStack, vm->coadiutor, meta);
-			}
-		} else if (findVariable(&vm->ledger, token) == VARIABLE_TYPE_STRING) {
-			if (getVariableStringValue(&vm->ledger, token, vm->coadiutor)) {
-				push(&vm->userStack, vm->coadiutor, meta);
-			}
-		} else {
-			FAILANDRETURNVAR(true, vm->error, "no var %s", fitstr(vm->coadiutor, token, 6))
-		}
-	} else {
-		//SerialPrint(1, "processDefaultPush:------------------- ELSE Default condition with token = %s", token);
-		double dbl;
-		char rlc = strIsRLC(token);
-		bool s2d = stringToDouble(token, &dbl);
-		if (stringToComplex(token, &c) || s2d) {
-			printf("processDefaultPush:------------------- 1. ELSE Default condition with token = %s, no-has-dbl-quotes = %d, dbl = %g\n\n", token, !hasDblQuotes(token), dbl);
-			if (s2d) {
-				doubleToString(dbl, vm->coadiutor);
-				char RLCstr[2];
-				RLCstr[1] = '\0';
-				if (rlc) {
-					RLCstr[0] = rlc;
-					//printf("processDefaultPush: RLCstr = %s\n", RLCstr);
-					strcat(vm->coadiutor, RLCstr);
-				}
-				push(&vm->userStack, vm->coadiutor, meta);
-			} else {
-				push(&vm->userStack, token, meta);
-			}
-		} else if (!hasDblQuotes(token) && meta != METASTARTVECTOR) {
-			//don't want to add double quotes to '['
-			addDblQuotes(token);
-			push(&vm->userStack, token, meta);
-		} else {
-			push(&vm->userStack, token, meta);
-		}
-	}
-	return true;
-}
-
-bool process(Machine* vm, char* token, int branchIndex) {
-	bool success = true;
-	bool ifCondition, doingIf, conditional;
-	ifCondition = doingIf = conditional = false;
-	size_t execData = UintStackPeek(&vm->execStack);
-
-	GETEXECSTACKDATA(conditional, ifCondition, doingIf, execData)
-	//SerialPrint(1, "process:------------------- token = %s", token);
-	//SerialPrint(1, "process:------------------- UintStackPeek = %lu", execData);
-	int is1pfn = is1ParamFunction(token);
-	int is2pfn = is2ParamFunction(token);
-	int isvecfn = isVec1ParamFunction(token);
-	if (is1pfn != -1) {
-		//SerialPrint(1, "process:------------------- is1pfn = %d", is1pfn);
-		//lcase(token);
-		success = fn1Param(vm, token, is1pfn);
-	} else if (is2pfn != -1) {
-		//SerialPrint(1, "process:------------------- is2pfn|op = %d", is2pfn);
-		//lcase(token);
-		success = fnOrOp2Param(vm, token, is2pfn); //don't pass is2pop
-	} else if (isvecfn != -1) {
-		//lcase(token);
-		success = fnOrOpVec1Param(vm, token, isvecfn, false);
-	} else if (strcmp(token, "dup") == 0) {
-		FAILANDRETURN(vectorMatrixData(execData) != 0, vm->error, "No vecmat here.C", NULLFN)
-		int8_t meta = peek(&vm->userStack, vm->coadiutor);
-		FAILANDRETURN((meta == -1), vm->error, "stack empty", NULLFN)
-		FAILANDRETURN((meta != 0), vm->error, "no DUP here", NULLFN)
-		if ((ifCondition && doingIf) || (!ifCondition && !doingIf) || (!conditional)) {
-			push(&vm->userStack, vm->coadiutor, METANONE);
-			return true;
-		}
-	} else if (strcmp(token, "tim") == 0) {
-		FAILANDRETURN(vectorMatrixData(execData) != 0, vm->error, "No vecmat here.F", NULLFN)
-		//conditional loop, check for previous if/else
-		int8_t meta = peek(&vm->userStack, vm->coadiutor);
-		FAILANDRETURN((meta == -1), vm->error, "stack empty", NULLFN)
-		FAILANDRETURN((meta != 0), vm->error, "no TIM here", NULLFN)
-		if ((ifCondition && doingIf) || (!ifCondition && !doingIf) || (!conditional)) {
-			ComplexDouble c;
-			rtc_disable_alarm();
-			c.imag = 0.0;
-			pop(&vm->userStack, vm->coadiutor); //c
-			if (isRealNumber(vm->coadiutor)) { //real number
-				success = stringToDouble(vm->coadiutor, &c.real);
-				FAILANDRETURN(!success, vm->error, "Bad timer.A", NULLFN)
-				if (c.real == 0.0) return true;
-			} else if (isComplexNumber(vm->coadiutor)) { //complex
-				success = stringToComplex(vm->coadiutor, &c);
-				FAILANDRETURN(!success, vm->error, "Bad timer.B", NULLFN)
-				if (c.real == 0.0 && c.imag == 0.0) return true;
-			} else
-				FAILANDRETURN(true, vm->error, "Bad timer.C", NULLFN)
-
-			//we don't set the alarm struct values
-			//to -1 for repeating alarm
-			vm->repeatingAlarm = false;
-			if (c.real < 0.0 || c.imag < 0.0) {
-				vm->repeatingAlarm = true;
-				if (c.real < 0)
-					c.real = -c.real;
-				if (c.imag < 0)
-					c.imag = -c.imag;
-			}
-
-			int creal = (int) c.real;
-			int cimag = (int) c.imag;
-
-			//set the global values that will be used
-			//by the IRQ handler if the timer is repeating
-			if (c.imag > 0.0) { //sec and min were specified
-				if (cimag > 84600) cimag = 84600;
-				if (creal > 3600) creal = 3600;
-				vm->alarmSec = (int) (cimag % 60);
-				vm->alarmMin = (int) (creal % 60);
-				vm->alarmHour = (int) (creal / 60);
-			} else { //c.imag == 0.0
-				if (creal > 84600) creal = 84600;
-				vm->alarmSec = (int) (creal % 60);
-				vm->alarmMin = (int) (creal / 60);
-				vm->alarmHour = (int) (creal / 3600);
-			}
-			vm->alarmHour %= 24;
-
-			datetime_t alarm;
-			alarm.year  = 2023;
-			alarm.month = 9;
-			alarm.day   = 15;
-			alarm.dotw  = 5; // Friday; 0 is Sunday
-			alarm.sec = 0;
-			alarm.min = 0;
-			alarm.hour = 0;
-			rtc_set_datetime(&alarm);
-			alarm.sec = vm->alarmSec;
-			alarm.min = vm->alarmMin;
-			alarm.hour = vm->alarmHour;
-			rtc_set_alarm(&alarm, &toggleLED);
-		}
-		return true;
-	} else if (strcmp(token, "do") == 0) {
-		FAILANDRETURN(vectorMatrixData(execData) != 0, vm->error, "No vecmat here.F", NULLFN)
-		//conditional loop, check for previous if/else
-		UintStackPush(&vm->execStack, (1<<(sizeof(size_t)-1)));
-		return true;
-	} else if (strcmp(token, IFTOKEN) == 0) {
-		//SerialPrint(1, "-------------------Found if -- now popping vm->userStack");
-		FAILANDRETURN(vectorMatrixData(execData) != 0, vm->error, "No vecmat here.G", NULLFN)
-		strcpy(vm->bak, vm->acc); //backup
-		pop(&vm->userStack, vm->acc);
-		ComplexDouble conditionComplex;
-		success = false;
-		if (isComplexNumber(vm->acc)) { //complex
-			success = stringToComplex(vm->acc, &conditionComplex);
-			ifCondition = !alm0double(conditionComplex.real) || !alm0double(conditionComplex.imag);
-		} else if (isRealNumber(vm->acc)) { //real number
-			success = stringToDouble(vm->acc, &conditionComplex.real);
-			ifCondition = !alm0double(conditionComplex.real);
-			//SerialPrint(1, "-------------------Found if: conditionComplex.real = %.15g", conditionComplex.real);
-		} else { //string
-			ifCondition = false;
-		}
-		//SerialPrint(1, "-------------------Found if: ifCondition = %d", ifCondition);
-		execData = makeExecStackData(true, ifCondition, true, false, false); //doingIf = true
-		//SerialPrint(1, "-------------------Found if: execData calculated = %lu", execData);
-		UintStackPush(&vm->execStack, execData);
-		return true;
-	} else if (strcmp(token, ELSETOKEN) == 0) {
-		FAILANDRETURN(vectorMatrixData(execData) != 0, vm->error, "No vecmathere.H", NULLFN)
-		//SerialPrint(1, "-------------------Found else -- execData = %lu", execData);
-		FAILANDRETURN((conditionalData(execData) == 0x0), vm->error, "else without if. A", NULLFN)
-		FAILANDRETURN(!doingIf, vm->error, "el w/o if", NULLFN)
-		FAILANDRETURN(UintStackIsEmpty(&vm->execStack), vm->error, "el w/o if.B", NULLFN)
-		UintStackPop(&vm->execStack); //discard the if
-		execData = makeExecStackData(true, ifCondition, false, false, false); //else
-		//SerialPrint(1, "-------------------Found else -- set execData to = %lu", execData);
-		UintStackPush(&vm->execStack, execData);
-		return true;
-	} else if (strcmp(token, ENDIFTOKEN) == 0) {
-		FAILANDRETURN(vectorMatrixData(execData) != 0, vm->error, "No vecmat here.I", NULLFN)
-		FAILANDRETURN((conditionalData(execData) == 0x0), vm->error, "fi w/o if. A", NULLFN)
-		FAILANDRETURN(UintStackIsEmpty(&vm->execStack), vm->error, "fi w/o if. B", NULLFN)
-		UintStackPop(&vm->execStack); //discard the if/else
-		return true;
-	} else {
-		uint8_t meta = peek(&vm->userStack, vm->coadiutor);
-		FAILANDRETURN((strcmp(token, MATSTARTTOKEN) == 0 || 
-				strcmp(token, MATLASTTOKEN) == 0), vm->error, 
-				"Dangling '['s", NULLFN)
-		//SerialPrint(1, "-------------------Default condition with token = %s", token);
-		bool doingMat = vectorMatrixData(execData) == 0x2;
-		bool doingVec = vectorMatrixData(execData) == 0x1;
-		//SerialPrint(1, "-------------------Default -- execData >> 3 = %lu", execData >> 3);
-		//last instruction on exec stack was not an IF or ELSE
-
-		//SerialPrint(1, "-------------------Default: conditional = %d ", conditional);
-		if ((ifCondition && doingIf) || (!ifCondition && !doingIf) || (!conditional)) {
-			int len_m_1 = strlen(token) - 1;
-			bool token_0_eq_VECSTARTTOKENC = (token[0] == VECSTARTTOKENC);
-			bool token_1_eq_VECSTARTTOKENC = (token[1] == VECSTARTTOKENC);
-			bool token_l_eq_VECLASTTOKENC = (token[len_m_1] == VECLASTTOKENC);
-			bool token_l_m_1_eq_VECLASTTOKENC = (token[len_m_1 - 1] == VECLASTTOKENC);
-			if (token_l_eq_VECLASTTOKENC) { //vector or matrix ending 
-				if (token_l_m_1_eq_VECLASTTOKENC) { //matrix ending
-					if (len_m_1 < 2) return false; //too short
-					token[len_m_1 - 1] = '\0';
-					if (token_0_eq_VECSTARTTOKENC && token_1_eq_VECSTARTTOKENC){ //both matrix starting and ending
-						//[[aa]]
-						success = processDefaultPush(vm, &token[2], METANONE);
-					} else if (token_0_eq_VECSTARTTOKENC) {
-						//[aa]]
-						FAILANDRETURN(!doingMat, vm->error, "Expect mat end.A", NULLFN)
-						success = processDefaultPush(vm, &token[1], METAENDMATRIX);
-					} else {
-						//aa]]
-						//SerialPrint(1, "-------------------Default -- aa]] Current execData >> 3 = %lu", execData >> 3);
-						FAILANDRETURN(!doingMat, vm->error, "Expect mat end.B", NULLFN)
-						//matrix is done
-						execData = UintStackPop(&vm->execStack);
-						success = processDefaultPush(vm, token, METAENDMATRIX);
-					}
-				} else if (token_0_eq_VECSTARTTOKENC){ //vector starting and ending
-					//[aa]
-					if (len_m_1 < 2) return false; //too short
-					FAILANDRETURN((len_m_1 < 2), vm->error, "Syntax error.A", NULLFN)
-					token[len_m_1] = '\0';
-					success = processDefaultPush(vm, &token[1], METANONE);
-				} else { //vector ending
-					//a] or ]
-					if (len_m_1 == 0) { //just a ']'
-						FAILANDRETURN(!doingMat && !doingVec, vm->error, "Bad vec end", NULLFN)
-						pop(&vm->userStack, vm->coadiutor);
-						if (meta == METAMIDVECTOR) {
-							push(&vm->userStack, vm->coadiutor, METAENDVECTOR);
-						} else if (meta == METASTARTVECTOR) { //[2] becomes 2
-							if (vm->coadiutor[0] != VECSTARTINDICATOR)
-								push(&vm->userStack, vm->coadiutor, METANONE);
-						} else if (meta == METAMIDMATRIX) {
-							push(&vm->userStack, vm->coadiutor, METAENDMATRIX);
-						}
-					} else { //a]
-						//if the last was a vector ending, we append the new ending
-						//by making the previous one a mid-vector
-						if (meta == METAENDVECTOR) {
-							pop(&vm->userStack, vm->coadiutor);
-							push(&vm->userStack, vm->coadiutor, METAMIDVECTOR);
-						}
-						token[len_m_1] = '\0'; //remove the ']' character
-						success = processDefaultPush(vm, token, METAENDVECTOR);
-					}
-					if (doingVec) { //vector was going on, not matrix
-						//vector is done
-						execData = UintStackPop(&vm->execStack);
-					}
-				}
-			} else if (token_0_eq_VECSTARTTOKENC) { //vector or matrix starting 
-				if (len_m_1 == 0) {
-					//[
-					FAILANDRETURN(doingMat, vm->error, "Nested mats.A", NULLFN)
-					if (!doingVec) { //already vector entry is NOT going on; another '[' starts a matrix entry
-						execData = makeExecStackData(false, false, false, false, true); //vector
-						UintStackPush(&vm->execStack, execData);
-						token[0] = VECSTARTINDICATOR; //ASCII SYNC
-						token[1] = '\0';
-						success = processDefaultPush(vm, token, METASTARTVECTOR);
-					} else {
-						//already a vector going on, so this will be start of matrix entry
-						//if TOS of userStack has VECSTARTINDICATOR, then ok, else error
-						SerialPrint(1, "#### UNSUPPORTED #### UNSUPPORTED ####\r\n");
-					}
-				} else if (token_1_eq_VECSTARTTOKENC) {//matrix starting
-					//[[aa
-					FAILANDRETURN(doingMat, vm->error, "Nested mats.B", NULLFN)
-					execData = makeExecStackData(false, false, false, true, false); //matrix
-					UintStackPush(&vm->execStack, execData);
-					success = processDefaultPush(vm, &token[2], METASTARTMATRIX);
-				} else { //vector starting
-					//[a
-					//SerialPrint(1, "-------------------Default -- [a Current execData >> 3 = %lu", execData >> 3);
-					FAILANDRETURN(doingVec, vm->error, "Nested vecs.C", NULLFN)
-					//in above check for previous vector being the ASCII SYNC char
-					FAILANDRETURN(doingMat, vm->error, "Nested mats.C", NULLFN)
-					if (!doingVec) { //last '[' entry means another '[' starts a matrix entry
-						execData = makeExecStackData(false, false, false, false, true); //vector
-						UintStackPush(&vm->execStack, execData);
-					}
-					success = processDefaultPush(vm, &token[1], METASTARTVECTOR);
-				}
-			} else if (token[0] == POPTOKENC) { //pop to register or variable
-				//SerialPrint(1, "------------------- Got POPTOKEN calling processPop with %s", &token[1]);
-				success = processPop(vm, &token[1]);
-			} else if (token[0] == PRINTTOKENC) { //print register or variable
-				success = processPrint(vm, &token[1]);
-			} else {	
-				uint32_t tlen = strlen(token);
-				if (token[tlen - 1] == PRINTTOKENC) { //pop to register or variable
-					//postfix version of pop
-					strncpy(vm->coadiutor, token, tlen - 1);
-					vm->coadiutor[tlen - 1] = '\0';
-					//printf("------------------- Got PRINTTOKEN for postfix version of pop; calling processPop with %s\n", vm->coadiutor);
-					success = processPrint(vm, vm->coadiutor);
-				} else if (token[tlen - 1] == POPTOKENC) { //pop to register or variable
-					//postfix version of pop
-					strncpy(vm->coadiutor, token, tlen - 1);
-					vm->coadiutor[tlen - 1] = '\0';
-					//printf("------------------- Got POPTOKEN for postfix version of pop; calling processPop with %s\n", vm->coadiutor);
-					success = processPop(vm, vm->coadiutor);
-				} else if (doingVec) {
-					//SerialPrint(1, "-------------------Default condition - push token = %s which is char %d", token, (int)token[0]);
-					//SerialPrint(1, "-------------------STACKPUSH: execData  = %lu", execData);	
-					if (meta == METASTARTVECTOR && (vm->coadiutor[0] == VECSTARTINDICATOR)) {
-						pop(&vm->userStack, vm->coadiutor);
-						//pop out the placeholder and push the current token, marking as vector start
-						success = processDefaultPush(vm, token, METASTARTVECTOR);
-					} else {
-						success = processDefaultPush(vm, token, METAMIDVECTOR);
-					}
-				} else if (doingMat) //a matrix end is also a vector end
-					success = processDefaultPush(vm, token, METAMIDMATRIX); //mid matrix is also mix vector
-				else if (token[0] != '\0')
-					success = processDefaultPush(vm, token, METANONE);
-			}
-		}
-	}
-	return success;
-}
+#include "TS-core-processDefaultPush.h"
+#include "TS-core-process.h"
 
 void interpret(Machine* vm, char* sourceCode) {
 	char* input;
@@ -2751,7 +1876,7 @@ void interpret(Machine* vm, char* sourceCode) {
 	//SerialPrint(1, "-------------------START: Source Code = %s", sourceCode);
 	input = sourceCode;
 	do {
-		strcpy(vm->error, "");
+		strcpy(vm->error, ""); //showStack should already be clearing the error msg
 		//SerialPrint(1, "main: do-while before tokenize input = %p", input);
 		//SerialPrint(1, "main: do-while before tokenize input = %s", input);
 		input = tokenize(input, output);
@@ -2779,7 +1904,7 @@ void initMachine(Machine* vm) {
 	strcpy(vm->bak, "0");
 	strcpy(vm->error, "");
 	vm->userInputPos = 0;
-	vm->shiftState = 0;
+	vm->cmdState = 0;
 	vm->altState = 0;
 	vm->viewPage = 0;
 	vm->modeDegrees = 0;

@@ -1,7 +1,10 @@
-
+old/*
 *.swp
 pc/.ts.history
 pc/toystacky
 pc/old/toystacky.0.c
 *.swp
 *.swp
+arduino-pico/ToyStacky/old/TS-core.h.1
+arduino-pico/ToyStacky/old/TS-core.cpp.3.BAD
+arduino-pico/ToyStacky/old/TS-core.cpp.2
