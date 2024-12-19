@@ -1180,15 +1180,15 @@ double complex clog10(double complex x){
 	return clog(x)/clog(10);
 }
 
-double complex cmax(complex double a, complex double b) {
+double complex cmax(double complex a, double complex b) {
 	return cabs(a) > cabs(b) ? a : b;
 }
 
-double complex cmin(complex double a, complex double b) {
+double complex cmin(double complex a, double complex b) {
 	return cabs(a) < cabs(b) ? a : b;
 }
 
-double complex catan2(complex double a, complex double b) {
+double complex catan2(double complex a, double complex b) {
 	return cabs(a) < cabs(b) ? a : b;
 }
 

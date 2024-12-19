@@ -5,6 +5,7 @@ License: GNU GPL v3
 #ifndef __TS_CORE_H__
 #define __TS_CORE_H__
 
+#define PICO_DOUBLE_PROPAGATE_NANS 1
 #define DISPLAY_STATUS_WIDTH 2
 #define DISPLAY_LINESIZE 20
 #define DISPLAY_LINECOUNT 4
@@ -21,17 +22,23 @@ License: GNU GPL v3
 #define STRING_SIZE 101
 #define SHORT_STRING_SIZE 33
 #define VSHORT_STRING_SIZE 25
-#define DOUBLE_EPS 2.2250738585072014e-308
-#define DOUBLEFN_EPS 1.5e-16 //for return values of functions
+//#define DOUBLE_EPS 2.2250738585072014e-308
+#define DOUBLEFN_EPS 9e-16 //for return values of functions
+#define DOUBLE_EPS 9e-16
 
-#define RIGHTOFIND 1
-#define LEFTOFIND 2
-#define CMDIND 3
-#define ALTIND 4
-#define MATSTARTIND 5
-#define MATENDIND 6
-#define LOCKIND 7
-#define UNUSEDIND 0
+//For LCD with Japanese char set: HD44780U A00
+#define OVERFLIND 1
+#define UPIND 1
+#define DOWNIND 1
+#define DEGREEIND char(0xdf)
+#define RIGHTOFIND char(0x7e)
+#define LEFTOFIND char(0x7f)
+#define CMDIND 2
+#define ALTIND 3
+#define MATSTARTIND 4
+#define MATENDIND 5
+#define CMDLOCKIND 6
+#define ALTLOCKIND 7
 
 #define VECSTARTTOKENC '['
 #define VECLASTTOKENC ']'
@@ -137,11 +144,9 @@ typedef struct {
 	char acc[STRING_SIZE];//the accumulator
 	char error[SHORT_STRING_SIZE];//error notification
 	char userDisplay[SHORT_STRING_SIZE];
-	char display[SHORT_STRING_SIZE];
 	char coadiutor[STRING_SIZE]; //coadiutor = helper
 	char userInput[STRING_SIZE];
 	char userInputInterpret[STRING_SIZE];
-	char lastFnOp[STRING_SIZE];
 	int userInputPos; //for userInput buffer
 	int cmdState;
 	int altState;
@@ -150,7 +155,7 @@ typedef struct {
 	//2: stack view, 3: vector view, 4: matrix view
 	//5: internal status view
 	int viewPage;
-	int modeDegrees;
+	bool modeDegrees;
 	int cursorPos;
 	int userInputLeftOflow;
 	int userInputRightOflow;
@@ -183,8 +188,9 @@ void initMachine(Machine* vm);
 bool doubleToString(double value, char* buf);
 void showUserEntryLine(int bsp);
 void showStackEntries(Machine* vm, int linecount);
+void showModes(Machine* vm);
 void showStackHP(Machine* vm, int linecount);
-void showStack(Machine* vm);
 void eraseUserEntryLine();
 void toggleLED();
+
 #endif

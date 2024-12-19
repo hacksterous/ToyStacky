@@ -10,10 +10,11 @@ bool process(Machine* vm, char* token, int branchIndex) {
 	int is1pfn = is1ParamFunction(token);
 	int is2pfn = is2ParamFunction(token);
 	int isvecfn = isVec1ParamFunction(token);
+	int isTrig = is1ParamTrigFunction(token);
 	if (is1pfn != -1) {
 		//SerialPrint(1, "process:------------------- is1pfn = %d", is1pfn);
 		//lcase(token);
-		success = fn1Param(vm, token, is1pfn);
+		success = fn1Param(vm, token, is1pfn, isTrig);
 	} else if (is2pfn != -1) {
 		//SerialPrint(1, "process:------------------- is2pfn|op = %d", is2pfn);
 		//lcase(token);

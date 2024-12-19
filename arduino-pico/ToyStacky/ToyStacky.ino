@@ -26,15 +26,15 @@ const byte COLS = 4;
 //define the cymbols on the buttons of the keypads
 char numKeys[ROWS][COLS] = 
 {
-	{'u','m','[','('},  //up mean [ (
-	{'d','q',']',')'},  //down sum ] )
-	{'C','V','P','?'},  //cmd sdv pi ?
-	{'a','U','C','@'},   //alt ABS C @
+	{'u','a','c','e'}, 
+	{'d','x','f','l'},  
+	{'C','[','(','"'},  
+	{'A',']',')','@'},  
 
-	{'B','A','r','\b'}, //B A sqrt backspace
-	{'D','s','c','t'},  //D sin cos tan
-	{'E','l','n','T'},  //E log exp 1/T
-	{'F',' ','<','>'},  //F space left right
+	{'m','M','q','\b'}, 
+	{'p','s','X','t'},  
+	{'h','z','n','T'},  
+	{'b',' ','<','>'},  
 
 	{'1','2','3','+'},
 	{'4','5','6','-'},
@@ -42,6 +42,9 @@ char numKeys[ROWS][COLS] =
 	{'0','.','/','\n'}
 
 };
+
+
+
 //LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 LiquidCrystal lcd(18, 19, 20, 21, 22, 26);
 byte rowPins[ROWS] = {15, 14, 13, 12, 11, 10, 9, 8, 3, 2, 1, 0}; //these are inputs
@@ -58,8 +61,8 @@ void clearUserInput(){
 	vm.userInputRightOflow = 0;
 	vm.userInputCursorEntry = 1; //char DISPLAY_LINESIZE - 1 is empty and for data entry
 	memset(vm.userInput, 0, STRING_SIZE);
-	memset(vm.display, 0, SHORT_STRING_SIZE);
 	memset(vm.userDisplay, 0, SHORT_STRING_SIZE);
+	vm.userInputPos = 0;
 }
 
 void eraseUserEntryLine() {
@@ -120,7 +123,8 @@ void updatesForLeftMotion() {
 				vm.userInputPos--;
 				lcd.setCursor(0, 3); //col, row
 				//no decrement of vm.cursorPos
-				lcd.write(LEFTOFIND);
+				//lcd.write(LEFTOFIND);
+				lcd.print(LEFTOFIND);
 				if ((len - vm.userInputPos) == (DISPLAY_LINESIZE - 1)) {
 					//no right overflow
 					strncpy(vm.userDisplay, &vm.userInput[vm.userInputPos], DISPLAY_LINESIZE - 1);
@@ -138,7 +142,8 @@ void updatesForLeftMotion() {
 		}
 		if (vm.userInputRightOflow) {
 			lcd.setCursor(DISPLAY_LINESIZE - 1, 3); //col, row
-			lcd.write(RIGHTOFIND);
+			//lcd.write(RIGHTOFIND);
+			lcd.print(RIGHTOFIND);
 		}
 	}
 	lcd.setCursor(vm.cursorPos, 3); //col, row
@@ -177,7 +182,8 @@ void updatesForRightMotion(){
 				//show cursor entry position on col 19 and move left
 				if (len > DISPLAY_LINESIZE - 1) {
 					lcd.setCursor(0, 3); //col, row
-					lcd.write(LEFTOFIND);
+					//lcd.write(LEFTOFIND);
+					lcd.print(LEFTOFIND);
 					vm.userInputLeftOflow = 1;
 					strncpy(vm.userDisplay, &vm.userInput[len - DISPLAY_LINESIZE + 2], DISPLAY_LINESIZE - 2);
 					SerialPrint(2, "updatesForRightMotion: 00 10 A case ", "\n\r");
@@ -208,7 +214,8 @@ void updatesForRightMotion(){
 				vm.userInputPos++;
 				SerialPrint(2, "updatesForRightMotion: 01 11 B case ", "\n\r");
 				lcd.setCursor(0, 3);
-				lcd.write(LEFTOFIND);
+				//lcd.write(LEFTOFIND);
+				lcd.print(LEFTOFIND);
 				vm.userInputLeftOflow = 1;
 				strncpy(vm.userDisplay, &vm.userInput[vm.userInputPos - DISPLAY_LINESIZE + 3], DISPLAY_LINESIZE - 2);
 				lcd.print(vm.userDisplay);
@@ -220,7 +227,8 @@ void updatesForRightMotion(){
 				//there is one char scrolled off to the right after the indicator
 				//recalculate whether a left scroll indicator is required
 				lcd.setCursor(0, 3); //col, row
-				lcd.write(LEFTOFIND);
+				//lcd.write(LEFTOFIND);
+				lcd.print(LEFTOFIND);
 				vm.userInputLeftOflow = 1;
 				SerialPrint(2, "updatesForRightMotion: 01 11 C case ", "\n\r");
 				strncpy(vm.userDisplay, &vm.userInput[vm.userInputPos - DISPLAY_LINESIZE + 3], DISPLAY_LINESIZE - 1);
@@ -275,27 +283,17 @@ void setup() {
 	vm.repeatingAlarm = true;
 
 	//various indicator bitmaps
-	byte rightoflowIndicator[8] = {
-	  B11000,
-	  B11100,
-	  B10110,
-	  B10011,
-	  B10110,
-	  B11100,
-	  B11000,
+	byte oflowIndicator[8] = {
+	  B00100,
+	  B01110,
+	  B11111,
+	  B01111,
+	  B01110,
+	  B00100,
+	  B00000,
 	};
 	
-	byte leftoflowIndicator[8] = {
-	  B00011,
-	  B00111,
-	  B01101,
-	  B11001,
-	  B01101,
-	  B00111,
-	  B00011,
-	};
-
-	byte cmdIndicator[8] = {
+	unsigned char cmdIndicator[8] = {
 	  B11100,
 	  B10000,
 	  B10000,
@@ -305,7 +303,17 @@ void setup() {
 	  B00000,
 	};
 
-	byte altIndicator[8] = {
+	unsigned char cmdLockIndicator[8] = {
+	  B11100,
+	  B10000,
+	  B10000,
+	  B10000,
+	  B11100,
+	  B01000,
+	  B01110,
+	};
+
+	unsigned char altIndicator[8] = {
 	  B11110,
 	  B10010,
 	  B11110,
@@ -313,6 +321,16 @@ void setup() {
 	  B10010,
 	  B00000,
 	  B00000,
+	};
+
+	unsigned char altLockIndicator[8] = {
+	  B11110,
+	  B10010,
+	  B11110,
+	  B10010,
+	  B10010,
+	  B10000,
+	  B11100,
 	};
 
 	byte matStartIndicator[8] = {
@@ -335,25 +353,14 @@ void setup() {
 	  B11111,
 	};
 
-	byte lockIndicator[8] = {
-	  B10000,
-	  B10000,
-	  B10000,
-	  B10000,
-	  B11110,
-	  B00000,
-	  B00000,
-	};
-
-
 	// initialize digital pin LED_BUILTIN as an output.
-	lcd.createChar(RIGHTOFIND, rightoflowIndicator);
-	lcd.createChar(LEFTOFIND, leftoflowIndicator);
+	lcd.createChar(OVERFLIND, oflowIndicator);
 	lcd.createChar(CMDIND, cmdIndicator);
+	lcd.createChar(CMDLOCKIND, cmdLockIndicator);
 	lcd.createChar(ALTIND, altIndicator);
+	lcd.createChar(ALTLOCKIND, altLockIndicator);
 	lcd.createChar(MATSTARTIND, matStartIndicator);
 	lcd.createChar(MATENDIND, matEndIndicator);
-	lcd.createChar(LOCKIND, lockIndicator);
 	lcd.begin(DISPLAY_LINESIZE, DISPLAY_LINECOUNT); //20 cols, 4 rows
 	lcd.setCursor(DISPLAY_STATUS_WIDTH, 0);
 	lcd.print("....Toy Stacky....");
@@ -365,7 +372,7 @@ void setup() {
 	lcd.print("                      ");
 	lcd.cursor();
 	lcd.setCursor(DISPLAY_LINESIZE - 1, 3); //col, row
-	Serial.begin(115200);
+	Serial.begin(115200); //works at 9600 ONLY!!
 }
 
 // the loop function runs over and over again forever
@@ -378,319 +385,60 @@ void loop1() {
 	}
 }
 
-int opLookup(char keyc) {
-	int inputSubstitute = 0;
-	
-	if (keyc == 'P' && (vm.altState == 0 && vm.cmdState == 0)) {
-		//pi and exp are 17 chars long
-		if (vm.userInputPos >= STRING_SIZE - 17) {
-			return 0;
-		}
-	} else {
-		//assume worst case 7 for others
-		if (vm.userInputPos >= STRING_SIZE - 7) {
-			return 0;
-		}
+void processImmdOpKeyC (const char* str) {
+	if ((vm.userInputPos > 0) && (vm.userInputPos < STRING_SIZE)) {
+		vm.userInput[vm.userInputPos++] = ' ';
+		SerialPrint(1, "\n\r");
 	}
-	int cmdState = vm.cmdState & 0x1;
-	int altState = vm.altState & 0x1;
-	switch ((cmdState << 1) + altState) {
-		case 0: //normal
-			switch (keyc) {
-				case 'r': strcpy(&vm.userInput[vm.userInputPos], "sqrt"); break;
-				case 's': strcpy(&vm.userInput[vm.userInputPos], "sin"); break;
-				case 'c': strcpy(&vm.userInput[vm.userInputPos], "cos"); break;
-				case 't': strcpy(&vm.userInput[vm.userInputPos], "tan"); break;
-				case 'l': strcpy(&vm.userInput[vm.userInputPos], "log"); break;
-				case 'n': strcpy(&vm.userInput[vm.userInputPos], "exp");
-						inputSubstitute = 2; break;
-				case 'T': strcpy(&vm.userInput[vm.userInputPos], "1 swp /"); // 1/T
-						inputSubstitute = 5; break;
-				case '+': strcpy(&vm.userInput[vm.userInputPos], "+"); break;
-				case '-': strcpy(&vm.userInput[vm.userInputPos], "-"); break;
-				case '*': strcpy(&vm.userInput[vm.userInputPos], "*"); break;
-				case '/': strcpy(&vm.userInput[vm.userInputPos], "/"); break;
-				case 'q': strcpy(&vm.userInput[vm.userInputPos], "sum"); break;
-				case 'V': strcpy(&vm.userInput[vm.userInputPos], "sdv"); break;
-				case 'U': strcpy(&vm.userInput[vm.userInputPos], "abs"); break;
-				case 'm': strcpy(&vm.userInput[vm.userInputPos], "mean"); break;
-				case 'P': strcpy(&vm.userInput[vm.userInputPos], __TS_PI_STR__); break;
-				case '?': strcpy(&vm.userInput[vm.userInputPos], "?"); break;
-				case ')': strcpy(&vm.userInput[vm.userInputPos], ")"); break;
-			}
-			break;
-		case 1: //ALT
-			switch (keyc) {
-				case 'r': strcpy(&vm.userInput[vm.userInputPos], "cbrt"); break;
-				case 's': strcpy(&vm.userInput[vm.userInputPos], "sin"); break;
-				case 'c': strcpy(&vm.userInput[vm.userInputPos], "cos"); break;
-				case 't': strcpy(&vm.userInput[vm.userInputPos], "tan"); break;
-				case 'l': strcpy(&vm.userInput[vm.userInputPos], "log2"); break;
-				case 'n': strcpy(&vm.userInput[vm.userInputPos], "2 swp pow"); // 2^T
-						inputSubstitute = 3; break;
-				case 'T': strcpy(&vm.userInput[vm.userInputPos], "2 pow"); // T^2
-						inputSubstitute = 4; break;
-				case '+': strcpy(&vm.userInput[vm.userInputPos], "+"); break;
-				case '-': strcpy(&vm.userInput[vm.userInputPos], "~"); break; //unary neg
-				case '*': strcpy(&vm.userInput[vm.userInputPos], "*"); break;
-				case '/': strcpy(&vm.userInput[vm.userInputPos], "//"); break;
-				case 'q': strcpy(&vm.userInput[vm.userInputPos], "sum"); break;
-				case 'V': strcpy(&vm.userInput[vm.userInputPos], "sd"); break;
-				case 'U': strcpy(&vm.userInput[vm.userInputPos], "abs"); break;
-				case 'm': strcpy(&vm.userInput[vm.userInputPos], "mean"); break;
-				case 'P': strcpy(&vm.userInput[vm.userInputPos], __TS_E_STR__); break;
-				case '?': strcpy(&vm.userInput[vm.userInputPos], "?"); break;
-				case '@': strcpy(&vm.userInput[vm.userInputPos], "@"); break;
-				case ')': strcpy(&vm.userInput[vm.userInputPos], ")"); break;
-			}
-			break;
-		case 2: //CMD
-			switch (keyc) {
-				case 'r': strcpy(&vm.userInput[vm.userInputPos], "pow"); break;
-				case 's': strcpy(&vm.userInput[vm.userInputPos], "sin"); break;
-				case 'c': strcpy(&vm.userInput[vm.userInputPos], "cos"); break;
-				case 't': strcpy(&vm.userInput[vm.userInputPos], "tan"); break;
-				case 'l': strcpy(&vm.userInput[vm.userInputPos], "10 swp pow"); //10^T
-						inputSubstitute = 1; break;
-				case 'n': strcpy(&vm.userInput[vm.userInputPos], "log10"); break;
-				case 'T': strcpy(&vm.userInput[vm.userInputPos], "pow"); break; //X ^ T
-				case '+': strcpy(&vm.userInput[vm.userInputPos], "+"); break;
-				case '-': strcpy(&vm.userInput[vm.userInputPos], "-"); break;
-				case '*': strcpy(&vm.userInput[vm.userInputPos], "*"); break;
-				case '/': strcpy(&vm.userInput[vm.userInputPos], "/"); break;
-				case 'q': strcpy(&vm.userInput[vm.userInputPos], "sum"); break;
-				case 'V': strcpy(&vm.userInput[vm.userInputPos], "sd"); break;
-				case 'U': strcpy(&vm.userInput[vm.userInputPos], "abs"); break;
-				case 'm': strcpy(&vm.userInput[vm.userInputPos], "mean"); break;
-				case 'P': strcpy(&vm.userInput[vm.userInputPos], __TS_PI_STR__); break;
-				case '?': strcpy(&vm.userInput[vm.userInputPos], "?"); break;
-				case '@': strcpy(&vm.userInput[vm.userInputPos], "@"); break;
-				case ')': strcpy(&vm.userInput[vm.userInputPos], ")"); break;
-			}
-			break;
-		case 3: //ATL+SHIFT
-			switch (keyc) {
-				case 'r': strcpy(&vm.userInput[vm.userInputPos], "cbrt"); break;
-				case 's': strcpy(&vm.userInput[vm.userInputPos], "sin"); break;
-				case 'c': strcpy(&vm.userInput[vm.userInputPos], "cos"); break;
-				case 't': strcpy(&vm.userInput[vm.userInputPos], "tan"); break;
-				case 'l': strcpy(&vm.userInput[vm.userInputPos], "log10"); break;
-				case 'T': strcpy(&vm.userInput[vm.userInputPos], "2 pow"); break;
-				case '+': strcpy(&vm.userInput[vm.userInputPos], "+"); break;
-				case '-': strcpy(&vm.userInput[vm.userInputPos], "-"); break;
-				case '*': strcpy(&vm.userInput[vm.userInputPos], "*"); break;
-				case '/': strcpy(&vm.userInput[vm.userInputPos], "/"); break;
-				case 'q': strcpy(&vm.userInput[vm.userInputPos], "sum"); break;
-				case 'V': strcpy(&vm.userInput[vm.userInputPos], "sdv"); break;
-				case 'U': strcpy(&vm.userInput[vm.userInputPos], "abs"); break;
-				case 'm': strcpy(&vm.userInput[vm.userInputPos], "mean"); break;
-				case 'P': strcpy(&vm.userInput[vm.userInputPos], __TS_PI_STR__); break;
-				case '?': strcpy(&vm.userInput[vm.userInputPos], "?"); break;
-				case '@': strcpy(&vm.userInput[vm.userInputPos], "@"); break;
-				case ')': strcpy(&vm.userInput[vm.userInputPos], ")"); break;
-			}
-			break;
-		}
-	Serial.print(&vm.userInput[vm.userInputPos]);
-	return inputSubstitute;
+	strcpy(&vm.userInput[vm.userInputPos], str); 
+	SerialPrint(1, "\n\r");
+	strcpy(vm.userInputInterpret, vm.userInput);
+	clearUserInput();
+	rp2040.fifo.push(CORE0_TO_CORE1_START);
 }
 
-void updateLastFnOp (int inputSubstitute, char* str) {
-	switch (inputSubstitute) {
-		case 1:
-			strcpy(vm.lastFnOp, "10^x");
-			break;
-		case 2:
-			strcpy(vm.lastFnOp, "e^x");
-			break;
-		case 3:
-			strcpy(vm.lastFnOp, "2^x");
-			break;
-		case 4:
-			strcpy(vm.lastFnOp, "x^2");
-			break;
-		case 5:
-			strcpy(vm.lastFnOp, "1/x");
-			break;
-		default:
-			strcpy(vm.lastFnOp, str);
-			vm.lastFnOp[NUMBER_LINESIZE - 1] = '\0';
-			break;
-	}
-}
-
+#include "ToyStacky-normal-mode-keyhandler.h"
+#include "ToyStacky-alt-mode-keyhandler.h"
 void loop() {
 	char debug0[10];
 	char keyc = customKeypad.getKey();
-	int len;
-	int opLookupCode;
-	int keyTypePressed; // 0=user continues to edit; 1=evaluate immediately; 2=backspace; ... others ...
+
+	// 0=user continues to edit; 1=evaluate immediately; 2=backspace; ... others ...
+	int keyTypePressed; 
 	
 	if (keyc) {
 		debug0[0] = keyc; debug0[1] = '\0';
 		SerialPrint(3, "Key stroke -- got ", debug0, "\n\r");
-		len = strlen(vm.userInput);
-		if (vm.lastFnOp[0] != '\0') {
-			vm.lastFnOp[0] = '\0';
-			eraseUserEntryLine();
-		}
-
 		
 		if (keyc == 'C') {//cmd
 			keyTypePressed = 5;
+			if (vm.altState == 1) vm.altState = 0;
 			if (vm.cmdState == 0) vm.cmdState = 1;
 			else if (vm.cmdState == 1) vm.cmdState = 3;
 			else vm.cmdState = 0; //none -> cmd -> cmd lock -> none
-		} else if (keyc == 'a') { //alt function
+			showModes(&vm);
+		} else if (keyc == 'A') { //alt function
 			keyTypePressed = 6;
+			if (vm.cmdState == 1) vm.cmdState = 0;
 			if (vm.altState == 0) vm.altState = 1;
 			else if (vm.altState == 1) vm.altState = 3;
 			else vm.altState = 0; //none -> alt -> alt lock -> none
+			showModes(&vm);
 		} else {
 			keyTypePressed = 0;
+			switch (((vm.cmdState & 0x1) << 1) + (vm.altState & 0x1)) {
+				case 0: //normal
+					keyTypePressed = normalModeKeyhandler(keyc);
+					break;
+				case 1: //ALT
+					keyTypePressed = altModeKeyhandler(keyc);
+					break;
+				case 2: break; //CMD
+				case 3: break; //ALT+CMD
+			}
 			if (vm.cmdState == 1) vm.cmdState = 0;
 			if (vm.altState == 1) vm.altState = 0;
-		}
-
-		switch (keyc) {
-			case '\n':
-				keyTypePressed = 1;
-				if (vm.timerRunning) {
-					vm.timerRunning = false;
-					rtc_disable_alarm();
-					vm.repeatingAlarm = false;
-				}
-				doubleToString(vm.TS0RTCFreq, debug0);
-				SerialPrint(3, "loop:  -- vm.TS0RTCFreq = ", debug0, "\n\r");
-				Serial.print(keyc);
-				SerialPrint(1, "\r");
-		
-				if (vm.userInput[0] == '\0') {
-					strcpy(vm.userInput, "dup");
-					strcpy(vm.lastFnOp, vm.userInput);
-				} else {
-					vm.userInput[len + 1] = '\0';
-					SerialPrint(3, "Got \n : vm.userInput = ", vm.userInput, "\n\r");
-				}
-				strcpy(vm.userInputInterpret, vm.userInput);
-				rp2040.fifo.push(CORE0_TO_CORE1_START);
-				clearUserInput();
-				vm.userInputPos = 0;
-				break;
-			case '?': //result in \n + key
-				keyTypePressed = 1;
-				break;
-			case '\b':
-				Serial.print(keyc);
-				if (vm.userInputPos > 0) {
-					keyTypePressed = 2;
-					//some user entry exists
-					if (vm.cursorPos == DISPLAY_LINESIZE - 1) {
-						//cursor is at end of line
-						vm.userInputPos--;
-						vm.userInput[vm.userInputPos] = '\0';
-					} else {
-						//move the last part of the string 1 char forward
-						strcpy(&vm.userInput[vm.userInputPos - 1], &vm.userInput[vm.userInputPos]);
-						vm.userInputPos--;
-						vm.userInput[len] = '\0';
-					}
-					showStackHP(&vm, 3);
-					showUserEntryLine(1);
-				} else {
-					//backspace on null entry --> drop command
-					keyTypePressed = 1;
-					strcpy(vm.lastFnOp, "@");
-					strcpy(vm.userInputInterpret, "@");
-					rp2040.fifo.push(CORE0_TO_CORE1_START);
-					clearUserInput();
-					vm.userInputPos = 0;
-				}
-				SerialPrint(3, "Got backspace: vm.userInput = ", vm.userInput, "\r\n");
-				break;
-			//these are operators, result in ' ' + key + \n
-			case 'r': 
-			case 's': 
-			case 'c':
-			case 't':
-			case 'l':
-			case 'n':
-			case 'T':
-			case '*':
-			case '/':
-			case 'q':
-			case 'V':
-			case 'U':
-			case 'm':
-			case '+':
-			case 'P': //pi
-			case ')': //results in key + \n -- simplify to ' ' + key + \n
-				keyTypePressed = 1;
-				if ((vm.userInputPos > 0) && (vm.userInputPos < STRING_SIZE)) {
-					vm.userInput[vm.userInputPos++] = ' ';
-					SerialPrint(1, "\n\r");
-				}
-				opLookupCode = opLookup(keyc);
-				updateLastFnOp (opLookupCode, vm.userInput);
-				SerialPrint(1, "\n\r");
-				strcpy(vm.userInputInterpret, vm.userInput);
-				rp2040.fifo.push(CORE0_TO_CORE1_START);
-				clearUserInput();
-				vm.userInputPos = 0;
-				break;
-			case '-': //can result in just a '-' (initial) or '-' + \n (non-initial)
-				if ((vm.userInputPos > 0) && (vm.userInputPos < STRING_SIZE)) {
-					//non spaces followed by a '-'
-					keyTypePressed = 1;
-					vm.userInput[vm.userInputPos++] = ' ';
-					SerialPrint(1, "\n\r");
-					opLookupCode = opLookup(keyc);
-					updateLastFnOp (opLookupCode, vm.userInput);
-					SerialPrint(1, "\n\r");
-					strcpy(vm.userInputInterpret, vm.userInput);
-					SerialPrint(3, "Got - non-initial: vm.userInput = ", vm.userInput, "\n\r");
-					rp2040.fifo.push(CORE0_TO_CORE1_START);
-					clearUserInput();
-					vm.userInputPos = 0;
-				} else {
-					//first char or -number
-					keyTypePressed = 0;
-					if (vm.userInputPos < STRING_SIZE) {
-						opLookupCode = opLookup(keyc);
-						updateLastFnOp (opLookupCode, vm.userInput);
-						vm.userInputPos++;
-						if (vm.cursorPos < DISPLAY_LINESIZE - 1)
-							vm.cursorPos++;
-						SerialPrint(3, "Got + or - initial: vm.userInput = ", vm.userInput, "\n\r");
-						//SerialPrint(1, "\n\r");
-					}
-				}
-				break;
-			//these below need special handling
-			case 'u': //up
-				keyTypePressed = 3;
-				break;
-			case 'd': //down
-				keyTypePressed = 4;
-				break;
-			case '<': //left
-				keyTypePressed = 7;
-				updatesForLeftMotion();
-				break;
-			case '>': //right
-				keyTypePressed = 8;
-				updatesForRightMotion();
-				break;
-			default:
-				keyTypePressed = 0;
-				Serial.print(keyc);
-				if (((keyc != ' ') || (vm.userInputPos > 0)) && (vm.userInputPos < STRING_SIZE)) {
-					//space cannot be entered at start when vm.userInputPos = 0
-					vm.userInput[vm.userInputPos++] = keyc;
-					if (vm.cursorPos < DISPLAY_LINESIZE - 1)
-						vm.cursorPos++;
-				}
-				break;
+			showModes(&vm);
 		}
 		
 		if ((vm.userInput[0] != '\0') && (keyTypePressed == 0)) {
@@ -705,6 +453,5 @@ void loop() {
 		//non-blocking; if until core 1 says done
 		//showStack(&vm);
 		showStackHP(&vm, 4);
-		vm.lastFnOp[0] = '\0';
 	}
 }

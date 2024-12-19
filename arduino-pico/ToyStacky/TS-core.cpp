@@ -781,7 +781,8 @@ void showUserEntryLine(int bsp){
 	if (len > DISPLAY_LINESIZE - 1) {
 		lcd.setCursor(0, 3); //col, row
 		//keep 1 char for the scrolled off indication
-		lcd.write(LEFTOFIND);
+		//lcd.write(LEFTOFIND);
+		lcd.print(LEFTOFIND);
 		vm.userInputLeftOflow = 1;
 		strncpy(vm.userDisplay, &vm.userInput[len - DISPLAY_LINESIZE + 2], DISPLAY_LINESIZE - 2);
 	} else {
@@ -1029,309 +1030,7 @@ bool isRealNumber(const char *token) {
 	return (bool)(i == len);
 }
 
-double sgn(double value) {
-	if (signbit(value)) return (-1.0);
-	else return (1.0);
-}
-
-double cabso (ComplexDouble value) {
-	return sqrt(value.real * value.real + value.imag * value.imag);
-}
-
-double cargu (ComplexDouble value) {
-	return atan(value.imag/value.real);
-}
-
-double crealpart (ComplexDouble value) {
-	return value.real;
-}
-
-double cimagpart (ComplexDouble value) {
-	return value.imag;
-}
-
-bool alm0(ComplexDouble value) {
-	if (cabso(value) < DOUBLE_EPS) return true;
-	else return false;
-}
-
-bool alm0double(double value) {
-	if (abs(value) < DOUBLE_EPS) return true;
-	else return false;
-}
-
-ComplexDouble cneg(ComplexDouble value) {
-	return makeComplex(-value.real, -value.imag);
-}
-
-ComplexDouble cadd(ComplexDouble value, ComplexDouble second) {
-	return makeComplex(value.real + second.real, value.imag + second.imag);
-}
-
-ComplexDouble caddd(ComplexDouble value, double second) {
-	return makeComplex(value.real + second, value.imag);
-}
-
-ComplexDouble csub(ComplexDouble value, ComplexDouble second) {
-	return makeComplex(value.real - second.real, value.imag - second.imag);
-}
-
-ComplexDouble csubd(ComplexDouble value, double second) {
-	return makeComplex(value.real - second, value.imag);
-}
-
-ComplexDouble cmul(ComplexDouble value, ComplexDouble second) {
-	return makeComplex(value.real * second.real - value.imag * second.imag, 
-		value.real * second.imag + value.imag * second.real);
-}
-
-ComplexDouble cdiv(ComplexDouble value, ComplexDouble second) {
-	double denom = cabso(second);
-	if (alm0double(denom)) return makeComplex(0, 0);
-	return makeComplex(value.real / denom, value.imag / denom);
-}
-
-ComplexDouble cdivd(ComplexDouble value, double second) {
-	return makeComplex(value.real / second, value.imag / second);
-}
-
-ComplexDouble cmod(ComplexDouble value, ComplexDouble second) {
-	return makeComplex(0, 0);
-}
-
-ComplexDouble ceq(ComplexDouble value, ComplexDouble second) {
-	if (alm0double(cabso(csub(value, second))))
-		return makeComplex(1.0, 0.0);
-	else
-		return makeComplex(0.0, 0.0);
-}
-
-ComplexDouble cneq(ComplexDouble value, ComplexDouble second) {
-	if (!alm0double(cabso(csub(value, second))))
-		return makeComplex(1.0, 0.0);
-	else
-		return makeComplex(0.0, 0.0);
-}
-
-ComplexDouble cpar(ComplexDouble value, ComplexDouble second) {
-	return cdiv(cmul(value, second), cadd(value, second));
-}
-
-ComplexDouble clt(ComplexDouble value, ComplexDouble second) {
-	ComplexDouble diff = csub(second, value);
-	if (alm0double(diff.imag))
-		//difference is real
-		//LT is true if difference is positive
-		return (!alm0double(diff.real))? makeComplex(1.0, 0.0): makeComplex(0.0, 0.0);
-	else
-		//difference is complex
-		//LT is true if magnitude of the diff is positive
-		return (!alm0(diff))? makeComplex(1.0, 0.0): makeComplex(0.0, 0.0);
-}
-
-ComplexDouble cgt(ComplexDouble value, ComplexDouble second) {
-	return (clt(second, value));
-}
-
-ComplexDouble cgte(ComplexDouble value, ComplexDouble second) {
-	ComplexDouble l = clt(value, second);
-	if (l.real == 1.0) return makeComplex(0.0, 0.0);
-	else return makeComplex(1.0, 0.0);
-}
-
-ComplexDouble clte(ComplexDouble value, ComplexDouble second) {
-	ComplexDouble g = cgt(value, second);
-	if (g.real == 1.0) return makeComplex(0.0, 0.0);
-	else return makeComplex(1.0, 0.0);
-}
-
-ComplexDouble cln(ComplexDouble c) {
-	double re = c.real;
-	double im = c.imag;
-	double r, j, imdre;
-	if (!alm0double(re) && alm0double(im) && (re > 0.0)) {
-		//imag is 0
-		//re is positive
-		return makeComplex(log(re), 0);
-	} else if (!alm0double(re)) {
-		if (re > 0.0) {
-			r = log(re);
-			j = 0.0;
-		} else {
-			//log of a negative number = log (-1) * log of the negative of the negative number
-			//log (-1) = pi * i
-			r = log(-re);
-			j = __TS_PI__;
-		}
-		if (!alm0double(im)) {
-			imdre = (im/re);
-			r += log(imdre*imdre + 1)/2;
-			j += atan(imdre);
-		} 
-	} else if (!alm0double(im)) {
-		r = log(im);
-		j = 0.5 * __TS_PI__  * sgn(im);
-	} else {
-		r = 0;
-		j = 0;
-		strcpy(vm.error, "log undef");
-	}
-	if (j > __TS_PI__)
-		j -= __TS_PI__ * 2;
-	return makeComplex(r, j);
-}
-
-ComplexDouble cexpo(ComplexDouble c) {
-	if (alm0double(c.imag)) {
-		return makeComplex(exp(c.real), 0);
-	}
-	double r = c.real;
-	double j = c.imag;
-	double rexp = exp(r);
-	r = rexp * cos(j);
-	if (!alm0double(c.imag))
-		j = rexp * sin(j);
-	else
-		j = 0;
-	return makeComplex (r, j);
-}
-
-ComplexDouble cpower(ComplexDouble c, ComplexDouble d) {
-	if (alm0double(c.imag) && alm0double(d.imag) && (d.real >= 1.0))
-		return makeComplex(pow(c.real, d.real), 0.0);
-	if (alm0double(c.imag) && alm0double(d.imag) && (d.real == 0.0))
-		return makeComplex (1.0, 0.0);
-	return (cexpo(cmul(cln(c), d))); 
-}
-
-ComplexDouble cpowerd(ComplexDouble c, double d) {
-	if (alm0double(c.imag) && (d >= 1.0))
-		return makeComplex(pow(c.real, d), 0.0);
-	if (alm0double(c.imag) && (d == 0.0))
-		return makeComplex (1.0, 0.0);
-	return (cexpo(cmul(cln(c), makeComplex(d, 0.0))));
-}
-
-ComplexDouble csqroot(ComplexDouble c) {
-	return cpowerd(c, 0.5);
-}
-
-ComplexDouble conjugate(ComplexDouble c) {
-	return makeComplex(c.real, -c.imag);
-}
-
-ComplexDouble cbroot(ComplexDouble c) {
-	ComplexDouble r = cpower(c, makeComplex((1.0/3.0), 0.0));
-	if (!alm0double(r.imag)) {
-		//returned data is complex, we want the real root
-		ComplexDouble rmagsq = cmul(r, conjugate(r));
-		return (cdiv(c, rmagsq));
-	} else {
-		return r;
-	}
-}
-
-ComplexDouble csinehyp(ComplexDouble c) {
-	return cdivd(csub(cexpo(c), cexpo(cneg(c))), 2.0);
-}
-
-ComplexDouble ccosinehyp(ComplexDouble c) {
-	return cdivd(cadd(cexpo(c), cexpo(cneg(c))), 2.0);
-}
-
-ComplexDouble ctangenthyp(ComplexDouble c) {
-	ComplexDouble d = ccosinehyp(c);
-	if (alm0(d)) {
-		strcpy(vm.error, "bad fn domain");
-		return makeComplex(0.0, 0.0);
-	}
-	return cdiv(csinehyp(c), d);
-}
-
-ComplexDouble csine(ComplexDouble c) {
-	double r = c.real;
-	double j = c.imag;
-	return (makeComplex(sin(r) * cosh(j), cos(r) * sinh(j)));
-}
-
-ComplexDouble ccosine(ComplexDouble c) {
-	double r = c.real;
-	double j = c.imag;
-	return (makeComplex(cos(r) * cosh(j), sin(r) * sinh(j)));
-}
-
-ComplexDouble ctangent(ComplexDouble c) {
-	ComplexDouble d = ccosine(c);
-	if (alm0(d)) {
-		strcpy(vm.error, "result undef");
-		return makeComplex(0.0, 0.0);
-	}
-	return cdiv(csine(c), d);
-}
-
-ComplexDouble carcsine(ComplexDouble c) {
-	ComplexDouble j = makeComplex(0.0, 1.0);
-	ComplexDouble x = csub(csqroot(csub(makeComplex(1.0, 0.0), cmul(c, c))), cmul(j, c));
-	return cmul(j, cln(x));
-}
-
-ComplexDouble carccosine(ComplexDouble c) {
-	return csub(makeComplex(__TS_PI__/2.0, 0.0), csine(c));
-}
-
-ComplexDouble carctangent(ComplexDouble c) {
-	ComplexDouble j = makeComplex(0.0, 1.0);
-	ComplexDouble jx2 = makeComplex(0.0, 2.0);
-	if (alm0(csub(c, j))) {
-		//atan is not defined for j
-		strcpy(vm.error, "bad fn domain");
-		return makeComplex(0.0, 0.0);
-	}
-	ComplexDouble x = cdiv(cadd(c, j), csub(c, j));
-	return cdiv(cln(x), jx2);
-}
-
-ComplexDouble carcsinehyp(ComplexDouble c) {
-	return cln(cadd(c, csqroot(caddd(cmul(c, c), 1.0))));
-}
-
-ComplexDouble carccosineh(ComplexDouble c) {
-	return cln(cadd(c, csqroot(csubd(cmul(c, c), 1.0))));
-}
-
-ComplexDouble carctangenthyp(ComplexDouble c) {
-	if (alm0(csub(c, makeComplex(1.0, 0.0)))) {
-		strcpy(vm.error, "bad fn domain");
-		return makeComplex(0.0, 0.0);
-	}
-	ComplexDouble x = cdiv(cadd(makeComplex(1.0, 0.0), c), csub(makeComplex(1.0, 0.0), c));
-	return cdivd(cln(x), 2.0);
-}
-
-ComplexDouble carccotangenthyp(ComplexDouble c) {
-	if (alm0(csub(c, makeComplex(1.0, 0.0)))) {
-		strcpy(vm.error, "bad fn domain");
-		return makeComplex(0.0, 0.0);
-	}
-	ComplexDouble x = cdiv(cadd(c, makeComplex(1.0, 0.0)), csub(c, makeComplex(1.0, 0.0)));
-	return cdivd(cln(x), 2.0);
-}
-
-ComplexDouble carcsecanthyp(ComplexDouble c) {
-	if (alm0(c)) {
-		strcpy(vm.error, "bad fn domain");
-		return makeComplex(0.0, 0.0);
-	}
-	return cln(cdiv(cadd(makeComplex(1.0, 0.0), csqroot(csub(makeComplex(1.0, 0.0), cmul(c, c)))), c));
-}
-
-ComplexDouble carccosecanthyp(ComplexDouble c) {
-	if (alm0(c)) {
-		strcpy(vm.error, "bad fn domain");
-		return makeComplex(0.0, 0.0);
-	}
-	return cln(cdiv(cadd(makeComplex(1.0, 0.0), csqroot(cadd(makeComplex(1.0, 0.0), cmul(c, c)))), c));
-}
+#include "TS-core-math.h"
 
 /* reverse:  reverse string s in place */
 void reverse(char s[]) {
@@ -1449,30 +1148,6 @@ int makeExecStackData(bool conditional, bool ifCondition, bool doingIf, bool mat
 			(conditional << 2) + (ifCondition << 1) + doingIf;
 }
 
-ComplexDouble ccbrt(ComplexDouble x){
-	return cpowerd(x, (1.0/3.0));
-}
-
-ComplexDouble clog2(ComplexDouble x){
-	return cdiv(cln(x), cln(makeComplex(2.0, 0.0)));
-}
-
-ComplexDouble clogarithm10(ComplexDouble x){
-	return cdiv(cln(x), cln(makeComplex(10.0, 0.0)));
-}
-
-ComplexDouble cmax(ComplexDouble a, ComplexDouble b) {
-	return cabso(a) > cabso(b) ? a : b;
-}
-
-ComplexDouble cmin(ComplexDouble a, ComplexDouble b) {
-	return cabso(a) < cabso(b) ? a : b;
-}
-
-ComplexDouble carctangent2(ComplexDouble a, ComplexDouble b) {
-	return carctangent(cdiv(a, b));
-}
-
 typedef double (*RealFunctionPtr)(ComplexDouble);
 typedef void (*BigIntVoidFunctionPtr)(const bigint_t*, const bigint_t*, bigint_t*);
 typedef int (*BigIntIntFunctionPtr)(const bigint_t*, const bigint_t*);
@@ -1481,34 +1156,68 @@ typedef ComplexDouble (*ComplexFunctionPtr2Param)(ComplexDouble, ComplexDouble);
 typedef ComplexDouble (*ComplexFunctionPtrVector)(ComplexDouble, ComplexDouble, ComplexDouble, int);
 
 const char* mathfn1paramname[] = {
-						"sin", "cos",
-						"tan", "asin",
-						"acos", "atan", 
+						"sin", 
+						"cos",
+						"tan", 
+						"cot", 
+						"sinh", 
+						"cosh",
+						"tanh", 
+						"coth", 
+
+						"asin",
+						"acos", 
+						"atan",
+						"acot",
+						"asinh",
+						"acosh", 
+						"atanh", 
+						"acoth",
+						
 						"exp", "log10", 
 						"log", "log2", 
 						"sqrt", "cbrt",
-						"conj", 
+						"conj",
+
 						"abs", "arg", 
 						"re", "im"
 						}; //the 1 param functions
-const int NUMMATH1PARAMFN = 13;
+const int NUMMATH1PARAMFN = 23;
+const int NUMMATH1PARAMTRIGFN = 8;
+const int NUMMATH1PARAMTRIGANTIFN = 16;
 
-ComplexFunctionPtr1Param mathfn1param[] = {csine, ccosine, 
-											ctangent, carcsine, 
-											carccosine, carctangent, 
+//these 21 return ComplexDouble
+ComplexFunctionPtr1Param mathfn1param[] = {	csine, 
+											ccosine, 
+											ctangent, 
+											ccotangent, 
+											csinehyp, 
+											ccosinehyp, 
+											ctangenthyp,
+											ccotangenthyp,
+
+											carcsine, 
+											carccosine, 
+											carctangent,
+											carccotangent,
+											carcsinehyp, 
+											carccosinehyp, 
+											carctangenthyp,
+											carccotangenthyp,
+
 											cexpo, clogarithm10, 
 											cln, clog2, 
 											csqroot, cbroot, 
 											conjugate};
 
-RealFunctionPtr realfn1param[] = {cabso, cargu, crealpart, cimagpart};
+//these 13 return real double
+RealFunctionPtr realfn1param[] = {abso, cargu, crealpart, cimagpart};
+const int NUMREAL1PARAMFN = 4;
 
 BigIntVoidFunctionPtr bigfnvoid2param[] = {bigint_max, bigint_min, bigint_add, bigint_sub, bigint_mul, bigint_div, bigint_rem};
 
 BigIntIntFunctionPtr bigfnint2param[] = {bigint_gt, bigint_lt, bigint_gte, bigint_lte, bigint_eq,
 									bigint_neq};
-
-const int NUMREAL1PARAMFN = 4;
 
 const char* miscelfn1paramname[] = {"dup"};
 
@@ -1517,7 +1226,7 @@ const char* vecfn1paramname[] = {"sum", "sqsum", "var", "sd", "mean", "rs"};
 const int NUMVECFNS = 6;
 
 const char* mathfnop2paramname[] = {"swp", 
-						"pow", "atn2", 
+						"pow", "atan2", 
 						"max", "min", 
 						ADDTOKEN, SUBTOKEN,
 						MULTOKEN, DIVTOKEN,
@@ -1683,11 +1392,20 @@ int is2ParamFunction(char* token) {
 }
 
 int is1ParamFunction(const char* token) {
-	//lcase(token);
 	for (int i = 0; i < NUMMATH1PARAMFN + NUMREAL1PARAMFN; i++) {
 		if (strcmp(mathfn1paramname[i], token) == 0) return i;
 	}
 	return -1;
+}
+
+int is1ParamTrigFunction(const char* token) {
+	for (int i = 0; i < NUMMATH1PARAMTRIGFN; i++) {
+		if (strcmp(mathfn1paramname[i], token) == 0) return 1;
+	}
+	for (int i = NUMMATH1PARAMTRIGFN; i < NUMMATH1PARAMTRIGANTIFN; i++) {
+		if (strcmp(mathfn1paramname[i], token) == 0) return 2;
+	}
+	return 0;
 }
 
 int isVec1ParamFunction(const char* token) {
@@ -1876,7 +1594,7 @@ void interpret(Machine* vm, char* sourceCode) {
 	//SerialPrint(1, "-------------------START: Source Code = %s", sourceCode);
 	input = sourceCode;
 	do {
-		strcpy(vm->error, ""); //showStack should already be clearing the error msg
+		strcpy(vm->error, "");
 		//SerialPrint(1, "main: do-while before tokenize input = %p", input);
 		//SerialPrint(1, "main: do-while before tokenize input = %s", input);
 		input = tokenize(input, output);
@@ -1907,7 +1625,7 @@ void initMachine(Machine* vm) {
 	vm->cmdState = 0;
 	vm->altState = 0;
 	vm->viewPage = 0;
-	vm->modeDegrees = 0;
+	vm->modeDegrees = false;
 	vm->insertState = 0;
 	vm->userInputLeftOflow = 0;
 	vm->userInputRightOflow = 0;
