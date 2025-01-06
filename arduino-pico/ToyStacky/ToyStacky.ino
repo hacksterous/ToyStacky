@@ -23,18 +23,19 @@ const char* __TS_E_STR__ = "2.718281828459045";
 uint32_t core1msg;
 const byte ROWS = 12;
 const byte COLS = 4;
+
 //define the cymbols on the buttons of the keypads
 char numKeys[ROWS][COLS] = 
 {
-	{'u','a','c','e'}, 
-	{'d','x','f','l'},  
-	{'C','[','(','"'},  
-	{'A',']',')','@'},  
+	{'u','a','b','c'},
+	{'D','d','e','f'},
+	{'C','[','v','"'},
+	{'A','(','{','@'},
 
-	{'m','M','q','\b'}, 
-	{'p','s','X','t'},  
-	{'h','z','n','T'},  
-	{'b',' ','<','>'},  
+	{'m','M','q','\b'},
+	{'p','s','X','t'},
+	{'h','z','n','T'},
+	{'l',' ','<','>'},
 
 	{'1','2','3','+'},
 	{'4','5','6','-'},
@@ -53,23 +54,25 @@ byte rowPins[ROWS] = {15, 14, 13, 12, 11, 10, 9, 8, 3, 2, 1, 0}; //these are inp
 byte colPins[COLS] = {7, 6, 5, 4}; //these are outputs
 Keypad customKeypad = Keypad( makeKeymap(numKeys), rowPins, colPins, ROWS, COLS); 
 
+// 0=user continues to edit; 1=evaluate immediately; 2=backspace; ... others ...
+int keyTypePressed = -1; 
+	
 void printRegisters(Machine* vm) {
 }
 
 void clearUserInput(){
 	vm.userInputLeftOflow = 0;
 	vm.userInputRightOflow = 0;
-	vm.userInputCursorEntry = 1; //char DISPLAY_LINESIZE - 1 is empty and for data entry
 	memset(vm.userInput, 0, STRING_SIZE);
 	memset(vm.userDisplay, 0, SHORT_STRING_SIZE);
 	vm.userInputPos = 0;
+	vm.cursorPos = DISPLAY_LINESIZE - 1;
 }
 
 void eraseUserEntryLine() {
-	SerialPrint(2, "eraseUserEntryLine: eraseUserEntryLine called", "\r\n");
+	//SerialPrint(2, "eraseUserEntryLine: eraseUserEntryLine called", "\r\n");
 	lcd.setCursor(0, 3); //col, row
 	lcd.print("                    ");
-	vm.cursorPos = DISPLAY_LINESIZE - 1;
 	lcd.setCursor(vm.cursorPos, 3); //col, row
 }
 
@@ -123,7 +126,6 @@ void updatesForLeftMotion() {
 				vm.userInputPos--;
 				lcd.setCursor(0, 3); //col, row
 				//no decrement of vm.cursorPos
-				//lcd.write(LEFTOFIND);
 				lcd.print(LEFTOFIND);
 				if ((len - vm.userInputPos) == (DISPLAY_LINESIZE - 1)) {
 					//no right overflow
@@ -142,7 +144,6 @@ void updatesForLeftMotion() {
 		}
 		if (vm.userInputRightOflow) {
 			lcd.setCursor(DISPLAY_LINESIZE - 1, 3); //col, row
-			//lcd.write(RIGHTOFIND);
 			lcd.print(RIGHTOFIND);
 		}
 	}
@@ -207,7 +208,7 @@ void updatesForRightMotion(){
 			}
 			//no change in display, just move the cursor right
 			SerialPrint(2, "updatesForRightMotion: 01 11 A case ", "\n\r");
-		} else { //if (vm.cursorPos >= DISPLAY_LINESIZE - 2) {
+		} else {
 			//cursor is just to the left of the right scroll off indicator
 			if (vm.userInputPos < len - 3) {
 				//right scroll is required
@@ -283,34 +284,24 @@ void setup() {
 	vm.repeatingAlarm = true;
 
 	//various indicator bitmaps
-	byte oflowIndicator[8] = {
+	byte upIndicator[8] = {
 	  B00100,
 	  B01110,
+	  B11011,
 	  B11111,
-	  B01111,
-	  B01110,
 	  B00100,
-	  B00000,
+	  B00100,
+	  B00100,
 	};
 	
-	unsigned char cmdIndicator[8] = {
-	  B11100,
-	  B10000,
-	  B10000,
-	  B10000,
-	  B11100,
-	  B00000,
-	  B00000,
-	};
-
-	unsigned char cmdLockIndicator[8] = {
-	  B11100,
-	  B10000,
-	  B10000,
-	  B10000,
-	  B11100,
-	  B01000,
+	byte downIndicator[8] = {
+	  B00100,
+	  B00100,
+	  B00100,
+	  B11111,
+	  B11011,
 	  B01110,
+	  B00100,
 	};
 
 	unsigned char altIndicator[8] = {
@@ -353,14 +344,24 @@ void setup() {
 	  B11111,
 	};
 
+	byte twoIndicator[8] = {
+	  B00000,
+	  B11110,
+	  B00010,
+	  B11110,
+	  B10000,
+	  B10000,
+	  B11110,
+	};
+
 	// initialize digital pin LED_BUILTIN as an output.
-	lcd.createChar(OVERFLIND, oflowIndicator);
-	lcd.createChar(CMDIND, cmdIndicator);
-	lcd.createChar(CMDLOCKIND, cmdLockIndicator);
+	lcd.createChar(UPIND, upIndicator);
+	lcd.createChar(DOWNIND, downIndicator);
 	lcd.createChar(ALTIND, altIndicator);
 	lcd.createChar(ALTLOCKIND, altLockIndicator);
 	lcd.createChar(MATSTARTIND, matStartIndicator);
 	lcd.createChar(MATENDIND, matEndIndicator);
+	lcd.createChar(TWOIND, twoIndicator);
 	lcd.begin(DISPLAY_LINESIZE, DISPLAY_LINECOUNT); //20 cols, 4 rows
 	lcd.setCursor(DISPLAY_STATUS_WIDTH, 0);
 	lcd.print("....Toy Stacky....");
@@ -399,59 +400,89 @@ void processImmdOpKeyC (const char* str) {
 
 #include "ToyStacky-normal-mode-keyhandler.h"
 #include "ToyStacky-alt-mode-keyhandler.h"
+#include "ToyStacky-page-1-normal-mode-keyhandler.h"
+#include "ToyStacky-page-1-alt-mode-keyhandler.h"
 void loop() {
 	char debug0[10];
 	char keyc = customKeypad.getKey();
 
-	// 0=user continues to edit; 1=evaluate immediately; 2=backspace; ... others ...
-	int keyTypePressed; 
-	
 	if (keyc) {
 		debug0[0] = keyc; debug0[1] = '\0';
 		SerialPrint(3, "Key stroke -- got ", debug0, "\n\r");
 		
-		if (keyc == 'C') {//cmd
-			keyTypePressed = 5;
-			if (vm.altState == 1) vm.altState = 0;
-			if (vm.cmdState == 0) vm.cmdState = 1;
-			else if (vm.cmdState == 1) vm.cmdState = 3;
-			else vm.cmdState = 0; //none -> cmd -> cmd lock -> none
-			showModes(&vm);
-		} else if (keyc == 'A') { //alt function
-			keyTypePressed = 6;
-			if (vm.cmdState == 1) vm.cmdState = 0;
-			if (vm.altState == 0) vm.altState = 1;
-			else if (vm.altState == 1) vm.altState = 3;
-			else vm.altState = 0; //none -> alt -> alt lock -> none
-			showModes(&vm);
-		} else {
-			keyTypePressed = 0;
-			switch (((vm.cmdState & 0x1) << 1) + (vm.altState & 0x1)) {
-				case 0: //normal
-					keyTypePressed = normalModeKeyhandler(keyc);
-					break;
-				case 1: //ALT
-					keyTypePressed = altModeKeyhandler(keyc);
-					break;
-				case 2: break; //CMD
-				case 3: break; //ALT+CMD
+		if (vm.viewPage == NORMAL_VIEW) {
+			if (keyc == 'C' && (vm.altState == 0x0)) { //command page
+				processImmdOpKeyC("cmdpg");
+				keyTypePressed = 5;
+			} else if (keyc == 'A') { //alt function
+				keyTypePressed = 6;
+				if (vm.altState == 0) vm.altState = 1;
+				else if (vm.altState == 1) vm.altState = 3;
+				else vm.altState = 0; //none -> alt -> alt lock -> none
+				showModes(&vm);
+			} else {
+				keyTypePressed = 0;
+				if (keyc == '[') {
+					if (vm.partialVector){ //doing vector
+						keyc = ']';
+						vm.partialVector = false;
+					} else {
+						vm.partialVector = true;
+					}
+				}
+				else if (keyc == '{') {
+					if (vm.partialMatrix){ //doing matrix
+						keyc = '}';
+						vm.partialMatrix = false;
+					} else {
+						vm.partialMatrix = true;
+					}
+				}
+				else if (keyc == '(') {
+					if (vm.partialComplex){ //doing complex
+						keyc = ')';
+						vm.partialComplex = false;
+					} else {
+						vm.partialComplex = true;
+					}
+				}
+
+				switch ((vm.cmdState << 0x1) + (vm.altState & 0x1)) {
+					case 0: //page 0, normal
+						keyTypePressed = normalModeKeyhandler(keyc);
+						break;
+					case 1: //page 0, alt
+						keyTypePressed = altModeKeyhandler(keyc);
+						break;
+					case 2: //page 1, normal
+						keyTypePressed = normalPage1ModeKeyhandler(keyc);
+						break;
+					case 3: //page 1, alt
+						keyTypePressed = altPage1ModeKeyhandler(keyc);
+						break;
+					default: //page 0, normal
+						keyTypePressed = normalModeKeyhandler(keyc);
+						break;
+				}
+				if (vm.altState == 1) vm.altState = 0;
+				showModes(&vm);
 			}
-			if (vm.cmdState == 1) vm.cmdState = 0;
-			if (vm.altState == 1) vm.altState = 0;
-			showModes(&vm);
-		}
-		
-		if ((vm.userInput[0] != '\0') && (keyTypePressed == 0)) {
-			//user is editing the bottom row
-			//showStack(&vm);
-			showStackHP(&vm, 3);
-			eraseUserEntryLine();
-			showUserEntryLine(0);
+			if ((vm.userInput[0] != '\0') && (keyTypePressed == 0)) {
+				//user is editing the bottom row
+				//showStack(&vm);
+				showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
+				eraseUserEntryLine();
+				showUserEntryLine(0);
+			}
+		} else if (vm.viewPage == STACK_VIEW) { //stack view mode
+			showStackHP(&vm, 0, DISPLAY_LINECOUNT);
 		}
 	}
 	if (rp2040.fifo.pop_nb(&core1msg)) { 
-		//non-blocking; if until core 1 says done
-		//showStack(&vm);
-		showStackHP(&vm, 4);
+		//non-blocking; until core 1 says done
+		if (keyTypePressed == 5)
+			//for displaying the command page number immediately
+			showModes(&vm);
+		showStackHP(&vm, 0, DISPLAY_LINECOUNT);
 	}
 }

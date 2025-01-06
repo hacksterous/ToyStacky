@@ -297,6 +297,23 @@ ComplexDouble carcsine(ComplexDouble c) {
 	return cdiv(cln(clogparam), j);
 }
 
+ComplexDouble carcsineSimple(ComplexDouble c) {
+	//from FreeBasic
+	//function apcplx.asin() as apcplx
+	//	dim as apcplx j = apcplx(0, 1)
+	//	dim as apcplx x = (1 - this * this).sqrt() - j * this
+	//	return j * x.log()
+	//end function
+
+	if (alm0double(c.imag)){
+		return makeComplex(asin(c.real), 0.0);
+	}
+	ComplexDouble j = makeComplex(0.0, 1.0);
+	ComplexDouble x = csub(csqroot(csub(makeComplex(1.0, 0.0), cmul(c, c))), cmul (j, c));
+	return cmul(j, cln(x));
+
+}
+
 ComplexDouble carccosine(ComplexDouble c) {
 	if (alm0double(c.imag)){
 		return makeComplex(acos(c.real), 0.0);

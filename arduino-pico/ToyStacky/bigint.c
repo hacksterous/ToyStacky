@@ -415,7 +415,6 @@ static void to_string(int n, const uint32_t *u, char *str) {
 	}
 }
 
-
 /* Create a bigint from n-length array u. Leading zeros or n = 0 are allowed. */
 static void bigint_create(int n, const uint32_t *u, bool negative, bigint_t *res) {
 	/* Strip leading zeros. A bigint_t will never contain leading zeros. */
@@ -433,13 +432,26 @@ static void bigint_create(int n, const uint32_t *u, bool negative, bigint_t *res
 	}
 }
 
-bool bigint_create_str(char *str, bigint_t *res) {
-	//printf("bigint_create_str: str is: %s\n", str);
+//copy from one bigint to another
+void bigint_copy (bigint_t *dest, const bigint_t *src) {
+	if (src->length > 0) {
+		memcpy(dest->data, src->data, sizeof(src->data[0]) * src->length);
+		dest->length = src->length;
+		dest->negative = src->negative;
+	} else {
+		dest->length = 0;
+		dest->negative = false;
+	}
+}
+
+bool bigint_from_str(bigint_t *res, const char *str) {
+	//printf("bigint_from_str: str is: %s\n", str);
 	int32_t len = strlen(str);
 	if (len == 0) { //Empty string is not a valid number
 		res->length = -1;
 		return false;
 	}
+	if (!isBigIntDecString(str)) return false;
 
 	uint32_t u[len / 9 + 1];  /* A uint32_t holds at least 9 decimals. */
 	bool negative = false;
@@ -458,14 +470,14 @@ bool bigint_create_str(char *str, bigint_t *res) {
 	from_string(len, str, &u_length, u);
 
 	bigint_create(u_length, u, negative, res);
-	//printf("bigint_create_str: res is:");
-	//bigint_print(res);
 	return true;
 }
 
 size_t bigint_max_stringlen(const bigint_t *x) {
 	if (x->length == 0) {
 		return 1;
+	} else if (x->length == -1) {
+		return 0;
 	}
 
 	/* 10 digits per uint32_t, one more for '-'. */
@@ -473,6 +485,11 @@ size_t bigint_max_stringlen(const bigint_t *x) {
 }
 
 bool bigint_tostring(const bigint_t *x, char *str) {
+	if (x->length == -1) {
+		*str = '\0';
+		return false;
+	}
+
 	if (x->negative) {
 		*str++ = '-';
 	}
@@ -483,14 +500,17 @@ bool bigint_tostring(const bigint_t *x, char *str) {
 
 void bigint_print(bigint_t *x) {
 	char str[bigint_max_stringlen(x) + 1];
-
+	//printf("bigint_print: called\n");
 	if (bigint_tostring(x, str))
 		puts(str);
+	else
+		puts("\n");
 }
 
 static void add(int x_len, const uint32_t *x, int y_len, const uint32_t *y, bigint_t *res) {
 	if (x_len < y_len) {
 		add(y_len, y, x_len, x, res);
+		return;
 	}
 
 	int w_len = x_len + 1;
@@ -609,6 +629,8 @@ static void divrem(int x_len, const uint32_t *x, int y_len, const uint32_t *y, b
 	uint32_t q[x_len - y_len + 1];
 	uint32_t r[y_len];
 
+	//printf("divrem: entered. x_len = %d and y_len = %d\n", x_len, y_len);
+
 	algorithm_d_wrapper(x_len - y_len, y_len, x, y, q, r);
 
 	if (remainder) {
@@ -638,6 +660,7 @@ void bigint_rem(const bigint_t *x, const bigint_t *y, bigint_t *res) {
 	if (x->length < y->length) {
 		bigint_create(x->length, x->data, false, res);
 	} else {
+		//printf("bigint_rem: x_len = %d and y_len = %d\n", x->length, y->length);
 		divrem(x->length, x->data, y->length, y->data, true, res);
 	}
 	res->negative = x->negative;
@@ -645,6 +668,18 @@ void bigint_rem(const bigint_t *x, const bigint_t *y, bigint_t *res) {
 
 void bigint_neg(const bigint_t *x, bigint_t *res) {
 	bigint_create(x->length, x->data, x->negative ^ 1, res);
+}
+
+//FIXME
+long long binpow(long long a, long long b) {
+    long long res = 1;
+    while (b > 0) {
+        if (b & 1)
+            res = res * a;
+        a = a * a;
+        b >>= 1;
+    }
+    return res;
 }
 
 int bigint_cmp(const bigint_t *x, const bigint_t *y) {
@@ -688,4 +723,226 @@ int bigint_neq(const bigint_t *x, const bigint_t *y) {
 
 bool bigint_is_zero(const bigint_t *x) {
 	return x->length == 0;
+}
+
+void bigint_from_uint32(bigint_t *x, const uint32_t n) {
+	uint32_t u[1];
+	u[0] = n;
+	bigint_create(1, u, false, x);
+}
+
+void bigint_from_int(bigint_t *x, const int n) {
+	uint32_t u[1];
+	if (n < 0) {
+		u[0] = -n;
+		bigint_create(1, u, true, x);
+	} else {
+		u[0] = n;
+		bigint_create(1, u, false, x);
+	}
+}
+
+void bigint_to_hex(const bigint_t *x, char *hex_str) {
+    int i, j = 0;
+    char temp_str[260]; // Temporary string to hold the hex digits
+    int start = 0; // Flag to handle leading zeros
+
+    // Add "h" prefix to the output string
+    strcpy(hex_str, "h");
+
+    // Convert each uint32_t in the data array to hex
+    for (i = 128; i >= 0; i--) {
+        if (x->data[i] == 0 && !start) {
+            continue; // Skip leading zeros
+        }
+        start = 1;
+		sprintf(temp_str + j, "%08x", (unsigned int)x->data[i]);
+        j += 8;
+    }
+
+    // If the number is zero, it will become 0x0
+    if (!start) {
+        strcpy(temp_str, "0");
+    }
+
+	//printf("=== bigint_to_hex: before leading 0 deletion, temp_str = %s\n", temp_str);
+	//remove leading zeros
+	i = 0;
+	while (temp_str[i] == '0') i++;
+
+    // add after "h"
+    strcat(hex_str, temp_str + i);
+}
+
+bool bigint_from_hex(const char *hex_str, bigint_t *res) {
+    size_t len = strlen(hex_str);
+    if (len < 2 || hex_str[0] != 'h') {
+        return false; // Invalid hex string
+    }
+
+    // Initialize bigint
+    res->length = 0;
+    res->negative = 0;
+    memset(res->data, 0, sizeof(res->data));
+
+    size_t hex_len = len - 1; // Length of the hex digits
+    size_t num_digits = (hex_len + 7) / 8; // Number of uint32_t required
+
+    for (size_t i = 0; i < hex_len; i++) {
+        char c = hex_str[hex_len - i]; // Get the hex digit from the end
+        uint32_t value;
+        if (isdigit(c)) {
+            value = c - '0';
+        } else if (isxdigit(c)) {
+            value = tolower(c) - 'a' + 10;
+        } else {
+            return false; // Invalid character in hex string
+        }
+        size_t pos = i / 8;
+        res->data[pos] |= value << (4 * (i % 8));
+    }
+
+    res->length = num_digits;
+    return true;
+}
+
+void bigint_gcd (const bigint_t *a, const bigint_t *b, bigint_t *gcd, bigint_t *x) {
+	//GCD and modular inversion using Extended Euclidean Algorithm
+	bigint_t s;
+	bigint_t t;
+	bigint_t r;
+	bigint_t oldr;
+	bigint_t q;
+	bigint_t tempmul;
+	bigint_t newr;
+	bigint_t y;
+	bigint_t newx;
+	bigint_t newy;
+
+	/*
+	s = 0
+	x = 1
+	t = 1
+	y = 0
+	r = int (b)
+	oldr = int(a)
+	*/
+
+	bigint_from_int(&s, 0);
+	bigint_from_int(x, 1);
+	bigint_from_int(&t, 1);
+	bigint_from_int(&y, 0);
+	bigint_copy(&r, b);
+	bigint_copy(&oldr, a);
+
+	while (!bigint_is_zero(&r)) {
+		/*
+		q = oldr // r
+
+		newr = oldr - q*r
+		oldr = r
+		r = newr
+
+		newx = x - q*s
+		x = s
+		s = newx
+
+		newy = y - q*t
+		y = t
+		t = newy
+		*/
+
+		//using tuple assignments
+
+		//oldr, r = r, oldr - q*r
+		//x, s = s, x - q*s
+		//y, t = t, y - q*t
+
+		//Equiv. for cpp
+        //tie(x, x1) = make_tuple(x1, x - q * x1);
+        //tie(y, y1) = make_tuple(y1, y - q * y1);
+        //tie(a1, b1) = make_tuple(b1, a1 - q * b1);
+
+		bigint_div(&oldr, &r, &q);
+
+		bigint_mul(&q, &r, &tempmul);
+		bigint_sub(&oldr, &tempmul, &newr);
+		bigint_copy(&oldr, &r);
+		bigint_copy(&r, &newr);
+
+		bigint_mul(&q, &s, &tempmul);
+		bigint_sub(x, &tempmul, &newx);
+		bigint_copy(x, &s);
+		bigint_copy(&s, &newx);
+
+		bigint_mul(&q, &t, &tempmul);
+		bigint_sub(&y, &tempmul, &newy);
+		bigint_copy(&y, &t);
+		bigint_copy(&t, &newy);
+	}
+	//At this point, x and y have been found such that
+	// a * x + b * y = gcd (a, b)
+	// If a and b are relatively prime, then gcd = 1 and
+	// x is the inverse of a modulo b.
+	// If gcd > 1, then a does not have an inverse module b.
+	// reuse q and tempmul
+	bigint_mul(a, x, &q);
+	bigint_mul(b, &y, &tempmul);
+	bigint_add(&q, &tempmul, gcd);
+
+	//reuse t as bigint-1
+	bigint_from_int(&t, 1);
+	if (bigint_eq(gcd, &t)) {
+		//if gcd = 1, adjust inverse value
+		if (x->negative) {
+			//if x is negative add b (x is the modular inverse)
+			bigint_add(x, b, &q);
+			bigint_copy(x, &q);
+		}
+	} else {
+		//if gcd > 1, set inverse as 0
+		bigint_from_int(x, 0);
+	}
+}
+
+void bigint_mod_inv(const bigint_t *base, const bigint_t *mod, bigint_t *res) {
+	bigint_t gcd;
+	bigint_gcd(base, mod, &gcd, res);
+}
+
+void bigint_mod_exp(const bigint_t *base, const bigint_t *exp, const bigint_t *mod, bigint_t *res) {
+    bigint_t exp_copy, base_mod;
+    bigint_t two, temp;
+
+    // Initialize bigints
+	bigint_from_int(res, 1);
+	bigint_from_int(&base_mod, 0);
+	bigint_from_int(&exp_copy, 0);
+	bigint_from_int(&two, 0);
+	bigint_from_int(&temp, 0);
+
+    // base_mod = base % mod
+    bigint_rem(base, mod, &base_mod);
+
+    // exp_copy = exp
+	bigint_copy(&exp_copy, exp);
+
+    // two = 2
+	bigint_from_int(&two, 2);
+
+    while (!bigint_is_zero(&exp_copy)) {
+        // If exp_copy is odd
+        if (exp_copy.data[0] & 1) {
+            // res = (res * base_mod) % mod
+            bigint_mul(res, &base_mod, &temp);
+            bigint_rem(&temp, mod, res);
+        }
+        // exp_copy = exp_copy / 2
+        bigint_div(&exp_copy, &two, &exp_copy);
+
+        // base_mod = (base_mod * base_mod) % mod
+        bigint_mul(&base_mod, &base_mod, &temp);
+        bigint_rem(&temp, mod, &base_mod);
+    }
+
 }

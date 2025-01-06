@@ -1,0 +1,36 @@
+OPERATION ::= EXPRESSION WHITESPACE | EXPRESSION OPERATION WHITESPACE
+EXPRESSION ::= VARIABLE | NUMBER | VECTOR | MATRIX | GENERALOP
+VARIABLE ::= ALPHA ALPHANUM
+ALPHANUM ::= ALPHA | NUMBER
+VECTOR ::= VECSTART NUMBERARRAY VECEND
+NUMBERARRAY ::= NUMBER | NUMBER NUMBERARRAY
+MATRIX ::= VECSTART VECTORARRAY VECEND
+VECTORARRAY ::= VECTOR | VECTOR VECTORARRAY
+NUMBER ::=  REALNUM | "+" REALNUM | "-" REALNUM | COMPLEXNUM | BIGNUM
+COMPLEXNUM ::= COMSTART REALNUM WHITESPACE REALNUM COMEND
+GENERALOP ::= "dup" | "swp" | "@" | MATHOPERATION
+MATHOPERATION ::= "+" | "-" | "*" | "/" | "//" | "exp" | "pow"
+VECSTART ::= "["
+VECEND ::= "]"
+COMSTART ::= "("
+COMEND ::= ")"
+WHITESPACE ::= "\n" | " " | "\t" | "\r"
+REALNUM ::= DIGITSEXP | DIGITSEXP DECPOINT | DECPOINT DIGITSEXP
+DIGITSEXP ::= DIGITSNOEXP EXP EXPONENT | DIGITSNOEXP EXP EXPONENT RLCIND
+DIGITSNOEXP ::= DIGITS | DECPOINT DIGITS | DIGITS DECPOINT
+RLCIND ::= "r" | "l" | "c"
+EXP ::= "e" | "E"
+EXPONENT ::= PLUSMINUS DIGITS
+PLUSMINUS ::= "+" | "-" | ""
+DECPOINT ::= "."
+ALPHADIGITS ::= ALPHA | DIGITS | "_"
+DIGITS ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
+BIGNUM ::= STRIND DIGITS STRIND | STRIND "h" HEXITS STRIND | STRIND "b" BITS STRIND
+HEXITS ::= DIGITS | "a" | "A" | "b" | "B" | "c" | "C" | "d" | "D" | "e" | "E" | "f" | "F"
+BITS ::= "0" | "1"
+STRING ::= STRIND ALPHADIGITS WHITESPACE | STRIND ALPHADIGITS STRIND
+STRIND ::= "\""
+ALPHA ::= "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z" | 
+           "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z"
+
+

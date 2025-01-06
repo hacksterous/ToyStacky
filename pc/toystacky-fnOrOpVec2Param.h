@@ -57,7 +57,7 @@ bool fnOrOpVec2Param(Machine* vm, const char* token, int fnindex, int8_t cmeta, 
 			if (output[0] == '[' || output2[0] == '[') continue;
 			strcpy(vm->acc, output);
 			//function name is in token
-			//printf("fnOrOpVec2Param: while loop -- acc = %s, bak = %s\n", vm->acc, vm->bak);
+			printf("fnOrOpVec2Param: while loop -- acc = %s, bak = %s\n", vm->acc, vm->bak);
 
 			//(X) push the two scalars
 			push(&vm->userStack, vm->bak, METANONE); //push vector element
@@ -95,10 +95,9 @@ bool fnOrOpVec2Param(Machine* vm, const char* token, int fnindex, int8_t cmeta, 
 		input = vm->matvecStrA;
 		input2 = vm->matvecStrB;
 
-		ComplexDouble c;
+		double complex c = 0.0;
 		ComplexDouble cd;
-		c.real = c.imag = cd.imag = 0.0;
-
+		cd.real = cd.imag = 0.0;
 		//printf("fnOrOpVec2Param: scalar result at start -- input = %s, input2 = %s\n", input, input2);
 		while (true) {
 			input2 = tokenize(input2, output2);
@@ -116,7 +115,7 @@ bool fnOrOpVec2Param(Machine* vm, const char* token, int fnindex, int8_t cmeta, 
 			push(&vm->userStack, vm->bak, METANONE); //push vector element
 			push(&vm->userStack, vm->acc, METANONE); //push vector element
 			
-			success = fnOrOp2Param(vm, token, 6); //fnindex = 6 is multiplication
+			success = fnOrOp2Param(vm, token, fnindex); //fnindex = 6 is multiplication
 			if (!success) {
 				//if the scalar op fails, pop out the scalars pushed in (X)
 				pop(&vm->userStack, NULL);
@@ -133,12 +132,13 @@ bool fnOrOpVec2Param(Machine* vm, const char* token, int fnindex, int8_t cmeta, 
 			else if (isRealNumber(vm->acc)) //real number
 				success = stringToDouble(vm->acc, &cd.real);
 
-			c.real += cd.real; 
-			c.imag += cd.imag;
+			c += cd.real + cd.imag * I;
 		}
-		if (abs(c.real) < DOUBLE_EPS) c.real = 0.0;
-		if (abs(c.imag) < DOUBLE_EPS) c.imag = 0.0;
-		success = complexToString(c, vm->acc) && success; //result in coadiutor
+		cd.real = creal(c);
+		cd.imag = cimag(c);
+		if (dabs(cd.real) < DOUBLE_EPS) cd.real = 0.0;
+		if (dabs(cd.imag) < DOUBLE_EPS) cd.imag = 0.0;
+		success = complexToString(cd, vm->acc) && success; //result in coadiutor
 		pop(&vm->userStack, NULL);
 		pop(&vm->userStack, NULL);
 		push(&vm->userStack, vm->acc, METANONE);

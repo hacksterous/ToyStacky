@@ -1,37 +1,9 @@
-char simpleRemap (char keyc) {
-	char retKeyC;
-	switch (keyc) {
-		case 'a': retKeyC = 'x'; break;
-		case 'c': retKeyC = 'y'; break; 
-		case 'e': retKeyC = 'z'; break;
-		case 'f': retKeyC = 't'; break;
-		case 'C': retKeyC = 'y'; break;
-		case '[': retKeyC = 'u'; break;
-		case ']': retKeyC = 'u'; break;
-		case '(': retKeyC = 'q'; break;
-		case ')': retKeyC = 'q'; break;
-		case '{': retKeyC = 'r'; break;
-		case '}': retKeyC = 'r'; break;
-		case '1': retKeyC = 'g'; break;
-		case '2': retKeyC = 'i'; break;
-		case '3': retKeyC = 'j'; break;
-		case '4': retKeyC = 'k'; break;
-		case '5': retKeyC = 'm'; break;
-		case '7': retKeyC = 'o'; break;
-		case '8': retKeyC = 'p'; break;
-		case '9': retKeyC = 'n'; break;
-		default: retKeyC = keyc; break;
-	}
-	return retKeyC;
-}
+//Page 1 is the Advanced Trig mode
+//differs from Page 0 only for these keys:
+//'m','M',
+//'z','n','T', ' '
 
-void processAltImmdOpKeyC (const char* str) {
-	//results in key + \n -- modify to ' ' + key + \n
-	if (vm.userInputPos >= STRING_SIZE - 18) return;
-	processImmdOpKeyC(str);
-}
-
-int altModeKeyhandler (char keyc) {
+int altPage1ModeKeyhandler (char keyc) {
 	int keyTypePressed;
 	switch (keyc) {
 		case '\n':
@@ -41,7 +13,7 @@ int altModeKeyhandler (char keyc) {
 			processAltImmdOpKeyC("%");
 			break;
 		case '\b':
-			//clear whatever was being typed in and clear stack
+			//clear whatever was being typed in and drop last entry from stack
 			clearUserInput();
 			keyTypePressed = 7;
 			initStacks(&vm);
@@ -77,11 +49,11 @@ int altModeKeyhandler (char keyc) {
 			keyTypePressed = 1;
 			break;
 		case 'm': 
-			processAltImmdOpKeyC("sd");
+			processAltImmdOpKeyC("acot");
 			keyTypePressed = 1;
 			break;
 		case 'M': 
-			processAltImmdOpKeyC("arg");
+			processAltImmdOpKeyC("acoth");
 			keyTypePressed = 1;
 			break;
 		case 'q': 
@@ -89,7 +61,7 @@ int altModeKeyhandler (char keyc) {
 			keyTypePressed = 1;
 			break;
 		case 'p': //2 input log
-			processAltImmdOpKeyC("log swp log swp /");
+			processAltImmdOpKeyC("ln swp ln swp /");
 			keyTypePressed = 1;
 			break;
 		case 's': 
@@ -109,19 +81,19 @@ int altModeKeyhandler (char keyc) {
 			keyTypePressed = 1;
 			break;
 		case 'z': //log10 x
-			processAltImmdOpKeyC("10 log swp log swp /");
+			processAltImmdOpKeyC("asinh");
 			keyTypePressed = 1;
 			break;
-		case 'n': //10^x
-			processAltImmdOpKeyC("10 swp pow");
+		case 'n':
+			processAltImmdOpKeyC("acosh");
 			keyTypePressed = 1;
 			break;
-		case 'T': //1/x
-			processAltImmdOpKeyC("1 swp /");
+		case 'T':
+			processAltImmdOpKeyC("atanh");
 			keyTypePressed = 1;
 			break;
 		case ' ':
-			processAltImmdOpKeyC("fac");
+			processAltImmdOpKeyC("atan2"); //we could have done "/ atan"
 			keyTypePressed = 1;
 			break;
 		case '<':

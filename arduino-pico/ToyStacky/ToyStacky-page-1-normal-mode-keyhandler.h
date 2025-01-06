@@ -1,30 +1,16 @@
-void processNormalImmdOpKeyC (const char* str) {
-	//results in key + \n -- modify to ' ' + key + \n
-	if (vm.userInputPos >= STRING_SIZE - 7) return;
-	processImmdOpKeyC(str);
-}
-
-int normalModeKeyhandler (char keyc) {
+int normalPage1ModeKeyhandler (char keyc) {
 	int len;
 	int keyTypePressed;
 	len = strlen(vm.userInput);
 	switch (keyc) {
 		case '\n':
 			keyTypePressed = 1;
-			if (vm.timerRunning) {
-				vm.timerRunning = false;
-				rtc_disable_alarm();
-				vm.repeatingAlarm = false;
-			}
-			Serial.print(keyc);
-			SerialPrint(1, "\r");
-	
 			if (vm.userInput[0] == '\0') {
 				if (strcmp(vm.error, "\0") == 0) {
 					//no error has happened already
 					strcpy(vm.userInput, "dup");
 				} else 
-					showStackHP(&vm, 0, DISPLAY_LINECOUNT);
+					showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
 			} else {
 				vm.userInput[len + 1] = '\0';
 				SerialPrint(3, "Got \n : vm.userInput = ", vm.userInput, "\n\r");
@@ -36,7 +22,7 @@ int normalModeKeyhandler (char keyc) {
 		case '\b':
 			Serial.print(keyc);
 			if (vm.userInputPos > 0) {
-				bool lastChar = (vm.userInputPos == 1) && (vm.cursorPos == DISPLAY_LINESIZE - 1);
+				bool lastChar = (vm.userInputPos == 1);
 				keyTypePressed = 2;
 				//some user entry exists
 				if (vm.cursorPos == DISPLAY_LINESIZE - 1) {
@@ -50,27 +36,27 @@ int normalModeKeyhandler (char keyc) {
 					vm.userInput[len] = '\0';
 				}
 				if (lastChar) 
-					showStackHP(&vm, 0, DISPLAY_LINECOUNT);
-				else {
 					showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
+				else {
+					showStackHP(&vm, 0, DISPLAY_LINECOUNT - 2);
 					showUserEntryLine(1);
 				}
 			} else {
 				//backspace on null entry --> drop command
 				clearUserInput();
 				keyTypePressed = 1;
-				strcpy(vm.userInputInterpret, "1@@"); //<1> <@@> -- drop one existing entry
+				strcpy(vm.userInputInterpret, "@");
 				rp2040.fifo.push(CORE0_TO_CORE1_START);
 			}
-			//SerialPrint(3, "Got backspace: vm.userInput = ", vm.userInput, "\r\n");
+			SerialPrint(3, "Got backspace: vm.userInput = ", vm.userInput, "\r\n");
 			break;
 		//these are operators (in normal mode), result in ' ' + key + \n
 		case 'm': 
-			processNormalImmdOpKeyC("mean");
+			processNormalImmdOpKeyC("cot");
 			keyTypePressed = 1;
 			break;
 		case 'M': 
-			processNormalImmdOpKeyC("abs");
+			processNormalImmdOpKeyC("coth");
 			keyTypePressed = 1;
 			break;
 		case 'q': 
@@ -94,15 +80,15 @@ int normalModeKeyhandler (char keyc) {
 			keyTypePressed = 1;
 			break;
 		case 'z':
-			processNormalImmdOpKeyC("log");
+			processNormalImmdOpKeyC("sinh");
 			keyTypePressed = 1;
 			break;
 		case 'n':
-			processNormalImmdOpKeyC("exp");
+			processNormalImmdOpKeyC("cosh");
 			keyTypePressed = 1;
 			break;
 		case 'T':
-			processNormalImmdOpKeyC("2 pow");
+			processNormalImmdOpKeyC("tanh");
 			keyTypePressed = 1;
 			break;
 		case 'v':
@@ -112,13 +98,13 @@ int normalModeKeyhandler (char keyc) {
 		case '*':
 		case '/':
 		case '+':
-		case ')': 
-		case ']': 
-		case '}': 
+		case ')':
+		case ']':
+		case '}':
 		case '@':
 			//these don't call processNormalImmdOpKeyC, but all other actions are same as above
 			keyTypePressed = 1;
-			if ((vm.userInputPos > 0) && (vm.userInputPos < STRING_SIZE)) {
+			if ((vm.userInputPos > 0) && (vm.userInputPos < STRING_SIZE) && (keyc != '@') && (keyc != ')') && (keyc != ']')) {
 				vm.userInput[vm.userInputPos++] = ' ';
 				SerialPrint(1, "\n\r");
 			}

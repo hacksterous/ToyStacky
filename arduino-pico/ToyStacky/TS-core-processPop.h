@@ -1,53 +1,89 @@
+bool popIntoVariable (Machine* vm, char* var) {
+	ComplexDouble c;
+	double dbl;
+
+	printf("popIntoVariable: entered with var %s\n", var);
+	//POP var -- pop the top of stack into variable 'var'
+	//If there is no variable var, then pop into a variable 'a'
+	//createVariable will overwrite the variable if it already exists
+	
+	int8_t meta = peek(&vm->userStack, NULL);
+	if (meta == METANONE) {
+		pop(&vm->userStack, vm->bak);
+		if (strcmp(var, "__f") == 0) {
+			//special variable to set frequency for impedance calculation
+			if (stringToDouble(vm->bak, &dbl)) dbl = fabs(dbl);
+			else if (stringToComplex(vm->bak, &c)) dbl = fabs(c.real);
+			if (dbl < DOUBLE_EPS) dbl = 0.0;
+			vm->frequency = dbl;
+			//printf("processPop: set vm->frequency with %lf\n", vm->frequency);
+		} else if (stringToComplex(vm->bak, &c)) {
+			printf("popIntoVariable:------ calling createVar complex with varname = %s and value = %s\n", var, vm->bak);
+			createVariable(&vm->ledger, var, VARIABLE_TYPE_COMPLEX, c, "");
+		} else if (stringToDouble(vm->bak, &dbl)) {
+			//printf("popIntoVariable:------ calling createVar real with varname = %s and value = %s\n", var, vm->bak);
+			createVariable(&vm->ledger, var, VARIABLE_TYPE_COMPLEX, MKCPLX(dbl), "");
+		} else {
+			//printf("popIntoVariable:------ calling createVar string with varname = %s and value = %s\n", var, vm->bak);
+			createVariable(&vm->ledger, var, VARIABLE_TYPE_STRING, MKCPLX(0), vm->bak);
+		}
+	} else if (meta == METAVECTOR || meta == METAMATRIX) {
+		pop(&vm->userStack, vm->matvecStrB);
+		//printf("popIntoVariable:------ calling createVar complex with varname = %s and value = %s\n", var, vm->matvecStrB);
+		createVariable(&vm->ledger, var, VARIABLE_TYPE_VECMAT, MKCPLX(0), vm->matvecStrB);
+	} else return false;
+	
+	return true;
+}
+
 bool processPop(Machine* vm, char* token) {
 	int8_t meta;
+	double dbl;
+	char accliteral[] = "acc"; 
+	//printf("processPop: entered with token %s\n", token);
 	//check if the user was in the middle of entering a vector
 	//or matrix
 	meta = peek(&vm->userStack, NULL);
-	FAILANDRETURN((meta == -1), vm->error, "Stack empty", NULLFN)		
-	double dbl;
-	if (token[0] == '\0') {
-		//@ will pop 1 element of a vector/matrix
-		//@1 will pop 1 entire vector/matrix
-		strcpy(vm->bak, vm->acc); //save acc	
-		pop(&vm->userStack, vm->acc);
-		//if (meta == METANONE) {
-		//	//just pop out a scalar in acc
-		//	strcpy(vm->bak, vm->acc); //save acc
-		//	pop(&vm->userStack, vm->acc);
-		//} else {
-		//	//printf("processPop: calling pop1VecMat\n");
-		//	pop1VecMat(vm, meta);
-		//}
-	} else if (strcmp(token, "b") == 0) {
-		strcpy(vm->coadiutor, vm->bak); //save bak
-		pop(&vm->userStack, vm->bak);
-	} else if (variableVetted(token)) {
-		ComplexDouble c;
-		//POP var -- pop the top of stack into variable 'var'
-		meta = pop(&vm->userStack, vm->bak);
-		//createVariable will overwrite the variable if  it already exists
-		if (stringToComplex(vm->bak, &c)) {
-			//printf("processPop:------ calling createVar complex with varname = %s and value = %s\n", token, vm->bak);
-			createVariable(&vm->ledger, token, VARIABLE_TYPE_COMPLEX, c, "");
-		} else if (stringToDouble(vm->bak, &dbl)) {
-			//printf("processPop:------ calling createVar real with varname = %s and value = %s\n", token, vm->bak);
-			createVariable(&vm->ledger, token, VARIABLE_TYPE_COMPLEX, MKCPLX(dbl), "");
+	FAILANDRETURN((meta == -1), vm->error, "E:Stack empty", NULLFN)		
+	if (strcmp(token, "@") == 0) {
+		//'@' found
+		//the value in ToS-1 is popped into the variable name at ToS
+		if (meta == METANONE) {
+			peek(&vm->userStack, vm->acc); //this is the destination variable name
+			char* acc = &(vm->acc[0]);
+			//printf("processPop: A: acc = %s\n", vm->acc);
+			if (hasDblQuotes(vm->acc)) {
+				removeDblQuotes(vm->acc);
+				acc = &(vm->acc[1]);
+			}
+			if (variableVetted(acc)) {
+				strcpy(vm->acc, acc);
+				//pop the variable name (already in vm->acc)
+				pop(&vm->userStack, NULL);
+			} else {
+				//don't pop var name
+				strcpy(vm->acc, accliteral); //default variable
+			}
+			//printf("processPop: calling popIntoVariable with %s\n", vm->acc);
+			popIntoVariable (vm, vm->acc);
 		} else {
-			//printf("processPop:------ calling createVar string with varname = %s and value = %s\n", token, vm->bak);
-			createVariable(&vm->ledger, token, VARIABLE_TYPE_STRING, MKCPLX(0), vm->bak);
+			//vector or matrix
+			popIntoVariable (vm, accliteral);
 		}
-	} else { 
-		//a pop but the var does not have a variable name
-		//or is a number -- number means pop n entities out of stack
-		int howMany = 0;
-		if (POSTFIX_BEHAVE) { //@<number> is the postfix behavior -- we want <number> @@
-			if (stringToDouble(token, &dbl)) howMany = (int) dbl;
-		} else if (strcmp(token, "@") == 0) {
-			pop(&vm->userStack, vm->bak);
-			if (stringToDouble(vm->bak, &dbl)) howMany = (int) dbl;
-		}
+	} else if (strcmp(token, "@!") == 0) {
+		//clear stack
+		initStacks(vm);
+	} else if (strcmp(token, "@@") == 0) {
+		FAILANDRETURN((meta != METANONE), vm->error, "need real", NULLFN)
+		peek(&vm->userStack, vm->acc); //this is the destination variable name
+		bool success = stringToDouble(vm->acc, &dbl);
+		FAILANDRETURN(!success, vm->error, "need real", NULLFN)
+		int howMany = (int) dbl;
+		//pop the variable count already in vm->acc
+		pop(&vm->userStack, NULL);
+		//printf("processPop: B: acc = %s, dbl = %g\n", acc, dbl);
 		if (howMany >= 0) popNItems(vm, howMany);
-		else FAILANDRETURN(true, vm->error, "illegal POP B", NULLFN); //should never happen
 	}
 	return true;
 }
+

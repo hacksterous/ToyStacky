@@ -5,11 +5,16 @@ License: GNU GPL v3
 #ifndef __TS_CORE_H__
 #define __TS_CORE_H__
 
+#define MAX_MATVECSTR_LEN 4900 //enough for one 12x12 matrix of double complex
+#define MAX_CMD_PAGES 4
+#define MAX_TOKEN_LEN 129
 #define PICO_DOUBLE_PROPAGATE_NANS 1
 #define DISPLAY_STATUS_WIDTH 2
 #define DISPLAY_LINESIZE 20
 #define DISPLAY_LINECOUNT 4
 #define NUMBER_LINESIZE 18
+#define NUMBER_LINESIZE_WO_PARENS 16
+#define COMPLEX_NUM_DISP_SIZE 7
 #define MAX_VARNAME_LEN 33
 #define MAX_VARIABLES 1000
 #define MEMORY_SIZE 32000 //in bytes
@@ -17,7 +22,7 @@ License: GNU GPL v3
 #define USER_SOURCECODEMEM_SIZE 32000 //in bytes
 #define SOURCECODEMEM_SIZE 32000 //in bytes
 #define STACK_SIZE 32000 //in bytes
-#define STACK_NUM_ENTRIES 15000 //max stack entries
+#define STACK_NUM_ENTRIES 11500 //max stack entries
 #define EXEC_STACK_SIZE 200 //in Uint
 #define STRING_SIZE 101
 #define SHORT_STRING_SIZE 33
@@ -27,32 +32,36 @@ License: GNU GPL v3
 #define DOUBLE_EPS 9e-16
 
 //For LCD with Japanese char set: HD44780U A00
-#define OVERFLIND 1
 #define UPIND 1
-#define DOWNIND 1
+#define DOWNIND 2
+#define ALTIND 3
+#define ALTLOCKIND 4
+#define MATSTARTIND 5
+#define MATENDIND 6
+#define TWOIND 7
 #define DEGREEIND char(0xdf)
 #define RIGHTOFIND char(0x7e)
-#define LEFTOFIND char(0x7f)
-#define CMDIND 2
-#define ALTIND 3
-#define MATSTARTIND 4
-#define MATENDIND 5
-#define CMDLOCKIND 6
-#define ALTLOCKIND 7
+#define LEFTOFIND  char(0x7f)
+#define OFLOWIND char(0xeb)
 
+#define COMSTARTTOKENC '('
 #define VECSTARTTOKENC '['
 #define VECLASTTOKENC ']'
+#define MATSTARTTOKENC '{'
+#define MATLASTTOKENC '}'
 #define PRINTTOKENC '?'
 #define POPTOKENC '@'
-#define VECSTARTINDICATOR '\22'
 
+#define MATSTARTTOKEN "{"
+#define MATENDTOKEN "}"
 #define VECSTARTTOKEN "["
-#define MATSTARTTOKEN "[["
 #define VECLASTTOKEN "]"
-#define MATLASTTOKEN "]]"
 #define IFTOKEN "if"
 #define ELSETOKEN "el"
 #define ENDIFTOKEN "fi"
+#define JMPTOKEN "jmp"
+#define JPZTOKEN "jpz"
+#define JNZTOKEN "jnz"
 #define ADDTOKEN "+"
 #define SUBTOKEN "-"
 #define MULTOKEN "*"
@@ -65,13 +74,12 @@ License: GNU GPL v3
 #define EQTOKEN "="
 #define NEQTOKEN "!="
 #define PARTOKEN "//"
+#define DPOPTOKEN "@@"
  
-#define POSTFIX_BEHAVE 0
-
 //used for main automatic stack
 typedef struct {
 	char stackStr[STACK_SIZE];
-	size_t stackLen[STACK_NUM_ENTRIES]; //bits 31:24 are meta data - 
+	int32_t stackLen[STACK_NUM_ENTRIES]; //bits 31:24 are meta data - 
 										//used to indicate start/end of vectors/matrices
 	int topStr;
 	int topLen;
@@ -79,9 +87,26 @@ typedef struct {
 
 //used for branch and condition stack
 typedef struct {
-	size_t stack[EXEC_STACK_SIZE];
+	int32_t stack[EXEC_STACK_SIZE];
 	int top;
 } UintStack;
+
+//view page - 
+//view page - 
+//0: normal, 
+//1: stack view, 
+//2: variable view, 
+//3: variable list view, 
+//4: internal status view
+//5: code editor view
+typedef enum {
+	NORMAL_VIEW,
+	STACK_VIEW,
+	VAR_VIEW,
+	VARLIST_VIEW,
+	STATUS_VIEW,
+	EDIT_VIEW
+} ViewPageType;
 
 //used for variables
 typedef enum {
@@ -92,12 +117,10 @@ typedef enum {
 
 typedef enum {
 	METANONE,
-	METASTARTVECTOR,
-	METAMIDVECTOR,
-	METAENDVECTOR,
-	METASTARTMATRIX,
-	METAMIDMATRIX,
-	METAENDMATRIX
+	METAVECTOR,
+	METAMATRIX,
+	METAVECTORPARTIAL,
+	METAMATRIXPARTIAL
 } StrackMeta;
 
 typedef struct {
@@ -113,7 +136,7 @@ typedef struct {
 	VariableType type;
 	union {
 		ComplexDouble doubleValue;
-		size_t stringValueIndex;
+		int32_t stringValueIndex;
 	} value;
 } Variable;
 
@@ -121,8 +144,8 @@ typedef struct {
 typedef struct {
 	Variable variables[MAX_VARIABLES];
 	char memory[MEMORY_SIZE];
-	size_t memoryOffset;
-	size_t varCount;
+	int32_t memoryOffset;
+	int32_t varCount;
 } Ledger;
 
 #ifndef __BIGINT_STRUCT__
@@ -151,34 +174,45 @@ typedef struct {
 	int cmdState;
 	int altState;
 	//view page - 
-	//0: normal, 1: variable view, 
-	//2: stack view, 3: vector view, 4: matrix view
-	//5: internal status view
+	//0: normal, 
+	//1: stack view, 
+	//2: variable view, 
+	//3: variable list view, 
+	//4: internal status view
+	//5: code editor view
 	int viewPage;
+	int topEntryNum; //stack entry number shown at top row
+	int pointedEntryNum; //entry pointed to by right pointing arrow
 	bool modeDegrees;
 	int cursorPos;
 	int userInputLeftOflow;
 	int userInputRightOflow;
-	int userInputCursorEntry;
-	int insertState; //0: overwrite, 1: insert
 	bool timerRunning;
 	bool repeatingAlarm;
 	bool LEDState;
-	int alarmHour;
-	int alarmMin;
-	int alarmSec;
+	uint8_t timeHour;
+	uint8_t timeMin;
+	uint8_t timeSec;
+	float locationLat;
+	float locationLong;
+	float locationTimeZone;
+	uint8_t alarmHour;
+	uint8_t alarmMin;
+	uint8_t alarmSec;
 	unsigned int TS0RTCFreq;
+	double frequency;
 	bigint_t bigA;
 	bigint_t bigB;
 	bigint_t bigC;
+	char matvecStrA[MAX_MATVECSTR_LEN]; 
+	char matvecStrB[MAX_MATVECSTR_LEN];
+	char matvecStrC[MAX_MATVECSTR_LEN];
+	bool partialVector;
+	bool partialMatrix;
+	bool partialComplex;
 } Machine;
 
 extern Machine vm;
-
-extern unsigned int TS0RTCFreq;
-//extern int alarmHour;
-//extern int alarmMin;
-//extern int alarmSec;
 
 extern LiquidCrystal lcd;
 
@@ -189,7 +223,8 @@ bool doubleToString(double value, char* buf);
 void showUserEntryLine(int bsp);
 void showStackEntries(Machine* vm, int linecount);
 void showModes(Machine* vm);
-void showStackHP(Machine* vm, int linecount);
+void showStackHP(Machine* vm, int linestart, int linecount);
+void initStacks(Machine* vm);
 void eraseUserEntryLine();
 void toggleLED();
 

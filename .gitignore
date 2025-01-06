@@ -15,3 +15,14 @@ arduino-pico/ToyStacky/old/TS-core-showStack.h.0
 docs/keypad.pdf
 docs/keypad.docx
 *.history
+arduino-pico/ToyStacky/mathtest/bt
+arduino-pico/ToyStacky/mathtest/extgcd.0.py
+arduino-pico/ToyStacky/mathtest/old/bigint.0.c
+arduino-pico/ToyStacky/mathtest/old/bigtest.0.c
+arduino-pico/ToyStacky/mathtest/old/mathtest.0.c
+pc/test/ext
+pc/test/extract_vector.0.c
+pc/test/tok
+pc/test/tokenize.0.c
+pc/test/tokenize.1.c
+pc/test/tokenize.2.c
