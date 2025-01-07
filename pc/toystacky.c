@@ -16,6 +16,7 @@ License: GNU GPL v3
 #include "linenoise.h"
 #include "bigint.h"
 
+#define DESKTOP_PC
 #define MAX_MATVECSTR_LEN 4900 //enough for one 12x12 matrix of double complex
 #define MAX_CMD_PAGES 4
 #define MAX_TOKEN_LEN 129
