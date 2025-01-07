@@ -36,12 +36,10 @@ License: GNU GPL v3
 #define DOWNIND 2
 #define ALTIND 3
 #define ALTLOCKIND 4
-#define MATSTARTIND 5
-#define MATENDIND 6
 #define TWOIND 7
 #define DEGREEIND char(0xdf)
-#define RIGHTOFIND char(0x7e)
-#define LEFTOFIND  char(0x7f)
+#define RIGHTARROW char(0x7e)
+#define LEFTARROW  char(0x7f)
 #define OFLOWIND char(0xeb)
 
 #define COMSTARTTOKENC '('
@@ -171,7 +169,7 @@ typedef struct {
 	char userInput[STRING_SIZE];
 	char userInputInterpret[STRING_SIZE];
 	int userInputPos; //for userInput buffer
-	int cmdState;
+	int cmdPage;
 	int altState;
 	//view page - 
 	//0: normal, 

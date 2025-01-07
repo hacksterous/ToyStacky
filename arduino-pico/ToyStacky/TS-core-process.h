@@ -31,7 +31,7 @@ bool process(Machine* vm, char* token) {
 			//if ToS has a complex number, n will be 0
 			if (n < MAX_CMD_PAGES) {
 				//if the page number is allowed, load into cmdPage 
-				vm->cmdState = n;
+				vm->cmdPage = n;
 				pop(&vm->userStack, vm->coadiutor);
 			}
 		} else if (strcmp(token, "swp") == 0) {

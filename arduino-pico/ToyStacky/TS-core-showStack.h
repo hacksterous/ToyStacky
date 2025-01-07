@@ -1,6 +1,6 @@
 void showModes (Machine* vm) {
 	lcd.setCursor(0, 0);
-	switch(vm->cmdState) {
+	switch(vm->cmdPage) {
 		case 0:
 			lcd.print(char(0xdb)); break;
 		case 1:
@@ -52,19 +52,6 @@ void showStackEntries(Machine* vm, int linestart, int linecount) {
 }
 
 void showStackHP(Machine* vm, int linestart, int linecount) {
-	//SerialPrint(1, "===================================\r\n");
-	char debug0[VSHORT_STRING_SIZE];
-
-	//printStack(&vm->userStack, 3, true); //for debug only
-	//SerialPrint(1, "-----------------------------------");
-	//printRegisters(vm);
-	//SerialPrint(3, "Last Op = ", vm->lastFnOp, "\r\n");
-	//SerialPrint(3, (strcmp(vm->error, "") == 0)? "": "ERR = ", (strcmp(vm->error, "") == 0)? "Ok": vm->error, "\r\n");
-	//char buf[129];
-	//sprintf(buf, "execStack: matrix = %d, vector = %d IFstate = %x\r\n", (int) (execData >> 4) & 0x1, (int) (execData >> 3) & 0x1, (int) execData & 0x7);
-	//SerialPrint(1, buf);
-	//SerialPrint(1, "===================================\r\n");
-
 	if (strcmp(vm->error, "") == 0)
 		showStackEntries (vm, linestart, linecount);
 	else {

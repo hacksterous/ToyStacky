@@ -126,7 +126,7 @@ void updatesForLeftMotion() {
 				vm.userInputPos--;
 				lcd.setCursor(0, 3); //col, row
 				//no decrement of vm.cursorPos
-				lcd.print(LEFTOFIND);
+				lcd.print(LEFTARROW);
 				if ((len - vm.userInputPos) == (DISPLAY_LINESIZE - 1)) {
 					//no right overflow
 					strncpy(vm.userDisplay, &vm.userInput[vm.userInputPos], DISPLAY_LINESIZE - 1);
@@ -144,7 +144,7 @@ void updatesForLeftMotion() {
 		}
 		if (vm.userInputRightOflow) {
 			lcd.setCursor(DISPLAY_LINESIZE - 1, 3); //col, row
-			lcd.print(RIGHTOFIND);
+			lcd.print(RIGHTARROW);
 		}
 	}
 	lcd.setCursor(vm.cursorPos, 3); //col, row
@@ -183,8 +183,7 @@ void updatesForRightMotion(){
 				//show cursor entry position on col 19 and move left
 				if (len > DISPLAY_LINESIZE - 1) {
 					lcd.setCursor(0, 3); //col, row
-					//lcd.write(LEFTOFIND);
-					lcd.print(LEFTOFIND);
+					lcd.print(LEFTARROW);
 					vm.userInputLeftOflow = 1;
 					strncpy(vm.userDisplay, &vm.userInput[len - DISPLAY_LINESIZE + 2], DISPLAY_LINESIZE - 2);
 					SerialPrint(2, "updatesForRightMotion: 00 10 A case ", "\n\r");
@@ -215,8 +214,7 @@ void updatesForRightMotion(){
 				vm.userInputPos++;
 				SerialPrint(2, "updatesForRightMotion: 01 11 B case ", "\n\r");
 				lcd.setCursor(0, 3);
-				//lcd.write(LEFTOFIND);
-				lcd.print(LEFTOFIND);
+				lcd.print(LEFTARROW);
 				vm.userInputLeftOflow = 1;
 				strncpy(vm.userDisplay, &vm.userInput[vm.userInputPos - DISPLAY_LINESIZE + 3], DISPLAY_LINESIZE - 2);
 				lcd.print(vm.userDisplay);
@@ -228,8 +226,7 @@ void updatesForRightMotion(){
 				//there is one char scrolled off to the right after the indicator
 				//recalculate whether a left scroll indicator is required
 				lcd.setCursor(0, 3); //col, row
-				//lcd.write(LEFTOFIND);
-				lcd.print(LEFTOFIND);
+				lcd.print(LEFTARROW);
 				vm.userInputLeftOflow = 1;
 				SerialPrint(2, "updatesForRightMotion: 01 11 C case ", "\n\r");
 				strncpy(vm.userDisplay, &vm.userInput[vm.userInputPos - DISPLAY_LINESIZE + 3], DISPLAY_LINESIZE - 1);
@@ -271,7 +268,7 @@ void setup() {
 	vm.alarmMin = 0;
 	vm.alarmSec = 10;
 
-	vm.cmdState = 0;
+	vm.cmdPage = 0;
 	vm.altState = 0;
 
     // Start the RTC
@@ -324,7 +321,7 @@ void setup() {
 	  B11100,
 	};
 
-	byte matStartIndicator[8] = {
+	/*byte [8] = {
 	  B11111,
 	  B10100,
 	  B10100,
@@ -334,7 +331,7 @@ void setup() {
 	  B11111,
 	};
 
-	byte matEndIndicator[8] = {
+	byte [8] = {
 	  B11111,
 	  B00101,
 	  B00101,
@@ -342,7 +339,7 @@ void setup() {
 	  B00101,
 	  B00101,
 	  B11111,
-	};
+	};*/
 
 	byte twoIndicator[8] = {
 	  B00000,
@@ -359,8 +356,6 @@ void setup() {
 	lcd.createChar(DOWNIND, downIndicator);
 	lcd.createChar(ALTIND, altIndicator);
 	lcd.createChar(ALTLOCKIND, altLockIndicator);
-	lcd.createChar(MATSTARTIND, matStartIndicator);
-	lcd.createChar(MATENDIND, matEndIndicator);
 	lcd.createChar(TWOIND, twoIndicator);
 	lcd.begin(DISPLAY_LINESIZE, DISPLAY_LINECOUNT); //20 cols, 4 rows
 	lcd.setCursor(DISPLAY_STATUS_WIDTH, 0);
@@ -447,7 +442,7 @@ void loop() {
 					}
 				}
 
-				switch ((vm.cmdState << 0x1) + (vm.altState & 0x1)) {
+				switch ((vm.cmdPage << 0x1) + (vm.altState & 0x1)) {
 					case 0: //page 0, normal
 						keyTypePressed = normalModeKeyhandler(keyc);
 						break;

@@ -203,6 +203,8 @@ typedef struct {
 	bigint_t bigA;
 	bigint_t bigB;
 	bigint_t bigC;
+	int cmdPage;	
+	int altState;	
 	double frequency;
 	bool modeDegrees;
 	bool partialVector;

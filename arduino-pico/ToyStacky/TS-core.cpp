@@ -303,7 +303,7 @@ void showUserEntryLine(int bsp){
 	if (len > DISPLAY_LINESIZE - 1) {
 		lcd.setCursor(0, 3); //col, row
 		//keep 1 char for the scrolled off indication
-		lcd.print(LEFTOFIND);
+		lcd.print(LEFTARROW);
 		vm.userInputLeftOflow = 1;
 		strncpy(vm.userDisplay, &vm.userInput[len - DISPLAY_LINESIZE + 2], DISPLAY_LINESIZE - 2);
 	} else {
@@ -591,7 +591,7 @@ void initMachine(Machine* vm) {
 	strcpy(vm->coadiutor, "0");
 	strcpy(vm->error, "");
 	vm->userInputPos = 0;
-	vm->cmdState = 0;
+	vm->cmdPage = 0;
 	vm->altState = 0;
 	vm->viewPage = NORMAL_VIEW;
 	vm->topEntryNum = DISPLAY_LINECOUNT - 1;
