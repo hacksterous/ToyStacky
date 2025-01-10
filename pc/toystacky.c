@@ -170,6 +170,7 @@ typedef struct {
 										//used to indicate start/end of vectors/matrices
 	int topStr;
 	int topLen;
+	int itemCount;
 } Strack;
 
 //used for branch and condition stack
@@ -178,13 +179,25 @@ typedef struct {
 	int top;
 } UintStack;
 
+
+void zstrncpy (char*dest, const char* src, int len) {
+	//fill with nulls and copy n chars
+	////memset(dest, 0, len + 1);
+	////strncpy(dest, src, len);
+	//copy n chars -- don't use strncpy
+	if (len) {
+		*dest = '\0'; 
+		strncat(dest, src, len);
+	}
+}
+
 //dest must be previously sized to len + 1
 char* fitstr(char*dest, const char* src, size_t len) {
 	if (strlen(src) > len) {
 		dest[len] = '\0';
 		dest[len - 1] = dest[len - 2] = dest[len - 3] = '.';
-		strncpy(dest, src, len - 3);
-	} else strncpy(dest, src, len);
+		zstrncpy(dest, src, len - 3);
+	} else zstrncpy(dest, src, len);
 	return dest;
 }
 
@@ -675,7 +688,7 @@ bool processPrint(Machine* vm, char* token) {
 	//printf("------------------- PRINT - called with token = %s\n", token);
 	
 	//FAILANDRETURN((token[0] == '\0'), vm->error, "Error: illegal PRINT", NULLFN)
-	if (variableVetted(token)) {
+	if (varNameIsLegal(token)) {
 		strcpy(vm->bak, token);
 		int vt = findVariable(&vm->ledger, vm->bak);
 		if (vt == VARIABLE_TYPE_COMPLEX) {
@@ -832,7 +845,7 @@ int main(int argc, char **argv) {
 			//printf("echo: '%s'\n", line);
 			int l = strlen(line);
 			if (l > 128) l = 128;
-			strncpy(&command[0], line, l);
+			zstrncpy(&command[0], line, l);
 			command[l] = '\0';
 			interpret(&vm, command);
 			showScreen(&vm, line);

@@ -136,13 +136,23 @@ void toggleLED() {
 	}
 }
 
+void zstrncpy (char*dest, const char* src, int len) {
+	//copy n chars -- don't use strncpy
+	//memset(dest, 0, len + 1);
+	//strncpy(dest, src, len);
+	if (len) {
+		*dest = '\0'; 
+		strncat(dest, src, len);
+	}
+}
+
 //dest must be previously sized to len + 1
 char* fitstr(char*dest, const char* src, int32_t len) {
 	if ((int32_t)strlen(src) > len) {
 		dest[len] = '\0';
 		dest[len - 1] = dest[len - 2] = dest[len - 3] = '.';
-		strncpy(dest, src, len - 3);
-	} else strncpy(dest, src, len);
+		zstrncpy(dest, src, len - 3);
+	} else zstrncpy(dest, src, len);
 	return dest;
 }
 
@@ -179,10 +189,10 @@ void makeStringFit(char*dest, const char* src, int len) {
 		//does not have the exponent format
 		if (slen > len) {
 			//bigint --  show right overflow
-			strncpy(dest, srcCopy, len);
+			zstrncpy(dest, srcCopy, len);
 			dest[len] = '\0';
 		} else {
-			strncpy(dest, srcCopy, slen);
+			zstrncpy(dest, srcCopy, slen);
 			dest[slen] = '\0';
 		}
 	}
@@ -197,12 +207,12 @@ void makeStringFit(char*dest, const char* src, int len) {
 	//the mantissa
 	//slen - expoIndex --> exponent part
 	if (slen > len) {
-		strncpy(dest, srcCopy, partMantissaLen);
+		zstrncpy(dest, srcCopy, partMantissaLen);
 		if (dest[partMantissaLen - 1] == '.') { //ending in a '.' - remove it
-			strncpy(dest + partMantissaLen - 1, &srcCopy[expoIndex], slen - expoIndex);
+			zstrncpy(dest + partMantissaLen - 1, &srcCopy[expoIndex], slen - expoIndex);
 			dest[len - 1] = '\0';
 		} else {
-			strncpy(dest + partMantissaLen, &srcCopy[expoIndex], slen - expoIndex);
+			zstrncpy(dest + partMantissaLen, &srcCopy[expoIndex], slen - expoIndex);
 			dest[len] = '\0';
 		}
 	} else {
@@ -213,12 +223,6 @@ void makeStringFit(char*dest, const char* src, int len) {
 void addOFlowIndicator(char*dest) {
 	char indicator[] = {OFLOWIND, '\0'};
 	strcat(dest, indicator);
-}
-
-void zstrncpy (char*dest, const char* src, int len) {
-	//fill with nulls and copy n chars
-	memset(dest, 0, len + 1);
-	strncpy(dest, src, len);
 }
 
 void makeComplexStringFit(char*dest, const char* src, int len) {
@@ -236,7 +240,7 @@ void makeComplexStringFit(char*dest, const char* src, int len) {
 	if (src[0] != '(') {
 		//number is real
 		makeStringFit(temp0, src, NUMBER_LINESIZE - 1);
-		SerialPrint(3, "makeComplexStringFit:  vm->coadiutor = ", temp0, "\r\n");
+		//SerialPrint(3, "makeComplexStringFit:  vm->coadiutor = ", temp0, "\r\n");
 		strcat(dest, temp0);
 		addOFlowIndicator(dest);
 		return;
@@ -285,44 +289,40 @@ void makeComplexStringFit(char*dest, const char* src, int len) {
 	}
 }
 
+void makeComplexMatVecStringFit(char*dest, const char* src, int len) {
+	if (src[0] == '[' || src[0] == '{') {
+		if ((int)strlen(src) > len) {
+			zstrncpy(dest, src, len - 1);
+			addOFlowIndicator(dest);
+		}
+		else strcpy(dest, src);
+	}
+	else makeComplexStringFit(dest, src, NUMBER_LINESIZE);
+}
+
 #include "TS-core-showStack.h"
 
 void showUserEntryLine(int bsp){ 
-	char debug0[VSHORT_STRING_SIZE];
-	char debug1[VSHORT_STRING_SIZE];
 	//print userline status here
-	//SerialPrint(3, "showUserEntryLine: userInput = ", vm.userInput, "\r\n");
-	memset(vm.userDisplay, 0, STRING_SIZE);
+	memset(vm.userDisplay, 0, SHORT_STRING_SIZE);
 	int len = strlen(vm.userInput);
-	//doubleToString(vm.cursorPos, debug0);
-	//SerialPrint(3, "showUserEntryLine: vm.cursorPos = ", debug0, "\n\r");
-	//doubleToString(vm.userInputPos, debug0);
-	//SerialPrint(3, "showUserEntryLine: vm.userInputPos = ", debug0, "\n\r");
 
 	//keep 1 char for current input char
 	if (len > DISPLAY_LINESIZE - 1) {
 		lcd.setCursor(0, 3); //col, row
 		//keep 1 char for the scrolled off indication
 		lcd.print(LEFTARROW);
-		vm.userInputLeftOflow = 1;
-		strncpy(vm.userDisplay, &vm.userInput[len - DISPLAY_LINESIZE + 2], DISPLAY_LINESIZE - 2);
+		vm.userInputLeftOflow = true;
+		zstrncpy(vm.userDisplay, &vm.userInput[len - DISPLAY_LINESIZE + 2], DISPLAY_LINESIZE - 2);
 	} else {
 		int colPos = DISPLAY_LINESIZE - len - 1;
 		if (bsp) {
-			//doubleToString(colPos, debug0);
-			//doubleToString(bsp, debug1);
-			//SerialPrint(5, "showUserEntryLine: colPos = ", debug0, " bsp = ", debug1, "\r\n");
-			//doubleToString(vm.cursorPos, debug1);
-			//SerialPrint(5, "showUserEntryLine: colPos = ", debug0, " vm.cursorPos = ", debug1, "\r\n");
 			lcd.setCursor(colPos - 1, 3);
 			lcd.print(' ');
 		}
 		lcd.setCursor(colPos, 3); //col, row
-		strncpy(vm.userDisplay, vm.userInput, len);
+		zstrncpy(vm.userDisplay, vm.userInput, len);
 	}
-	//SerialPrint(3, "showUserEntryLine: vm.userDisplay = ", vm.userDisplay, "\r\n");
-	doubleToString(len, debug0);
-	//SerialPrint(3, "showUserEntryLine: len vm.userDisplay = ", debug0, "\r\n");
 	lcd.print(vm.userDisplay);
 	lcd.setCursor(vm.cursorPos, 3); //col, row
 }
@@ -471,7 +471,6 @@ uint8_t conditionalData(int32_t execData) {
 	return (execData & 0x7);
 }
 
-bool fnOrOp2Param(Machine* vm, const char* token, int fnindex);
 #include "TS-core-fnOrOpVec2Param.h"
 #include "TS-core-fnOrOp2Param.h"
 #include "TS-core-fnOrOpVec1Param.h"
@@ -516,15 +515,15 @@ bool processPrint(Machine* vm, char* token) {
 		//FIXME
 	} else if (strcmp(token, "b") == 0) {
 		//SerialPrint(1, "------------------- PRINT - found ?bak");
-		SerialPrint(3, "bak = ", vm->bak, "\r\n");
+		//SerialPrint(3, "bak = ", vm->bak, "\r\n");
 	} else if (strcmp(token, "a") == 0) {
 		//SerialPrint(1, "------------------- PRINT - found ?acc");
-		SerialPrint(3, "acc = ", vm->acc, "\r\n");
+		//SerialPrint(3, "acc = ", vm->acc, "\r\n");
 	} else if (token[0] == '"' && token[strlen(token)-1] == '"') {
 		//immediate string
-		token = removeDblQuotes(token);
-		SerialPrint(2, token, "\r\n");
-	} else if (variableVetted(token)) {
+		//token = removeDblQuotes(token);
+		//SerialPrint(2, token, "\r\n");
+	} else if (varNameIsLegal(token)) {
 		if (token[0] == '\0') {
 			int8_t meta;
 			//POP var -- pop the top of stack into variable 'var'
@@ -537,11 +536,11 @@ bool processPrint(Machine* vm, char* token) {
 		if (vt == VARIABLE_TYPE_COMPLEX || vt == VARIABLE_TYPE_VECMAT) {
 			ComplexDouble c = fetchVariableComplexValue(&vm->ledger, token);
 			if (complexToString(c, vm->coadiutor)) { 
-				SerialPrint(4, token, " = ", vm->coadiutor, "\r\n");
+				//SerialPrint(4, token, " = ", vm->coadiutor, "\r\n");
 			}
 		} else if (vt == VARIABLE_TYPE_STRING) {
 			if (getVariableStringVecMatValue(&vm->ledger, token, vm->coadiutor)) { //returns true
-				SerialPrint(4, token, " = ", vm->coadiutor, "\r\n");
+				//SerialPrint(4, token, " = ", vm->coadiutor, "\r\n");
 			}
 		} else {
 			FAILANDRETURNVAR(true, vm->error, "no variable %s", fitstr(vm->coadiutor, token, 10))
@@ -595,10 +594,10 @@ void initMachine(Machine* vm) {
 	vm->altState = 0;
 	vm->viewPage = NORMAL_VIEW;
 	vm->topEntryNum = DISPLAY_LINECOUNT - 1;
-	vm->pointedEntryNum = 0;
+	vm->pointerRow = DISPLAY_LINECOUNT - 1;
 	vm->modeDegrees = false;
-	vm->userInputLeftOflow = 0;
-	vm->userInputRightOflow = 0;
+	vm->userInputLeftOflow = false;
+	vm->userInputRightOflow = false;
 	vm->cursorPos = DISPLAY_LINESIZE - 1; //between 0 and 19, both inclusive
 	vm->timerRunning = false;
 	vm->repeatingAlarm = false;

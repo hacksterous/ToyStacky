@@ -6,7 +6,8 @@ License: GNU GPL v3
 #define __TS_CORE_H__
 
 #define MAX_MATVECSTR_LEN 4900 //enough for one 12x12 matrix of double complex
-#define MAX_CMD_PAGES 4
+#define MAX_MATVECELEMENTS 150
+#define MAX_CMD_PAGES 5
 #define MAX_TOKEN_LEN 129
 #define PICO_DOUBLE_PROPAGATE_NANS 1
 #define DISPLAY_STATUS_WIDTH 2
@@ -19,7 +20,6 @@ License: GNU GPL v3
 #define MAX_VARIABLES 1000
 #define MEMORY_SIZE 32000 //in bytes
 #define CAPACITY MEMORY_SIZE
-#define USER_SOURCECODEMEM_SIZE 32000 //in bytes
 #define SOURCECODEMEM_SIZE 32000 //in bytes
 #define STACK_SIZE 32000 //in bytes
 #define STACK_NUM_ENTRIES 11500 //max stack entries
@@ -77,10 +77,11 @@ License: GNU GPL v3
 //used for main automatic stack
 typedef struct {
 	char stackStr[STACK_SIZE];
-	int32_t stackLen[STACK_NUM_ENTRIES]; //bits 31:24 are meta data - 
+	int32_t stackLen[STACK_NUM_ENTRIES]; //bits 31:28 are meta data - 
 										//used to indicate start/end of vectors/matrices
 	int topStr;
 	int topLen;
+	int itemCount;
 } Strack;
 
 //used for branch and condition stack
@@ -100,7 +101,7 @@ typedef struct {
 typedef enum {
 	NORMAL_VIEW,
 	STACK_VIEW,
-	VAR_VIEW,
+	ENTRY_VIEW,
 	VARLIST_VIEW,
 	STATUS_VIEW,
 	EDIT_VIEW
@@ -156,21 +157,26 @@ typedef struct {
 #endif
 
 typedef struct {
-	char USERSOURCECODEMEM[USER_SOURCECODEMEM_SIZE];
+	/* internal structures */
 	char SOURCECODEMEM[SOURCECODEMEM_SIZE];
 	Ledger ledger;
 	Strack userStack; //the user stack
 	UintStack execStack; //the execution stack to keep track of conditionals, loops and calls
+
+	/* internal variables */
 	char bak[STRING_SIZE];//backup register
 	char acc[STRING_SIZE];//the accumulator
 	char error[SHORT_STRING_SIZE];//error notification
-	char userDisplay[SHORT_STRING_SIZE];
 	char coadiutor[STRING_SIZE]; //coadiutor = helper
-	char userInput[STRING_SIZE];
-	char userInputInterpret[STRING_SIZE];
-	int userInputPos; //for userInput buffer
-	int cmdPage;
-	int altState;
+	bigint_t bigA;
+	bigint_t bigB;
+	bigint_t bigC;
+	char matvecStrA[MAX_MATVECSTR_LEN]; 
+	char matvecStrB[MAX_MATVECSTR_LEN];
+	char matvecStrC[MAX_MATVECSTR_LEN];
+
+
+	/* for stack inspection control */
 	//view page - 
 	//0: normal, 
 	//1: stack view, 
@@ -180,11 +186,37 @@ typedef struct {
 	//5: code editor view
 	int viewPage;
 	int topEntryNum; //stack entry number shown at top row
-	int pointedEntryNum; //entry pointed to by right pointing arrow
+	int pointerRow; //entry pointed to by right pointing arrow
+
+	/* for variable viewer */
+	//for displaying on screen, a variable/stack item is split
+	//into fragments
+	int32_t varFragsArray[MAX_MATVECELEMENTS];
+	int varFragCount; //total fragment count
+	int topVarFragNum; //fragment number at top
+	int varLength; //variable length
+
+	/* for operating mode */
+	int cmdPage;
+	int altState;
+
+	/* for math operations */
 	bool modeDegrees;
+	double frequency;
+
+	/* for user entry and display management */
 	int cursorPos;
-	int userInputLeftOflow;
-	int userInputRightOflow;
+	bool userInputLeftOflow;
+	bool userInputRightOflow;
+	bool partialVector;
+	bool partialMatrix;
+	bool partialComplex;
+	char userInput[STRING_SIZE];
+	char userInputInterpret[STRING_SIZE];
+	int userInputPos; //for userInput buffer
+	char userDisplay[SHORT_STRING_SIZE];
+
+	/* for timer and astronomy */
 	bool timerRunning;
 	bool repeatingAlarm;
 	bool LEDState;
@@ -198,22 +230,22 @@ typedef struct {
 	uint8_t alarmMin;
 	uint8_t alarmSec;
 	unsigned int TS0RTCFreq;
-	double frequency;
-	bigint_t bigA;
-	bigint_t bigB;
-	bigint_t bigC;
-	char matvecStrA[MAX_MATVECSTR_LEN]; 
-	char matvecStrB[MAX_MATVECSTR_LEN];
-	char matvecStrC[MAX_MATVECSTR_LEN];
-	bool partialVector;
-	bool partialMatrix;
-	bool partialComplex;
+
 } Machine;
 
 extern Machine vm;
 
 extern LiquidCrystal lcd;
 
+bool fnOrOp2Param(Machine* vm, const char* token, int fnindex);
+void formatVariable(Machine* vm, char* str, int width);
+void showVariable(Machine* vm);
+char* skip_whitespace(char* input);
+void zstrncpy (char*dest, const char* src, int len);
+char* splitIntoLines(char* str, int width, char* holdbuffer);
+void clearDisplay (Machine* vm);
+void cleanUpModes (Machine* vm);
+int8_t peekn(Strack* s, char output[STRING_SIZE], int n);
 void SerialPrint(const int count, ...);
 void interpret(Machine* vm, char* sourceCode);
 void initMachine(Machine* vm);

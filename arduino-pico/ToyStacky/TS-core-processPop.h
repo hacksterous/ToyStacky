@@ -56,7 +56,7 @@ bool processPop(Machine* vm, char* token) {
 				removeDblQuotes(vm->acc);
 				acc = &(vm->acc[1]);
 			}
-			if (variableVetted(acc)) {
+			if (varNameIsLegal(acc)) {
 				strcpy(vm->acc, acc);
 				//pop the variable name (already in vm->acc)
 				pop(&vm->userStack, NULL);

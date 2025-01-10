@@ -898,6 +898,7 @@ void linenoiseEditHistoryNext(struct linenoiseState *l, int dir) {
             l->history_index = history_len-1;
             return;
         }
+		memset(l->buf, 0, l->buflen + 1); //anirb check
         strncpy(l->buf,history[history_len - 1 - l->history_index],l->buflen);
         l->buf[l->buflen-1] = '\0';
         l->len = l->pos = strlen(l->buf);

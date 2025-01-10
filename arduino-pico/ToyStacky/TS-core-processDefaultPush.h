@@ -3,7 +3,7 @@ bool processDefaultPush(Machine* vm, char* token) {
 	//printf("processDefaultPush:------------------- with token = %s", token);
 	//handle shorthands
 	ComplexDouble c;
-	if (variableVetted(token)) {
+	if (varNameIsLegal(token)) {
 		//token is a variable present in ledger
 		if (findVariable(&vm->ledger, token) == VARIABLE_TYPE_VECMAT) {
 			if (getVariableStringVecMatValue(&vm->ledger, token, vm->matvecStrA)) {

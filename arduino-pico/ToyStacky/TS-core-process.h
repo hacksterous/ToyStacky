@@ -18,7 +18,7 @@ bool process(Machine* vm, char* token) {
 		} else if (is2pfn != -1) {
 			//printf("process:------------------- is2pfn|op = %d\n", is2pfn);
 			//could call 2-parameter vector function
-			success = fnOrOp2Param(vm, token, is2pfn); //don't pass is2pop
+			success = fnOrOp2Param(vm, token, is2pfn);
 		} else if (isvecfn != -1) {
 			success = fnOrOpVec1Param(vm, token, isvecfn, false, false); //not a trig fn., result is not vector
 		} else if (strcmp(token, "cmdpg") == 0) {

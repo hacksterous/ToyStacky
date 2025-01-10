@@ -1,6 +1,7 @@
 void stackInit(Strack *s) {
 	s->topStr = -1;
 	s->topLen = -1;
+	s->itemCount = 0;
 }
 
 bool stackIsEmpty(Strack *s) {
@@ -30,6 +31,7 @@ bool push(Strack *s, char* value, int8_t meta) {
 	//SerialPrint(1, "push: NOW s->topStr = %d", s->topStr);
 	//SerialPrint(1, "push: NOW s->topLen = %d", s->topLen);
 	//SerialPrint(1, "push: returning--------");
+	s->itemCount++;
 	return true;
 }
 
@@ -51,6 +53,7 @@ int8_t pop(Strack *s, char* output) {
 	//SerialPrint(1, "pop: NOW s->topStr = %d", s->topStr);
 	//SerialPrint(1, "pop: NOW s->topLen = %d", s->topLen);
 	//SerialPrint(1, "pop: returning--------");
+	s->itemCount--;
 	return meta;
 }
 

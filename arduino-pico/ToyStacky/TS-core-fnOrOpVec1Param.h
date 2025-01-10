@@ -32,8 +32,9 @@ bool fnOrOpVec1Param(Machine* vm, const char* token, int fnindex, bool isTrig, b
 			success = fn1ParamScalar(vm, token, fnindex, isTrig);
 			//fn1ParamScalar has the result in acc
 			FAILANDRETURNVAR(!success, vm->error, "%s bad arg.B", fitstr(vm->coadiutor, token, 8))
-			strcat(vm->matvecStrB, " ");
+			//strcat(vm->matvecStrB, " ");
 			strcat(vm->matvecStrB, vm->acc);
+			if (input[0] != ']') strcat(vm->matvecStrB, " ");
 			//printf ("fnOrOpVec1Param: loop, vm->matvecStrB = %s\n", vm->matvecStrB);
 		}
 		strcat(vm->matvecStrB, "]");

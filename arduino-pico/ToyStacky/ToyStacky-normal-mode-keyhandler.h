@@ -24,7 +24,7 @@ int normalModeKeyhandler (char keyc) {
 					//no error has happened already
 					strcpy(vm.userInput, "dup");
 				} else 
-					showStackHP(&vm, 0, DISPLAY_LINECOUNT);
+					showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
 			} else {
 				vm.userInput[len + 1] = '\0';
 				SerialPrint(3, "Got \n : vm.userInput = ", vm.userInput, "\n\r");
@@ -50,9 +50,9 @@ int normalModeKeyhandler (char keyc) {
 					vm.userInput[len] = '\0';
 				}
 				if (lastChar) 
-					showStackHP(&vm, 0, DISPLAY_LINECOUNT);
-				else {
 					showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
+				else {
+					showStackHP(&vm, 0, DISPLAY_LINECOUNT - 2);
 					showUserEntryLine(1);
 				}
 			} else {
@@ -158,9 +158,13 @@ int normalModeKeyhandler (char keyc) {
 		//these below need special handling
 		case 'u': //up
 			keyTypePressed = 3;
+			lcd.noCursor();
+			updatesForUpMotion();
 			break;
 		case 'D': //down
 			keyTypePressed = 4;
+			lcd.noCursor();
+			updatesForDownMotion();
 			break;
 		case '<': //left
 			keyTypePressed = 7;

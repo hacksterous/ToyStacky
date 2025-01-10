@@ -229,7 +229,7 @@ bool doubleToString(double value, char* buf) {
 	//for small numbers (with exponent -10 etc), 16 decimal places
 	//will give wrong digits - since these are beyond the precision
 	//of double floats
-	sprintf(buf, "%.16g", value);
+	sprintf(buf, "%.15g", value);
 	if (strcmp(lcase(buf), "inf") == 0 || strcmp(lcase(buf), "-inf") == 0) return false;
 	if (strcmp(lcase(buf), "nan") == 0 || strcmp(lcase(buf), "-nan") == 0) return false;
 
@@ -251,10 +251,10 @@ bool doubleToString(double value, char* buf) {
 	//printf("doubleToString: ------ Expo = %d\n", expo);
 	if (expoIsNeg == true) {
 		//printf("doubleToString: ------ expoIsNeg = %d\n", expoIsNeg);
-		if (expo > 13) {
+		if (expo > 12) {
 			strcpy(fmt, "%.3g");
 		} else {
-			int numDecimals = 15 - expo;
+			int numDecimals = 14 - expo;
 			if (numDecimals < 6) numDecimals = 6;
 			strcpy(fmt, "%.");
 			itoa(numDecimals, &fmt[2]);
@@ -333,8 +333,8 @@ bool addDblQuotes(char *input) {
 	return true;
 }
 
-bool variableVetted(char* var) {
-	//printf("variableVetted: entered with %s returning %d\n", var, (isalpha(var[0]) || var[0] == '_'));
+bool varNameIsLegal(char* var) {
+	//printf("varNameIsLegal: entered with %s returning %d\n", var, (isalpha(var[0]) || var[0] == '_'));
 	if (isalpha(var[0]) || var[0] == '_') return true;
 	else return false;
 }

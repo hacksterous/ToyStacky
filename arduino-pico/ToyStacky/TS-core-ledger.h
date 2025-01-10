@@ -52,14 +52,14 @@ Variable* createVariable(Ledger* ledger, const char* name,
 	//SerialPrint(1, "createVariable: just entered ledger->varCount is %lu; creating variable %s with type %d", ledger->varCount, name, (int) type);
 	Variable* variable = &ledger->variables[index];
 
-	strncpy(variable->name, name, sizeof(variable->name) - 1);
+	zstrncpy(variable->name, name, sizeof(variable->name) - 1);
 	variable->name[sizeof(variable->name) - 1] = '\0';
 	variable->type = type;
 
 	if (type == VARIABLE_TYPE_STRING || type == VARIABLE_TYPE_VECMAT) {
 		variable->value.stringValueIndex = ledger->memoryOffset;
 		//SerialPrint(1, "createVariable: stringValueIndex is set to %X for variable %s", (unsigned int)variable->value.stringValueIndex, name);
-		strncpy(ledger->memory + ledger->memoryOffset, stringValue, stringLength);
+		zstrncpy(ledger->memory + ledger->memoryOffset, stringValue, stringLength);
 		ledger->memoryOffset += stringLength;
 	} else if (type == VARIABLE_TYPE_COMPLEX) {
 		//SerialPrint(1, "createVariable: doubleValue.real is set to %g for variable %s", doubleValue.real, name);
@@ -204,7 +204,7 @@ bool updateStringVecMatVariable(Ledger* ledger, const char* name, const char* ne
 		updateLedger(ledger, variable->value.stringValueIndex, -bytesToRemove);
 	} //else they are equal
 
-	strncpy(stringValue, newString, newSize);
+	zstrncpy(stringValue, newString, newSize);
 	return true;  // No need to resize
 }
 
