@@ -225,6 +225,9 @@ typedef struct {
 	bool partialMatrix;
 	bool partialComplex;
 
+	uint8_t precision;
+	char notationStr[2];
+
 } Machine;
 static Machine vm;
 
@@ -729,7 +732,8 @@ void initMachine(Machine* vm) {
 	vm->partialComplex = false;
 	vm->cmdPage = 0;
 	vm->altState = 0;
-
+	vm->precision = 14;
+	strcpy(vm->notationStr, "g");
 }
 
 #include "../arduino-pico/ToyStacky/TS-core-processPop.h"

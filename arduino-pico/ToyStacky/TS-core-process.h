@@ -44,26 +44,25 @@ bool process(Machine* vm, char* token) {
 			push(&vm->userStack, vm->bak, meta);
 			return true;
 		} else if (strcmp(token, "vec") == 0) {
-			int8_t meta;
-			strcpy(vm->matvecStrC, "]");
-			while (true) {
-				meta = peek(&vm->userStack, NULL);
-				if (meta == METANONE) {
-					pop(&vm->userStack, vm->acc);
-					//printf("found %s\n", vm->acc);
-					strcat(vm->matvecStrC, vm->acc);
-					//attach a spacer if next entry is a scalar
-					if (peek(&vm->userStack, NULL) == METANONE)
-						strcat(vm->matvecStrC, " ");
-				} else {
-					break;
-				}
+			strcpy(vm->matvecStrC, "[");
+			int i = 0;
+			int j = 0;
+			do {
+				//meta = peekn(&vm->userStack, NULL, i++);
+			} while (peekn(&vm->userStack, NULL, i++) == METANONE);
+			//printf("final count i = %d\n", i);
+
+			while (--i > 0) {
+				peekn(&vm->userStack, vm->acc, i - 1);
+				strcat(vm->matvecStrC, vm->acc);
+				if (i != 1) strcat(vm->matvecStrC, " ");
+				j++;
 			}
-			//printf("before rev vector %s\n", vm->matvecStrC);
-			strcat(vm->matvecStrC, "[");
-			reverse(vm->matvecStrC);
+			//printf("j count i = %d\n", j);
+			while (j-- > 0) pop(&vm->userStack, NULL);
+
+			strcat(vm->matvecStrC, "]");
 			//printf("final vector %s\n", vm->matvecStrC);
-			//printf("count = %d\n", count);
 			push(&vm->userStack, vm->matvecStrC, METAVECTOR);
 		} else if (strcmp(token, "dot") == 0) {
 			int8_t cmeta = peek(&vm->userStack, NULL); //c

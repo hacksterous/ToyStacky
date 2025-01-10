@@ -231,6 +231,9 @@ typedef struct {
 	uint8_t alarmSec;
 	unsigned int TS0RTCFreq;
 
+	uint8_t precision;
+	char notationStr[2];
+
 } Machine;
 
 extern Machine vm;

@@ -188,7 +188,6 @@ bool stringToComplex(const char *input, ComplexDouble* c) {
 void reverse(char s[]) {
 	int i, j;
 	char c;
-
 	for (i = 0, j = strlen(s)-1; i<j; i++, j--) {
 		c = s[i];
 		s[i] = s[j];
@@ -229,7 +228,11 @@ bool doubleToString(double value, char* buf) {
 	//for small numbers (with exponent -10 etc), 16 decimal places
 	//will give wrong digits - since these are beyond the precision
 	//of double floats
-	sprintf(buf, "%.15g", value);
+	strcpy(fmt, "%.");
+	itoa(vm.precision, &fmt[2]);
+	strcat(fmt, vm.notationStr);
+	//sprintf(buf, "%.15g", value);
+	sprintf(buf, fmt, value);
 	if (strcmp(lcase(buf), "inf") == 0 || strcmp(lcase(buf), "-inf") == 0) return false;
 	if (strcmp(lcase(buf), "nan") == 0 || strcmp(lcase(buf), "-nan") == 0) return false;
 
@@ -244,7 +247,7 @@ bool doubleToString(double value, char* buf) {
 			break;
 		}
 	}
-	if (expoIsNeg == false) return true; 	
+	if (expoIsNeg == false) return true;
 	//printf("doubleToString: ------ Minus found at i = %d\n", i);
 	char* endPtr;
 	int expo = strtod(buf + i, &endPtr);
@@ -254,7 +257,7 @@ bool doubleToString(double value, char* buf) {
 		if (expo > 12) {
 			strcpy(fmt, "%.3g");
 		} else {
-			int numDecimals = 14 - expo;
+			int numDecimals = vm.precision - 1 - expo;
 			if (numDecimals < 6) numDecimals = 6;
 			strcpy(fmt, "%.");
 			itoa(numDecimals, &fmt[2]);
