@@ -86,6 +86,11 @@ char* extract_realnum(char* input, char* output) {
         if (*input == '+' || *input == '-') {
             *output++ = *input++;
         }
+	    if (!is_digit(*input)) {
+            // Invalid exponent format
+            *output = '\0';
+            return input;
+        }
         while (is_digit(*input)) {
             *output++ = *input++;
         }
@@ -103,33 +108,31 @@ char* extract_realnum(char* input, char* output) {
 // Function to extract a complex number (COMPLEXNUM)
 char* extract_complexnum(char* input, char* output) {
     input = skip_whitespace(input);
-
     if (*input == '(') {
         *output++ = *input++;
+		//printf("first number input = '%c'\n", *input);
         input = extract_realnum(input, output);
-        if (*output != '\0') {
-            output += strlen(output);
-            *output++ = ' ';
+		//printf("first number done output = \"%s\" input = '%c'\n", output, *input);
+        output += strlen(output);
+		//printf("first number done after incr output = \"%s\" input = '%c'output char = %d\n", output, *input, *output);
+
+        if (*input != ')') {
+			//printf("here input = '%c'\n", *input);
+            if (*input != '\0') *output++ = ' '; //don't add space at end of input
             input = extract_realnum(input, output);
-            if (*output != '\0') {
-                output += strlen(output);
-                if (*input == ')') {
-                    *output++ = *input++;
-                } else {
-                    //printf("Error: Complex number not closed properly.\n");
-                    *output++ = ')';
-                    *output = '\0';
-                }
+            output += strlen(output);
+
+            if (*input == ')') {
+                *output++ = *input++;
             } else {
-                //printf("Error: Invalid complex number format.\n");
+				// Error: Complex number not closed properly
                 *output++ = ')';
-                *output = '\0';
             }
         } else {
-            //printf("Error: Invalid complex number format.\n");
+			input++;
             *output++ = ')';
-            *output = '\0';
         }
+        *output = '\0';
     } else {
         *output = '\0';
     }
