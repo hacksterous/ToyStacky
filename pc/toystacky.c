@@ -211,6 +211,7 @@ typedef struct {
 	char acc[STRING_SIZE];//the accumulator
 	char error[SHORT_STRING_SIZE];//error notification
 	char coadiutor[STRING_SIZE]; //coadiutor = helper
+	char dummy[STRING_SIZE];
 	char matvecStrA[MAX_MATVECSTR_LEN]; 
 	char matvecStrB[MAX_MATVECSTR_LEN];
 	char matvecStrC[MAX_MATVECSTR_LEN];

@@ -543,10 +543,10 @@ bool processPrint(Machine* vm, char* token) {
 				//SerialPrint(4, token, " = ", vm->coadiutor, "\r\n");
 			}
 		} else {
-			FAILANDRETURNVAR(true, vm->error, "no variable %s", fitstr(vm->coadiutor, token, 10))
+			FAILANDRETURNVAR(true, vm->error, "no variable %s", fitstr(vm->coadiutor, token, 4))
 		}
 	} else {
-		FAILANDRETURNVAR(true, vm->error, "no variable %s", fitstr(vm->coadiutor, token, 10))
+		FAILANDRETURNVAR(true, vm->error, "no variable %s", fitstr(vm->coadiutor, token, 4))
 	}
 	return true;
 }

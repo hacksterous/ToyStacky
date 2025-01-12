@@ -7,7 +7,7 @@ bool fn1ParamScalar(Machine* vm, const char* fnname, int fnindex, int isTrig) {
 	else if (isRealNumber(vm->acc)) //real number
 		success = stringToDouble(vm->acc, &c.real);
 
-	FAILANDRETURNVAR(!success, vm->error, "%s bad.A", fitstr(vm->coadiutor, fnname, 8))
+	FAILANDRETURNVAR(!success, vm->error, "%s bad.", fitstr(vm->coadiutor, fnname, 8))
 	if (fnindex < NUMMATH1PARAMFN) {
 		if (vm->modeDegrees && isTrig == 1)
 			//convert input to radians for trig fns
@@ -41,7 +41,7 @@ bool fn1Param(Machine* vm, const char* token, int fnindex, int isTrig) {
 		peek(&vm->userStack, vm->acc);
 		//scalar, function argument is in vm->acc
 		success = fn1ParamScalar(vm, token, fnindex, isTrig);
-		FAILANDRETURNVAR(!success, vm->error, "%s bad.B", fitstr(vm->coadiutor, token, 8))
+		FAILANDRETURNVAR(!success, vm->error, "%s bad.", fitstr(vm->coadiutor, token, 8))
 		//fn1ParamScalar has the result in acc
 		pop(&vm->userStack, NULL);
 		push(&vm->userStack, vm->acc, METANONE);

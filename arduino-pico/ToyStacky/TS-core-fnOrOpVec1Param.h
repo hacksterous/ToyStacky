@@ -31,7 +31,7 @@ bool fnOrOpVec1Param(Machine* vm, const char* token, int fnindex, bool isTrig, b
 			//scalar, function argument is in vm->acc
 			success = fn1ParamScalar(vm, token, fnindex, isTrig);
 			//fn1ParamScalar has the result in acc
-			FAILANDRETURNVAR(!success, vm->error, "%s bad arg.B", fitstr(vm->coadiutor, token, 8))
+			FAILANDRETURNVAR(!success, vm->error, "%s bad arg.", fitstr(vm->coadiutor, token, 8))
 			//strcat(vm->matvecStrB, " ");
 			strcat(vm->matvecStrB, vm->acc);
 			if (input[0] != ']') strcat(vm->matvecStrB, " ");
@@ -77,7 +77,7 @@ bool fnOrOpVec1Param(Machine* vm, const char* token, int fnindex, bool isTrig, b
 		//c.real = crealpart(crunning);
 		//c.imag = cimagpart(crunning);
 		success = complexToString(crunning, vm->acc);
-		FAILANDRETURNVAR(!success, vm->error, "fn %s failed", fitstr(vm->coadiutor, token, 9))
+		FAILANDRETURNVAR(!success, vm->error, "fn %s failed", fitstr(vm->coadiutor, token, 8))
 		//pop(&vm->userStack, NULL);
 		//keep vector on stack
 		push(&vm->userStack, vm->acc, METANONE);

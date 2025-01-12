@@ -119,6 +119,7 @@ typedef enum {
 	METAVECTOR,
 	METAMATRIX,
 	METAVECTORPARTIAL,
+	METAVECTORMATRIXPARTIAL,
 	METAMATRIXPARTIAL
 } StrackMeta;
 
@@ -168,6 +169,7 @@ typedef struct {
 	char acc[STRING_SIZE];//the accumulator
 	char error[SHORT_STRING_SIZE];//error notification
 	char coadiutor[STRING_SIZE]; //coadiutor = helper
+	char dummy[STRING_SIZE];
 	bigint_t bigA;
 	bigint_t bigB;
 	bigint_t bigC;
