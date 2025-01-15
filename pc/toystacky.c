@@ -11,13 +11,13 @@ License: GNU GPL v3
 #include <string.h>
 #include <stdbool.h>
 #include <math.h>
-#include <complex.h>
 #include <errno.h>
 #include "linenoise.h"
 #include "bigint.h"
 
 #define DESKTOP_PC
 #define MAX_MATVECSTR_LEN 4900 //enough for one 12x12 matrix of double complex
+#define MAX_MATLEN 12
 #define MAX_CMD_PAGES 4
 #define MAX_TOKEN_LEN 129
 #define MAX_VARNAME_LEN 33
@@ -30,7 +30,8 @@ License: GNU GPL v3
 #define STACK_NUM_ENTRIES 1000 //max stack entries
 #define STRING_SIZE 129
 #define BIGINT_SIZE 30 //holds a number as big as described in a decimal-coded 128 char long string
-#define SHORT_STRING_SIZE 33
+#define SHORT_STRING_SIZE 51 //%.15g gives 24 * 2 + 3
+#define VSHORT_STRING_SIZE 25
 #define DOUBLE_EPS 1.5e-16
 #define DOUBLEFN_EPS 1.5e-16 //for return values of functions
 
@@ -67,6 +68,8 @@ License: GNU GPL v3
 #define DPOPTOKEN "@@"
 
 void (*NULLFN)(void) = NULL;
+const double __TS_PI__ = 3.141592653589793;
+#define MKCPLX(a,...) makeComplex(a, (0, ##__VA_ARGS__))
 
 #define FAILANDRETURN(failcondition,dest,src,fnptr)	\
 	if (failcondition) {							\
@@ -93,14 +96,16 @@ typedef enum {
 	METAVECTOR,
 	METAMATRIX,
 	METAVECTORPARTIAL,
+	METAVECTORMATRIXPARTIAL,
 	METAMATRIXPARTIAL
 } StrackMeta;
 
-const char* DEBUGMETA[5] = {
+const char* DEBUGMETA[6] = {
 	"METANONE",
 	"METAVECTOR",
 	"METAMATRIX",
 	"METAVECTORPARTIAL",
+	"METAVECTORMATRIXPARTIAL",
 	"METAMATRIXPARTIAL"};
 
 typedef struct {
@@ -115,11 +120,17 @@ ComplexDouble makeComplex(double re, double im) {
 	return ret;
 }
 
-bool alm0double(double value) {
-	//limit of double precision
-	if (fabs(value) < DOUBLE_EPS) return true;
-	else return false;
-}
+typedef struct Matrix{
+	int rows;
+	int columns;
+	ComplexDouble numbers[MAX_MATLEN][MAX_MATLEN];
+} Matrix;
+
+typedef struct Matrixd{
+	int rows;
+	int columns;
+	double numbers[MAX_MATLEN][MAX_MATLEN];
+} Matrixd;
 
 #define __DEBUG_TOYSTACKY__
 #ifdef __DEBUG_TOYSTACKY__
@@ -136,8 +147,6 @@ void SerialPrint(const int count, ...) {
 #else
 void SerialPrint(const int count, ...) {}
 #endif
-
-#define MKCPLX(a,...) makeComplex(a, (0, ##__VA_ARGS__))
 
 //used for variables
 typedef enum {
@@ -179,6 +188,148 @@ typedef struct {
 	int top;
 } UintStack;
 
+#include "../arduino-pico/ToyStacky/TS-core-math.h"
+typedef double (*RealFunctionPtr)(ComplexDouble);
+typedef void (*BigIntVoidFunctionPtr)(const bigint_t*, const bigint_t*, bigint_t*);
+typedef int (*BigIntIntFunctionPtr)(const bigint_t*, const bigint_t*);
+typedef ComplexDouble (*ComplexFunctionPtr1Param)(ComplexDouble);
+typedef ComplexDouble (*ComplexFunctionPtr2Param)(ComplexDouble, ComplexDouble);
+typedef ComplexDouble (*ComplexFunctionPtrVector)(ComplexDouble, ComplexDouble, ComplexDouble, int);
+
+const char* matrixfnname[] = {
+						"det", "inv",
+						"idn", "trc",
+						"eival", "eivec",
+						"tpose"
+						};
+const int NUMMATRIXPARAMFN = 7;
+const char* mathfn1paramname[] = {
+						"sin", "cos", "tan", "cot", "sinh", "cosh", "tanh", "coth", 
+						"asin", "acos", "atan", "acot", "asinh", "acosh", "atanh", "acoth",
+						"exp", "log10", "log", "log2", "sqrt", "cbrt", "conj", 
+						"abs", "arg", "re", "im"}; //the 1 param functions
+
+const int NUMMATH1PARAMFN = 23;
+const int NUMREAL1PARAMFN = 4;
+const int NUMMATH1PARAMTRIGFN = 8;
+const int NUMMATH1PARAMTRIGANTIFN = 16;
+
+//these 23 return ComplexDouble
+ComplexFunctionPtr1Param mathfn1param[] = {	csine, 
+											ccosine, 
+											ctangent, 
+											ccotangent, 
+											csinehyp, 
+											ccosinehyp, 
+											ctangenthyp,
+											ccotangenthyp,
+
+											carcsine, 
+											carccosine, 
+											carctangent,
+											carccotangent,
+											carcsinehyp, 
+											carccosinehyp, 
+											carctangenthyp,
+											carccotangenthyp,
+
+											cexpo, clogarithm10, 
+											cln, clog2, 
+											csqroot, cbroot, 
+											conjugate};
+
+//the 1 param functions that have real result
+RealFunctionPtr realfn1param[] = {abso, cargu, crealpart, cimagpart};
+//                                         bigint_pow -- to be implemented
+BigIntVoidFunctionPtr bigfnvoid2param[] = {NULL, bigint_max, bigint_min, bigint_add, bigint_sub, bigint_mul, bigint_div, bigint_rem};
+
+BigIntIntFunctionPtr bigfnint2param[] = {bigint_gt, bigint_lt, bigint_gte, bigint_lte, bigint_eq, bigint_neq};
+
+const char* vecfn1paramname[] = {"sum", "sqsum", "var", "sd", "mean", "rs"};
+const char* vecfn2paramname[] = {"dot"};
+const int NUMVECFNS = 6;
+const int NUMVEC2FNS = 1;
+
+const char* mathfnop2paramname[] = {
+						"atan2", "pow",
+						"max", "min",
+						ADDTOKEN, SUBTOKEN,
+						MULTOKEN, DIVTOKEN,
+						MODTOKEN, GTTOKEN,
+						LTTOKEN, GTETOKEN,
+						LTETOKEN, EQTOKEN,
+						NEQTOKEN, PARTOKEN
+						}; //the 2 params functions
+const int  NUMMATH2PARAMFNOP = 16;
+const int NUMVOIDBIGINTFNMIN = 1;
+const int NUMVOIDBIGINTFNMAX = 8;
+
+//ADDTOKEN, SUBTOKEN,
+//MULTOKEN, DIVTOKEN,
+//MODTOKEN, GTTOKEN,
+//LTTOKEN, GTETOKEN,
+//LTETOKEN, EQTOKEN,
+//NEQTOKEN
+const int NUMMATHOPS = 11;
+
+ComplexFunctionPtr2Param mathfn2param[] = {carctangent2, cpower, cmax, cmin, cadd, csub,
+									cmul, cdiv, cmod, cgt, clt, cgte, clte, ceq, cneq, cpar};
+
+
+
+ComplexDouble suminternal(ComplexDouble running, ComplexDouble next) { 
+	return cadd(running, next);
+}
+ComplexDouble sum(ComplexDouble summed, ComplexDouble sqsummed, ComplexDouble rsummed, int n) { 
+	return summed;
+}
+ComplexDouble sqsum(ComplexDouble summed, ComplexDouble sqsummed, ComplexDouble rsummed, int n) { 
+	return sqsummed;
+}
+ComplexDouble var(ComplexDouble summed, ComplexDouble sqsummed, ComplexDouble rsummed, int n) {
+	if (n <= 1) return makeComplex(0.0, 0.0);
+	ComplexDouble u = cdivd(summed, (double)(n)); //mean
+	return csub(cdivd(sqsummed, (double)(n)), cmul(u, u)); //expansion of sum((x - u)**2)
+}
+ComplexDouble sdv(ComplexDouble summed, ComplexDouble sqsummed, ComplexDouble rsummed, int n) {
+	if (n <= 1) return makeComplex(0.0, 0.0);
+	ComplexDouble u = cdivd(summed, (double)(n)); //mean
+	ComplexDouble v = csub(cdivd(sqsummed, (double)(n - 1)), cdivd(cmul(cpowerd(u, 2), u), (double)(n - 1))); //use 1/(n - 1)
+	return csqroot(v);
+}
+ComplexDouble mean(ComplexDouble summed, ComplexDouble sqsummed, ComplexDouble rsummed, int n) {
+	return cdivd(summed, (double)(n));
+}
+ComplexDouble rsum(ComplexDouble summed, ComplexDouble sqsummed, ComplexDouble rsummed, int n) {
+	return rsummed;
+}
+
+ComplexFunctionPtrVector mathfnvec1param[] = {sum, sqsum, var, sdv, mean, rsum};
+
+ComplexDouble callVectorMath1ParamFunction(int fnindex, ComplexDouble summed, ComplexDouble sqsummed, ComplexDouble rsummed, int n) {
+	if (fnindex < 0) return makeComplex(0.0, 0.0);
+	return mathfnvec1param[fnindex](summed, sqsummed, rsummed, n);
+}
+
+ComplexDouble call1ParamMathFunction(int fnindex, ComplexDouble input) {
+	return mathfn1param[fnindex](input);
+}
+
+double call1ParamRealFunction(int fnindex, ComplexDouble input) {
+	return realfn1param[fnindex](input);
+}
+
+ComplexDouble call2ParamMathFunction(int fnindex, ComplexDouble input, ComplexDouble second) {
+	return mathfn2param[fnindex](input, second);
+}
+
+void call2ParamBigIntVoidFunction(int fnindex, bigint_t *x, bigint_t *y, bigint_t *res) {
+	bigfnvoid2param[fnindex](x, y, res);
+}
+
+int call2ParamBigIntIntFunction(int fnindex, bigint_t *x, bigint_t *y) {
+	return bigfnint2param[fnindex](x, y);
+}
 
 void zstrncpy (char*dest, const char* src, int len) {
 	//fill with nulls and copy n chars
@@ -200,7 +351,6 @@ char* fitstr(char*dest, const char* src, size_t len) {
 	} else zstrncpy(dest, src, len);
 	return dest;
 }
-
 
 typedef struct {
 	char PROGMEM[PROGMEM_SIZE];
@@ -335,86 +485,6 @@ void printStack(Strack* s, int count, bool firstLast) {
 }
 
 #include "../arduino-pico/ToyStacky/TS-core-numString.h"
-
-bool alm0(ComplexDouble value) {
-	//printf("alm0: ------ A. At start value string = %.16g\n", cabs(value));
-	//if (cabs(value) < DOUBLE_EPS) return true;
-	if (fabs(value.real) < DOUBLE_EPS) return true;
-	if (fabs(value.imag) < DOUBLE_EPS) return true;
-
-	return false;
-}
-
-double complex add(double complex value, double complex second) {
-	return value + second;
-}
-
-double complex sub(double complex value, double complex second) {
-	return value - second;
-}
-
-double complex cmul(double complex value, double complex second) {
-	return value * second;
-}
-
-double complex cdiv(double complex value, double complex second) {
-	//printf("cdiv: value = %g second = %g\n", creal(value), creal(second));
-	//printf("cdiv: value / second = %g\n", creal(value / second));
-	return value / second;
-}
-
-double complex mod(double complex value, double complex second) {
-	return 0.0 + 0.0*I;
-}
-
-double complex eq(double complex value, double complex second) {
-	return (alm0double(cabs(value - second))? 1.0 + 0.0*I: 0.0 + 0.0*I);
-}
-
-double complex neq(double complex value, double complex second) {
-	return (!alm0double(cabs(value - second))? 1.0 + 0.0*I: 0.0 + 0.0*I);
-}
-
-double complex par(double complex value, double complex second) {
-	return (value*second)/(value + second);
-}
-
-double complex lt(double complex value, double complex second) {
-	double complex diff = second - value;
-	if (abs(cimag(diff)) < DOUBLE_EPS)
-		//difference is real
-		//LT is true if difference is positive
-		return (creal(diff) > DOUBLE_EPS)? 1.0 + 0.0*I: 0.0 + 0.0*I;
-	else
-		//difference is complex
-		//LT is true if magnitude of the diff is positive
-		return (cabs(diff) > DOUBLE_EPS)? 1.0 + 0.0*I: 0.0 + 0.0*I;
-}
-
-double complex gt(double complex value, double complex second) {
-	double complex diff = value - second;
-	if (abs(cimag(diff)) < DOUBLE_EPS)
-		//difference is real
-		//GT is true if difference is positive
-		return (creal(diff) > DOUBLE_EPS)? 1.0 + 0.0*I: 0.0 + 0.0*I;
-	else
-		//difference is complex
-		//GT is true if magnitude of the diff is positive
-		return (cabs(diff) > DOUBLE_EPS)? 1.0 + 0.0*I: 0.0 + 0.0*I;
-}
-
-double complex gte(double complex value, double complex second) {
-	double complex l = lt(value, second);
-	if (creal(l) == 1.0) return 0.0 + 0.0*I;
-	else return 1.0 + 0.0*I;
-}
-
-double complex lte(double complex value, double complex second) {
-	double complex g = gt(value, second);
-	if (creal(g) == 1.0) return 0.0 + 0.0*I;
-	else return 1.0 + 0.0*I;
-}
-
 #define UTF8
 #ifdef UTF8
 #include "utf8.h"
@@ -447,202 +517,8 @@ char *hints(const char *buf, int *color, int *bold) {
 	return NULL;
 }
 
-double dabs(double d) {
-	if (d < 0) return -d;
-	return d;
-}
-
-double complex conj(double complex c) {
-	double complex r = creal(c) - cimag(c)*I;
-	return r;
-}
-
-double complex ccbrt(double complex x){
-	double complex r = cpow(x, (1.0/3.0));
-	//printf("ccbrt: done ------------------- r = %g + %gi dabs(r.imag) = %g TRUE = %d\n", creal(r), cimag(r), dabs(cimag(r)), (dabs(cimag(r)) > 0.0));
-	if (dabs(cimag(r)) > 0.0) {
-		//has imag part
-		r = cdiv(x, cmul(r, conj(r)));
-		//printf("ccbrt: recompute done ------------------- r = %g + %gi\n", creal(r), cimag(r));
-	}
-	return (r);
-}
-
-double complex clog2(double complex x){
-	return clog(x)/clog(2);
-}
-
-double complex clog10(double complex x){
-	return clog(x)/clog(10);
-}
-
-double complex cmax(double complex a, double complex b) {
-	return cabs(a) > cabs(b) ? a : b;
-}
-
-double complex cmin(double complex a, double complex b) {
-	return cabs(a) < cabs(b) ? a : b;
-}
-
-double complex catan2(double complex a, double complex b) {
-	return cabs(a) < cabs(b) ? a : b;
-}
-
-typedef double (*RealFunctionPtr)();
-typedef void (*BigIntVoidFunctionPtr)();
-typedef int (*BigIntIntFunctionPtr)();
-typedef double complex (*ComplexFunctionPtr)(double complex);
-typedef double complex (*ComplexFunction2ParamPtr)(double complex, double complex);
-typedef double complex (*ComplexFunctionPtrVector)(double complex, double complex, double complex, int);
-
-//the 1 param functions that have complex or real result
-const char* mathfn1paramname[] = {
-						"sin", "cos", "tan", "cot", "sinh", "cosh", "tanh", "coth", 
-						"asin", "acos", "atan", "acot", "asinh", "acosh", "atanh", "acoth",
-						"exp", "log10", "log", "log2", "sqrt", "cbrt", "conj", 
-						"abs", "arg", "re", "im"}; //the 1 param functions, 23 
-const int NUMMATH1PARAMFN = 23;
-const int NUMREAL1PARAMFN = 4;
-const int NUMMATH1PARAMTRIGFN = 8;
-const int NUMMATH1PARAMTRIGANTIFN = 16;
-
-const char* vecfn1paramname[] = {"sum", "sqsum", "var", "stdev", "mean", "rsum"}; //these funcations only work on vectors
-const char* vecfn2paramname[] = {"dot"};
-const int NUMVECFNS = 6;
-const int NUMVEC2FNS = 1;
-
-const char* mathfnop2paramname[] = {
-						"pow", "atn2", 
-						"max", "min", 
-						ADDTOKEN, SUBTOKEN,
-						MULTOKEN, DIVTOKEN,
-						MODTOKEN, GTTOKEN,
-						LTTOKEN, GTETOKEN,
-						LTETOKEN, EQTOKEN,
-						NEQTOKEN, PARTOKEN
-						}; //the 2 params functions
-const int  NUMMATH2PARAMFNOP = 16;
-
-//ADDTOKEN, SUBTOKEN,
-//MULTOKEN, DIVTOKEN,
-//MODTOKEN, GTTOKEN,
-//LTTOKEN, GTETOKEN,
-//LTETOKEN, EQTOKEN,
-//NEQTOKEN
-const int NUMMATHOPS = 11;
-
-double complex proj(double complex c) {
-	return c;
-}
-
-//the 1 param functions that have complex result
-ComplexFunctionPtr mathfn1param[] = {csin, 
-									ccos, 
-									ctan, 
-									ccos,
-									//ccot, 
-									//csinehyp, 
-									//ccosinehyp, 
-									//ctangenthyp,
-									//ccotangenthyp,
-									csin,
-									ccos, 
-									ctan, 
-									ccos,
-
-									casin,
-									cacos, 
-									catan,
-									cacos,
-									//cacot,
-									//carcsinehyp, 
-									//carccosinehyp, 
-									//carctangenthyp,
-									//carccotangenthyp,
-									casin,
-									cacos, 
-									catan,
-									cacos,
-
-									cexp, clog10, 
-									clog, clog2, 
-									csqrt, ccbrt, 
-									conj};
-
-
-//the 1 param functions that have real result
-RealFunctionPtr realfn1param[] = {cabs, carg, creal, cimag};
-
-BigIntVoidFunctionPtr bigfnvoid2param[] = {bigint_max, bigint_min, bigint_add, bigint_sub, bigint_mul, bigint_div, bigint_rem};
-
-BigIntIntFunctionPtr bigfnint2param[] = {bigint_gt, bigint_lt, bigint_gte, bigint_lte, bigint_eq,
-									bigint_neq};
-
-ComplexFunction2ParamPtr mathfn2param[] = {cpow, catan2, cmax, cmin, add, sub,
-									cmul, cdiv, mod, gt, lt, gte, lte, eq, neq, par};
-
-double complex suminternal(double complex running, double complex next) { 
-	//printf("suminternal: received running = %g, received next = %g\n", creal(running), creal(next));
-	return running + next;
-}
-double complex sum(double complex summed, double complex sqsummed, double complex rsummed, int n) { 
-	return summed;
-}
-double complex sqsum(double complex summed, double complex sqsummed, double complex rsummed, int n) { 
-	return sqsummed;
-}
-double complex var(double complex summed, double complex sqsummed, double complex rsummed, int n) {
-	if (n <= 1) return (double complex) 0.0;
-	double complex u = summed/n; //mean
-	return (sqsummed/n) - (u*u); //expansion of sum((x - u)**2)
-}
-double complex sdv(double complex summed, double complex sqsummed, double complex rsummed, int n) {
-	if (n <= 1) return (double complex) 0.0;
-	double complex u = summed/n; //mean
-	double complex v = (sqsummed/(n - 1)) - ((u*u*n)/(n - 1)); //use 1/(n - 1)
-	return sqrt(v);
-}
-
-double complex mean(double complex summed, double complex sqsummed, double complex rsummed, int n) {
-	double complex r = summed/n;
-	//printf("mean: entered ------------------- input = %g + %gi, n = %d real r = %g\n", creal(summed), cimag(summed), n, creal(r));
-	return r;
-}
-double complex rsum(double complex summed, double complex sqsummed, double complex rsummed, int n) {
-	return rsummed;
-}
-
-ComplexFunctionPtrVector mathfnvec1param[] = {sum, sqsum, var, sdv, mean, rsum};
-double complex callVectorMath1ParamFunction(int fnindex, double complex summed, double complex sqsummed, double complex rsummed, int n) {
-	if (fnindex < 0) return (double complex) 0.0;
-	//printf("-----callVectorMath1ParamFunction: called with fnindex = %d summed = (%g, %g) n = %d\n", fnindex, creal(summed), cimag(summed), n);
-	double complex r = mathfnvec1param[fnindex](summed, sqsummed, rsummed, n);
-	//printf("-----callVectorMath1ParamFunction: called with fnindex = %d summed = (%g, %g) n = %d real return = %g\n", fnindex, creal(summed), cimag(summed), n, creal(r));
-	return r;
-}
-
-double complex call1ParamMathFunction(int fnindex, double complex input) {
-	//printf("call1ParamMathFunction: entered ------------------- input = %g + %gi, fnindex = %d\n", creal(input), cimag(input), fnindex);
-	return mathfn1param[fnindex](input);
-}
-
-double call1ParamRealFunction(int fnindex, double complex input) {
-	return realfn1param[fnindex](input);
-}
-
-double complex call2ParamMathFunction(int fnindex, double complex input, double complex second) {
-	return mathfn2param[fnindex](input, second);
-}
-
-void call2ParamBigIntVoidFunction(int fnindex, bigint_t *x, bigint_t *y, bigint_t *res) {
-	bigfnvoid2param[fnindex](x, y, res);
-}
-
-int call2ParamBigIntIntFunction(int fnindex, bigint_t *x, bigint_t *y) {
-	return bigfnint2param[fnindex](x, y);
-}
-
 #include "../arduino-pico/ToyStacky/TS-core-tokenize.h"
+#include "../arduino-pico/ToyStacky/yasML.h"
 
 uint8_t conditionalData(size_t execData) {
 	//data being currently entered is a conditional if/else
@@ -650,10 +526,21 @@ uint8_t conditionalData(size_t execData) {
 }
 
 bool fnOrOp2Param(Machine* vm, const char* token, int fnindex);
-#include "toystacky-fnOrOpVec2Param.h"
-#include "toystacky-fnOrOp2Param.h"
-#include "toystacky-fnOrOpVec1Param.h"
-#include "toystacky-fn1Param.h"
+#include "../arduino-pico/ToyStacky/TS-core-fnOrOpVec2Param.h"
+#include "../arduino-pico/ToyStacky/TS-core-fnOrOp2Param.h"
+#include "../arduino-pico/ToyStacky/TS-core-fnOrOpVec1Param.h"
+#include "../arduino-pico/ToyStacky/TS-core-fn1Param.h"
+//#include "toystacky-fnOrOpVec2Param.h"
+//#include "toystacky-fnOrOp2Param.h"
+//#include "toystacky-fnOrOpVec1Param.h"
+//#include "toystacky-fn1Param.h"
+
+int isMatFunction(const char* token) {
+	for (int i = 0; i < NUMMATRIXPARAMFN; i++) {
+		if (strcmp(matrixfnname[i], token) == 0) return i;
+	}
+	return -1;
+}
 
 int is2ParamFunction(char* token) {
 	//lcase(token);
@@ -697,7 +584,7 @@ bool processPrint(Machine* vm, char* token) {
 		int vt = findVariable(&vm->ledger, vm->bak);
 		if (vt == VARIABLE_TYPE_COMPLEX) {
 			ComplexDouble c = fetchVariableComplexValue(&vm->ledger, vm->bak);
-			if (complexToString(c, vm->coadiutor)) { 
+			if (complexToString(c, vm->coadiutor, vm->precision, vm->notationStr)) { 
 				printf("\t%s = %s\n", vm->bak, vm->coadiutor);
 			}
 		} else if (vt == VARIABLE_TYPE_STRING) {

@@ -153,7 +153,7 @@ bool fnOrOpVec2Param(Machine* vm, const char* token, int fnindex, int8_t cmeta, 
 		}
 		if (abs(c.real) < DOUBLE_EPS) c.real = 0.0;
 		if (abs(c.imag) < DOUBLE_EPS) c.imag = 0.0;
-		success = complexToString(c, vm->acc) && success;
+		success = complexToString(c, vm->acc, vm->precision, vm->notationStr) && success;
 		pop(&vm->userStack, NULL);
 		pop(&vm->userStack, NULL);
 		push(&vm->userStack, vm->acc, METANONE);

@@ -7,6 +7,7 @@ License: GNU GPL v3
 
 #define MAX_MATVECSTR_LEN 4900 //enough for one 12x12 matrix of double complex
 #define MAX_MATVECELEMENTS 150
+#define MAX_MATLEN 12
 #define MAX_CMD_PAGES 5
 #define MAX_TOKEN_LEN 129
 #define PICO_DOUBLE_PROPAGATE_NANS 1
@@ -25,7 +26,7 @@ License: GNU GPL v3
 #define STACK_NUM_ENTRIES 11500 //max stack entries
 #define EXEC_STACK_SIZE 200 //in Uint
 #define STRING_SIZE 101
-#define SHORT_STRING_SIZE 33
+#define SHORT_STRING_SIZE 51 //%.15g gives 24 * 2 + 3
 #define VSHORT_STRING_SIZE 25
 //#define DOUBLE_EPS 2.2250738585072014e-308
 #define DOUBLEFN_EPS 9e-16 //for return values of functions
@@ -130,6 +131,18 @@ typedef struct {
 
 ComplexDouble makeComplex(double re, double im);
 #define MKCPLX(a,...) makeComplex(a, (0, ##__VA_ARGS__))
+
+typedef struct Matrix{
+	int rows;
+	int columns;
+	ComplexDouble numbers[MAX_MATLEN][MAX_MATLEN];
+} Matrix;
+
+typedef struct Matrixd{
+	int rows;
+	int columns;
+	double numbers[MAX_MATLEN][MAX_MATLEN];
+} Matrixd;
 
 typedef struct {
 	char name[MAX_VARNAME_LEN];
@@ -254,7 +267,7 @@ int8_t peekn(Strack* s, char output[STRING_SIZE], int n);
 void SerialPrint(const int count, ...);
 void interpret(Machine* vm, char* sourceCode);
 void initMachine(Machine* vm);
-bool doubleToString(double value, char* buf);
+bool doubleToString(double value, char* buf, uint8_t precision, char* notationStr);
 void showUserEntryLine(int bsp);
 void showStackEntries(Machine* vm, int linecount);
 void showModes(Machine* vm);
@@ -262,5 +275,4 @@ void showStackHP(Machine* vm, int linestart, int linecount);
 void initStacks(Machine* vm);
 void eraseUserEntryLine();
 void toggleLED();
-
 #endif

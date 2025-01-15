@@ -81,7 +81,7 @@ bool fnOrOp2Param(Machine* vm, const char* token, int fnindex) {
 	c = call2ParamMathFunction(fnindex, d, c);
 	if (abs(c.real) < DOUBLE_EPS) c.real = 0.0;
 	if (abs(c.imag) < DOUBLE_EPS) c.imag = 0.0;
-	success = complexToString(c, vm->coadiutor); //result in coadiutor
+	success = complexToString(c, vm->coadiutor, vm->precision, vm->notationStr); //result in coadiutor
 	SerialPrint(5, "fnOrOp2Param: 2 ------------------- got ", token, " data returned from function = ", vm->coadiutor, "\r\n");
 	FAILANDRETURNVAR(!success, vm->error, "Bad fn %s", fitstr(vm->coadiutor, token, 8))
 	strcpy(vm->acc, vm->coadiutor);

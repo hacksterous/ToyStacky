@@ -330,7 +330,10 @@ static void multiply_add(uint32_t *u, int *m, uint32_t x, uint32_t y) {
 bool isBigIntDecString (const char *str) {
 	if (str == NULL || str[0] == '\0') return false; 
 	for (size_t i = 0; i < strlen(str); i++)
-		if (str[i] < '0' || str[i] > '9') return false;
+		if (i == 0) {
+			if ((str[i] < '0' || str[i] > '9') && (str[i] != '+' ) && (str[i] !='-')) return false;
+		}
+		else if (str[i] < '0' || str[i] > '9') return false;
 	return true;
 }
 
@@ -489,7 +492,6 @@ bool bigint_tostring(const bigint_t *x, char *str) {
 		*str = '\0';
 		return false;
 	}
-
 	if (x->negative) {
 		*str++ = '-';
 	}
@@ -500,7 +502,6 @@ bool bigint_tostring(const bigint_t *x, char *str) {
 
 void bigint_print(bigint_t *x) {
 	char str[bigint_max_stringlen(x) + 1];
-	//printf("bigint_print: called\n");
 	if (bigint_tostring(x, str))
 		puts(str);
 	else
@@ -629,8 +630,6 @@ static void divrem(int x_len, const uint32_t *x, int y_len, const uint32_t *y, b
 	uint32_t q[x_len - y_len + 1];
 	uint32_t r[y_len];
 
-	//printf("divrem: entered. x_len = %d and y_len = %d\n", x_len, y_len);
-
 	algorithm_d_wrapper(x_len - y_len, y_len, x, y, q, r);
 
 	if (remainder) {
@@ -660,7 +659,6 @@ void bigint_rem(const bigint_t *x, const bigint_t *y, bigint_t *res) {
 	if (x->length < y->length) {
 		bigint_create(x->length, x->data, false, res);
 	} else {
-		//printf("bigint_rem: x_len = %d and y_len = %d\n", x->length, y->length);
 		divrem(x->length, x->data, y->length, y->data, true, res);
 	}
 	res->negative = x->negative;

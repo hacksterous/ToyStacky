@@ -218,7 +218,7 @@ char* lcase(char* token) {
 	return token;
 }
 
-bool doubleToString(double value, char* buf) {
+bool doubleToString(double value, char* buf, uint8_t precision, char* notationStr) {
 	if (value == INFINITY || value == -INFINITY) return false;
 	if (alm0double(value)) {
 		strcpy(buf, "0");
@@ -229,14 +229,13 @@ bool doubleToString(double value, char* buf) {
 	//will give wrong digits - since these are beyond the precision
 	//of double floats
 	strcpy(fmt, "%.");
-	itoa(vm.precision, &fmt[2]);
-	strcat(fmt, vm.notationStr);
+	itoa(precision, &fmt[2]);
+	strcat(fmt, notationStr);
 	//sprintf(buf, "%.15g", value);
 	sprintf(buf, fmt, value);
 	if (strcmp(lcase(buf), "inf") == 0 || strcmp(lcase(buf), "-inf") == 0) return false;
 	if (strcmp(lcase(buf), "nan") == 0 || strcmp(lcase(buf), "-nan") == 0) return false;
 
-	//printf("doubleToString: ------ At start value string = %s\n", buf);
 	int i = 0;
 	if (buf[0] == '-') i++; //skip any opening '-'
 	bool expoIsNeg = false;
@@ -248,16 +247,13 @@ bool doubleToString(double value, char* buf) {
 		}
 	}
 	if (expoIsNeg == false) return true;
-	//printf("doubleToString: ------ Minus found at i = %d\n", i);
 	char* endPtr;
 	int expo = strtod(buf + i, &endPtr);
-	//printf("doubleToString: ------ Expo = %d\n", expo);
 	if (expoIsNeg == true) {
-		//printf("doubleToString: ------ expoIsNeg = %d\n", expoIsNeg);
 		if (expo > 12) {
 			strcpy(fmt, "%.3g");
 		} else {
-			int numDecimals = vm.precision - 1 - expo;
+			int numDecimals = precision - 1 - expo;
 			if (numDecimals < 6) numDecimals = 6;
 			strcpy(fmt, "%.");
 			itoa(numDecimals, &fmt[2]);
@@ -266,22 +262,20 @@ bool doubleToString(double value, char* buf) {
 	}
 	sprintf(buf, fmt, value);
 
-	//printf("doubleToString ------ buf = %s\n", buf);
 	if (buf == NULL) return false;
 	return true;
 }
 
-bool complexToString(ComplexDouble c, char* value) {
+bool complexToString(ComplexDouble c, char* value, uint8_t precision, char* notationStr) {
 	char r[SHORT_STRING_SIZE];
 	char i[SHORT_STRING_SIZE];
-	bool goodnum = doubleToString(c.real, r);
+	bool goodnum = doubleToString(c.real, r, precision, notationStr);
 	if (!goodnum) return false;
-	goodnum = doubleToString(c.imag, i);
+	goodnum = doubleToString(c.imag, i, precision, notationStr);
 	if (!goodnum) return false;
 	if (alm0double(c.imag)) {
 		//imag value is 0 - return r
 		strcpy(value, r);
-		//SerialPrint(3, "complexToString: returning with value ", value, "\r\n");
 		return true;
 	}
 	//imag value is not zero, return one of

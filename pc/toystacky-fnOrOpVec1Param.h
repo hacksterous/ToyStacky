@@ -75,7 +75,7 @@ bool fnOrOpVec1Param(Machine* vm, const char* token, int fnindex, bool isTrig, b
 		crunning = callVectorMath1ParamFunction(fnindex, crunningsum, crunningsqsum, crunningrsum, count);
 		cd.real = creal(crunning);
 		cd.imag = cimag(crunning);
-		success = complexToString(cd, vm->acc);
+		success = complexToString(cd, vm->acc, vm->precision, vm->notationStr);
 		FAILANDRETURNVAR(!success, vm->error, "fn %s failed", fitstr(vm->coadiutor, token, 9))
 		//pop(&vm->userStack, NULL);
 		//keep vector on stack

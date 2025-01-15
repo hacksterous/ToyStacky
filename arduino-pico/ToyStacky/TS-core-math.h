@@ -9,8 +9,7 @@ double abso (ComplexDouble value) {
 
 bool alm0(ComplexDouble value) {
 	//limit of double precision
-	if (fabs(value.real) < DOUBLE_EPS) return true;
-	if (fabs(value.imag) < DOUBLE_EPS) return true;
+	if (fabs(value.real) < DOUBLE_EPS && fabs(value.imag) < DOUBLE_EPS) return true;
 	else return false;
 }
 
@@ -30,7 +29,10 @@ ComplexDouble cabso (ComplexDouble value) {
 
 double cargu (ComplexDouble value) {
 	if (alm0double(value.real)) {
-		if (alm0double(value.real)) return 0; //undefined -- error
+		if (alm0double(value.real)) {
+			errno = 10000;
+			return 0; //undef arg
+		}
 		return ((value.imag < 0)? -1.5707963267948965L: 1.5707963267948965L);
 	}
 	double princ =  atan(value.imag/value.real);
@@ -97,16 +99,30 @@ ComplexDouble cmod(ComplexDouble value, ComplexDouble second) {
 
 ComplexDouble ceq(ComplexDouble value, ComplexDouble second) {
 	if (alm0double(abso(csub(value, second))))
-		return makeComplex(1.0, 0.0);
+		return makeComplex(1, 0);
 	else
-		return makeComplex(0.0, 0.0);
+		return makeComplex(0, 0);
 }
 
 ComplexDouble cneq(ComplexDouble value, ComplexDouble second) {
 	if (!alm0double(abso(csub(value, second))))
-		return makeComplex(1.0, 0.0);
+		return makeComplex(1, 0);
 	else
-		return makeComplex(0.0, 0.0);
+		return makeComplex(0, 0);
+}
+
+bool bceq(ComplexDouble value, ComplexDouble second) {
+	if (alm0double(abso(csub(value, second))))
+		return true;
+	else
+		return false;
+}
+
+bool bcneq(ComplexDouble value, ComplexDouble second) {
+	if (!alm0double(abso(csub(value, second))))
+		return true;
+	else
+		return false;
 }
 
 ComplexDouble cpar(ComplexDouble value, ComplexDouble second) {
@@ -170,7 +186,7 @@ ComplexDouble cln(ComplexDouble c) {
 	} else {
 		r = 0;
 		j = 0;
-		strcpy(vm.error, "log undef");
+		errno = 10001;
 	}
 	if (j > __TS_PI__)
 		j -= __TS_PI__ * 2;
@@ -234,7 +250,7 @@ ComplexDouble ccosinehyp(ComplexDouble c) {
 ComplexDouble ctangenthyp(ComplexDouble c) {
 	ComplexDouble d = ccosinehyp(c);
 	if (alm0(d)) {
-		strcpy(vm.error, "bad fn tanh");
+		errno = 10002;
 		return makeComplex(0.0, 0.0);
 	}
 	return cdiv(csinehyp(c), d);
@@ -243,7 +259,7 @@ ComplexDouble ctangenthyp(ComplexDouble c) {
 ComplexDouble ccotangenthyp(ComplexDouble c) {
 	ComplexDouble d = csinehyp(c);
 	if (alm0(d)) {
-		strcpy(vm.error, "bad fn coth");
+		errno = 10003;
 		return makeComplex(0.0, 0.0);
 	}
 	return cdiv(ccosinehyp(c), d);
@@ -267,7 +283,7 @@ ComplexDouble ccosine(ComplexDouble c) {
 ComplexDouble ctangent(ComplexDouble c) {
 	ComplexDouble d = ccosine(c);
 	if (alm0(d)) {
-		strcpy(vm.error, "tan undef");
+		errno = 10004;
 		return makeComplex(0.0, 0.0);
 	}
 	return cdiv(csine(c), d);
@@ -276,8 +292,8 @@ ComplexDouble ctangent(ComplexDouble c) {
 ComplexDouble ccotangent(ComplexDouble c) {
 	ComplexDouble d = csine(c);
 	if (alm0(d)) {
+		errno = 10005;
 		return makeComplex(0.0, 0.0);
-		strcpy(vm.error, "cot undef");
 	}
 	return cdiv(ccosine(c), d);
 }
@@ -339,7 +355,7 @@ ComplexDouble carctangent(ComplexDouble c) {
 	ComplexDouble jpc = cadd(j, c);
 	ComplexDouble jmc = csub(j, c);
 	if (alm0(jpc) || alm0(jmc)) {
-		strcpy(vm.error, "bad fn domain");
+		errno = 10006;
 		return makeComplex(0.0, 0.0);
 	}
 	return cdiv(cln(cdiv(jmc, jpc)), jx2);
@@ -349,7 +365,7 @@ ComplexDouble carccotangent(ComplexDouble c) {
 	if (alm0double(c.imag)){
 		double at = atan(c.real);
 		if (alm0double(at)) {
-			strcpy(vm.error, "inf");
+			errno = 10007;
 			return makeComplex(0.0, 0.0);
 		}
 		return makeComplex(atan(c.real), 0.0);
@@ -359,7 +375,7 @@ ComplexDouble carccotangent(ComplexDouble c) {
 	ComplexDouble cpj = cadd(c, j);
 	ComplexDouble cmj = csub(c, j);
 	if (alm0(cpj) || alm0(cmj)) {
-		strcpy(vm.error, "bad fn domain");
+		errno = 10006;
 		return makeComplex(0.0, 0.0);
 	}
 	return cdiv(cln(cdiv(cpj, cmj)), jx2);
@@ -389,7 +405,7 @@ ComplexDouble carccosinehyp(ComplexDouble c) {
 
 ComplexDouble carctangenthyp(ComplexDouble c) {
 	if (alm0(csub(c, makeComplex(1.0, 0.0)))) {
-		strcpy(vm.error, "bad fn domain");
+		errno = 10006;
 		return makeComplex(0.0, 0.0);
 	}
 	ComplexDouble x = cdiv(cadd(makeComplex(1.0, 0.0), c), csub(makeComplex(1.0, 0.0), c));
@@ -398,7 +414,7 @@ ComplexDouble carctangenthyp(ComplexDouble c) {
 
 ComplexDouble carccotangenthyp(ComplexDouble c) {
 	if (alm0(csub(c, makeComplex(1.0, 0.0)))) {
-		strcpy(vm.error, "bad fn domain");
+		errno = 10006;
 		return makeComplex(0.0, 0.0);
 	}
 	ComplexDouble x = cdiv(cadd(c, makeComplex(1.0, 0.0)), csub(c, makeComplex(1.0, 0.0)));

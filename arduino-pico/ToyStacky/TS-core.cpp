@@ -26,6 +26,17 @@ License: GNU GPL v3
 #include "bigint.h"
 #include "TS-core.h"
 
+const char* __TS_GLOBAL_ERRORCODE[]= { "undef arg",
+								"log undef",
+								"bad fn tanh",
+								"bad fn coth",
+
+								"tan undef",
+								"cot undef",
+								"bad fn domain",
+								"+/-inf"
+								};
+
 #define FAILANDRETURN(failcondition,dest,src,fnptr)	\
 	if (failcondition) {							\
 		sprintf(dest, src);							\
@@ -338,6 +349,13 @@ typedef ComplexDouble (*ComplexFunctionPtr1Param)(ComplexDouble);
 typedef ComplexDouble (*ComplexFunctionPtr2Param)(ComplexDouble, ComplexDouble);
 typedef ComplexDouble (*ComplexFunctionPtrVector)(ComplexDouble, ComplexDouble, ComplexDouble, int);
 
+const char* matrixfnname[] = {
+						"det", "inv",
+						"idn", "trc",
+						"eival", "eivec",
+						"tpose"
+						};
+const int NUMMATRIXPARAMFN = 7;
 const char* mathfn1paramname[] = {
 						"sin", "cos", "tan", "cot", "sinh", "cosh", "tanh", "coth", 
 						"asin", "acos", "atan", "acot", "asinh", "acosh", "atanh", "acoth",
@@ -410,6 +428,8 @@ const int NUMMATHOPS = 11;
 ComplexFunctionPtr2Param mathfn2param[] = {carctangent2, cpower, cmax, cmin, cadd, csub,
 									cmul, cdiv, cmod, cgt, clt, cgte, clte, ceq, cneq, cpar};
 
+
+
 ComplexDouble suminternal(ComplexDouble running, ComplexDouble next) { 
 	return cadd(running, next);
 }
@@ -465,6 +485,7 @@ int call2ParamBigIntIntFunction(int fnindex, bigint_t *x, bigint_t *y) {
 }
 
 #include "TS-core-tokenize.h"
+#include "yasML.h"
 
 uint8_t conditionalData(int32_t execData) {
 	//data being currently entered is a conditional if/else
@@ -475,6 +496,13 @@ uint8_t conditionalData(int32_t execData) {
 #include "TS-core-fnOrOp2Param.h"
 #include "TS-core-fnOrOpVec1Param.h"
 #include "TS-core-fn1Param.h"
+
+int isMatFunction(const char* token) {
+	for (int i = 0; i < NUMMATRIXPARAMFN; i++) {
+		if (strcmp(matrixfnname[i], token) == 0) return i;
+	}
+	return -1;
+}
 
 int is2ParamFunction(char* token) {
 	//lcase(token);
@@ -535,7 +563,7 @@ bool processPrint(Machine* vm, char* token) {
 		int vt = findVariable(&vm->ledger, token);
 		if (vt == VARIABLE_TYPE_COMPLEX || vt == VARIABLE_TYPE_VECMAT) {
 			ComplexDouble c = fetchVariableComplexValue(&vm->ledger, token);
-			if (complexToString(c, vm->coadiutor)) { 
+			if (complexToString(c, vm->coadiutor, vm->precision, vm->notationStr)) { 
 				//SerialPrint(4, token, " = ", vm->coadiutor, "\r\n");
 			}
 		} else if (vt == VARIABLE_TYPE_STRING) {

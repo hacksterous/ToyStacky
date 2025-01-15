@@ -15,63 +15,42 @@ int stackIsFull(Strack *s) {
 }
 
 bool push(Strack *s, char* value, int8_t meta) {
-	//SerialPrint(1, "push: entering-------- with %s of len = %d (including '\\0')", value, strlen(value)+1);
 	int32_t len = strlen(value);
 	if (len > 0) len++; //include the '\0'
 	if (s->topStr + len >= STACK_SIZE - 1 || s->topLen == STACK_SIZE - 1) {
 		return false;
 	}
-	//SerialPrint(1, "push: s->topStr = %d", s->topStr);
-	//SerialPrint(1, "push: s->topLen = %d", s->topLen);
 	s->stackLen[++s->topLen] = len + (((int8_t)meta & 0xf) << 28); //meta
 	strcpy(&s->stackStr[s->topStr + 1], value);
-	//SerialPrint(1, "push: string value = %s", &s->stackStr[s->topStr + 1]);
 	s->topStr += len;
 
-	//SerialPrint(1, "push: NOW s->topStr = %d", s->topStr);
-	//SerialPrint(1, "push: NOW s->topLen = %d", s->topLen);
-	//SerialPrint(1, "push: returning--------");
 	s->itemCount++;
 	return true;
 }
 
 int8_t pop(Strack *s, char* output) {
-	//SerialPrint(1, "pop: entering--------");
 	if (stackIsEmpty(s)) {
 		output = NULL;
 		return -1;
 	}
-	//SerialPrint(1, "pop: s->topStr = %d", s->topStr);
-	//SerialPrint(1, "pop: s->topLen = %d", s->topLen);
 	int8_t meta = (s->stackLen[s->topLen] >> 28) & 0xf;
 	int32_t len = s->stackLen[s->topLen--] & 0x0fffffff;
-	//SerialPrint(1, "pop: length retrieved = %lu", len);
 	if (output)
 		strcpy(output, &s->stackStr[s->topStr - len + 1]);
-	//SerialPrint(1, "pop: string output = %s", output);
 	s->topStr -= len;
-	//SerialPrint(1, "pop: NOW s->topStr = %d", s->topStr);
-	//SerialPrint(1, "pop: NOW s->topLen = %d", s->topLen);
-	//SerialPrint(1, "pop: returning--------");
 	s->itemCount--;
 	return meta;
 }
 
 int8_t peek(Strack *s, char output[STRING_SIZE]) {
 	if (stackIsEmpty(s)) {
-		//SerialPrint(1, "Peek: Strack is empty");
 		output = NULL;		
 		return -1;
 	}
-	//SerialPrint(1, "peek: s->topStr = %d", s->topStr);
-	//SerialPrint(1, "peek: s->topLen = %d", s->topLen);
 	int8_t meta = (s->stackLen[s->topLen] >> 28) & 0xf;
 	int32_t len = s->stackLen[s->topLen] & 0x0fffffff; 
 	if (output)
 		strcpy(output, &s->stackStr[s->topStr - len + 1]);
-	//SerialPrint(1, "peek: string output = %s", output);
-	//SerialPrint(1, "peek: NOW s->topStr = %d", s->topStr);
-	//SerialPrint(1, "peek: NOW s->topLen = %d", s->topLen);
 	return meta;
 }
 
@@ -80,19 +59,15 @@ int8_t peekn(Strack* s, char output[STRING_SIZE], int n) {
 	//n = 1: return T - 1
 	if (n == 0) return peek(s, output);
 	if (stackIsEmpty(s) || (n > s->topLen)) {
-		//SerialPrint(1, "peekn: n is > s->topLen %d", s->topLen);
 		output = NULL;
 		return -1;
 	}
 	n++;
 
-	//SerialPrint(1, "peekn: s->topStr = %s", s->topStr);
-	//SerialPrint(1, "peekn: s->topLen = %d", s->topLen);
 	char* stringPtr;
 	int32_t stringLen = -1;
 	int8_t meta;
 	for (int i = 0; i < n; i++) {
-		//SerialPrint(1, "peekn: s->stackLen[%d] = %lu", i, s->stackLen[s->topLen - i]);
 		stringLen += s->stackLen[s->topLen - i] & 0x0fffffff;
 	}
 	//now s->topStr - stringLen will point to the first string
@@ -125,9 +100,7 @@ bool UintStackPush(UintStack *s, char value) {
 }
 
 int32_t UintStackPop(UintStack *s) {
-	//SerialPrint(1, "Popping from UintStack");
 	if (UintStackIsEmpty(s)) {
-		//SerialPrint(1, "Pop warning: UintStack is empty");
 		return 0;
 	}
 	return s->stack[s->top--];

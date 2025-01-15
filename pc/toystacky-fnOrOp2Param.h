@@ -19,31 +19,26 @@ bool fnOrOp2Param(Machine* vm, const char* token, int fnindex) {
 		//bigint
 		char* coadiutor = removeDblQuotes(vm->coadiutor);
 		char* bak = removeDblQuotes(vm->bak);
-		if ((isBigIntDecString(coadiutor)) && 
-				(isBigIntDecString(bak))) { 
-			success = bigint_create_str(coadiutor, &(vm->bigC));
-			success = bigint_create_str(bak, &vm->bigB) && success;
-			FAILANDRETURN(!success, vm->error, "Error: Bad operand. X2", NULLFN)
-			if (fnindex >= 2 && fnindex <= 8) { //void functions -- max, min through rem
-				//printf("fnOrOp2Param: X ------------------- bigint - doing DIV\n");
-				call2ParamBigIntVoidFunction(fnindex - 2, &vm->bigB, &(vm->bigC), &vm->bigA);
-				//if ((&vm->bigA)->length == -1) {
-					//printf("fnOrOp2Param: Y ------------------- bigint - DIV by 0!\n");
-				//}
-				FAILANDRETURN(((&vm->bigA)->length == -1), vm->error, "Error: bigint div by 0.", NULLFN)
-				char* acc = &vm->acc[0];
-				success = bigint_tostring (&vm->bigA, acc);
-				success = addDblQuotes(acc) && success;
-				FAILANDRETURN(!success, vm->error, "Error: Unsupported bigint fn.", NULLFN)
-			} else if (fnindex >= 9) { //compare functions, return int
-				vm->acc[0] = '0' +  call2ParamBigIntIntFunction(fnindex - 9, &vm->bigC, &vm->bigB);
-				vm->acc[1] = '\0';
-			}
-			pop(&vm->userStack, NULL);
-			pop(&vm->userStack, NULL);
-			push(&vm->userStack, vm->acc, METANONE);
-			return true;
+		//bigint_from_str will call isBigIntDecString to check for valid big integer
+		success = bigint_from_str(&(vm->bigC), coadiutor);
+		success = bigint_from_str(&vm->bigB, bak) && success;
+		FAILANDRETURN(!success, vm->error, "Error: Bad operand. X2", NULLFN)
+		if (fnindex >= NUMVOIDBIGINTFNMIN && fnindex <= NUMVOIDBIGINTFNMAX) { //void bigint functions -- pow through mod
+			//printf("fnOrOp2Param: X ------------------- bigint - doing DIV\n");
+			call2ParamBigIntVoidFunction(fnindex - 2, &vm->bigB, &(vm->bigC), &vm->bigA);
+			FAILANDRETURN(((&vm->bigA)->length == -1), vm->error, "Error: bigint div by 0.", NULLFN)
+			char* acc = &vm->acc[0];
+			success = bigint_tostring (&vm->bigA, acc);
+			success = addDblQuotes(acc) && success;
+			FAILANDRETURN(!success, vm->error, "Error: Unsupported bigint fn.", NULLFN)
+		} else if (fnindex > NUMVOIDBIGINTFNMAX) { //compare bigint functions, return int
+			vm->acc[0] = '0' +  call2ParamBigIntIntFunction(fnindex - 9, &vm->bigC, &vm->bigB);
+			vm->acc[1] = '\0';
 		}
+		pop(&vm->userStack, NULL);
+		pop(&vm->userStack, NULL);
+		push(&vm->userStack, vm->acc, METANONE);
+		return true;
 	}
 	c.imag = 0;
 	if (isComplexNumber(vm->coadiutor)) { //complex
@@ -65,7 +60,6 @@ bool fnOrOp2Param(Machine* vm, const char* token, int fnindex) {
 	} else {
 		FAILANDRETURN(true, vm->error, "Error: Bad operand. A", NULLFN)
 	}
-	//printf("fnOrOp2Param:------------------- c = %g + %gi\n", c.real, c.imag);
 	FAILANDRETURN(!success, vm->error, "Error: Bad operand. A2", NULLFN)
 	d.imag = 0;
 	if (isComplexNumber(vm->bak)) { //looks like complex number '(## ##)'
@@ -100,8 +94,7 @@ bool fnOrOp2Param(Machine* vm, const char* token, int fnindex) {
 	if (dabs(c.real) < DOUBLE_EPS) c.real = 0.0;
 	if (dabs(c.imag) < DOUBLE_EPS) c.imag = 0.0;
 	//printf("fnOrOp2Param: rounded c.real = %g c.imag = %g\n", c.real, c.imag);
-	success = doubleToString(c.real, vm->coadiutor) && doubleToString(c.imag, vm->coadiutor);
-	success = complexToString(c, vm->coadiutor) && success; //result in coadiutor
+	success = complexToString(c, vm->coadiutor, vm->precision, vm->notationStr); //result in coadiutor
 	//printf ("-------------------success = %d, acc = %s\n", success, vm->coadiutor);
 	FAILANDRETURNVAR(!success, vm->error, "Error: Op '%s' had error.", fitstr(vm->coadiutor, token, 8))
 	strcpy(vm->acc, vm->coadiutor);

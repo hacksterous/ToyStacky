@@ -154,7 +154,7 @@ bool fnOrOpVec2Param(Machine* vm, const char* token, int fnindex, int8_t cmeta, 
 		cd.imag = cimag(c);
 		if (dabs(cd.real) < DOUBLE_EPS) cd.real = 0.0;
 		if (dabs(cd.imag) < DOUBLE_EPS) cd.imag = 0.0;
-		success = complexToString(cd, vm->acc) && success;
+		success = complexToString(cd, vm->acc, vm->precision, vm->notationStr) && success;
 		pop(&vm->userStack, NULL);
 		pop(&vm->userStack, NULL);
 		push(&vm->userStack, vm->acc, METANONE);

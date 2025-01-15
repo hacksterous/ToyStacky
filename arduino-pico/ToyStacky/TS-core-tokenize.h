@@ -17,6 +17,11 @@ int is_hexit(char c) {
     return is_digit(c) || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
 }
 
+// Function to determine if a character is a valid HEXIT character
+int is_octit(char c) {
+    return (c >= '0' && c <= '7');
+}
+
 // Function to determine if a character is a valid BIT character
 int is_bit(char c) {
     return c == '0' || c == '1';
@@ -33,6 +38,71 @@ char* skip_whitespace(char* input) {
         input++;
     }
     return input;
+}
+
+char* extract_bignum_as_string(char* input, char* output) {
+    input = skip_whitespace(input);
+
+    if (*input == '"') {
+        *output++ = *input++;
+        while (*input && *input != '"') {
+            *output++ = *input++;
+        }
+        if (*input == '"') {
+            *output++ = *input++;
+        }
+        *output = '\0';
+    } else {
+        *output = '\0';
+    }
+
+    return skip_whitespace(input);
+}
+
+char* extract_dec_bignum(char *input, char *output) {
+    while (is_digit((unsigned char)*input)) *output++ = *input++;
+    *output = '\0';
+	return skip_whitespace(input);
+}
+
+char* extract_hex_bignum(char *input, char *output) {
+    while (is_hexit((unsigned char)*input)) *output++ = *input++;
+    *output = '\0';
+	return skip_whitespace(input);
+}
+
+char* extract_oct_bignum(char *input, char *output) {
+    while (is_octit((unsigned char)*input)) *output++ = *input++;
+    *output = '\0';
+	return skip_whitespace(input);
+}
+
+char* extract_bin_bignum(char *input, char *output) {
+    while (is_bit((unsigned char)*input)) *output++ = *input++;
+    *output = '\0';
+	return skip_whitespace(input);
+}
+
+// Function to parse BIGNUM
+char* extract_bignum(char *input, char *output) {
+    input = skip_whitespace(input);
+	if (input[0] == '0' && input[1] == 'd') {
+		input += 2;
+		return extract_dec_bignum(input, output);
+	}
+	else if (input[0] == '0' && input[1] == 'x') {
+		input += 2;
+		return extract_hex_bignum(input, output);
+	}
+	else if (input[0] == '0' && input[1] == 'o') {
+		input += 2;
+		return extract_oct_bignum(input, output);
+	}
+	else if (input[0] == '0' && input[1] == 'b') {
+		input += 2;
+		return extract_bin_bignum(input, output);
+	}
+	else return extract_dec_bignum(input, output);
 }
 
 // Function to extract a double-quote delimited string

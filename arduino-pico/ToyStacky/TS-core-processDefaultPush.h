@@ -11,7 +11,7 @@ bool processDefaultPush(Machine* vm, char* token) {
 			}
 		} else if (findVariable(&vm->ledger, token) == VARIABLE_TYPE_COMPLEX) {
 			c = fetchVariableComplexValue(&vm->ledger, token);
-			if (complexToString(c, vm->coadiutor)) {
+			if (complexToString(c, vm->coadiutor, vm->precision, vm->notationStr)) {
 				push(&vm->userStack, vm->coadiutor, METANONE);
 			}
 		} else if (findVariable(&vm->ledger, token) == VARIABLE_TYPE_STRING) {
@@ -39,7 +39,7 @@ bool processDefaultPush(Machine* vm, char* token) {
 			//printf("processDefaultPush:------------------- 1. ELSE Default condition with len token = %lu\n", strlen(token));
 			if (s2d) {
 				//token is an RLC type double -- 1.234e3l
-				doubleToString(dbl, vm->coadiutor);
+				doubleToString(dbl, vm->coadiutor, vm->precision, vm->notationStr);
 				char RLCstr[2];
 				RLCstr[1] = '\0';
 				if (rlc) {

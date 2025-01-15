@@ -131,16 +131,21 @@ void showStackEntries(Machine* vm, int linestart, int lineend) {
 }
 
 void showStackHP(Machine* vm, int linestart, int lineend) {
-	if (strcmp(vm->error, "") == 0)
+	if (vm->error[0]== '\0' && errno == 0) //no errors
 		showStackEntries (vm, linestart, lineend);
 	else {
 		char line[DISPLAY_LINESIZE];
+		int err = errno - 10000;
+		if (err >= 0) strcpy(vm->error, __TS_GLOBAL_ERRORCODE[err]);
 		showStackEntries (vm, linestart, lineend - 1);
 		eraseUserEntryLine();
-		fitstr(line, vm->error, DISPLAY_LINESIZE - DISPLAY_STATUS_WIDTH);
 		lcd.setCursor(DISPLAY_STATUS_WIDTH, DISPLAY_LINECOUNT - 1); 
 		lcd.print("E:"); 
-		lcd.print(line);
+		if (errno == 0) {
+			fitstr(line, vm->error, DISPLAY_LINESIZE - DISPLAY_STATUS_WIDTH);
+			lcd.print(line);
+		}
+		else lcd.print(errno);
 		lcd.setCursor(vm->cursorPos, DISPLAY_LINECOUNT - 1); //col, row
 	}
 

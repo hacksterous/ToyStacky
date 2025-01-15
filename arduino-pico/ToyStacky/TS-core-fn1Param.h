@@ -29,7 +29,7 @@ bool fn1ParamScalar(Machine* vm, const char* fnname, int fnindex, int isTrig) {
 	if (abs(c.real) != 0)
 		if (abs(c.imag/c.real) < DOUBLEFN_EPS) c.imag = 0.0;
 
-	return complexToString(c, vm->acc);
+	return complexToString(c, vm->acc, vm->precision, vm->notationStr);
 }
 
 bool fn1Param(Machine* vm, const char* token, int fnindex, int isTrig) {

@@ -8,11 +8,56 @@ bool process(Machine* vm, char* token) {
 	//printf("process:------------------- token = %s\n", token);
 	//printf("process:------------------- UintStackPeek = %lu\n", execData);
 	if ((ifCondition && doingIf) || (!ifCondition && !doingIf) || (!conditional)) {
+		int ismatfn = isMatFunction(token);
 		int is1pfn = is1ParamFunction(token);
 		int is2pfn = is2ParamFunction(token);
 		int isvecfn = isVec1ParamFunction(token);
 		int isTrig = is1ParamTrigFunction(token);
-		if (is1pfn != -1) {
+		if (ismatfn != -1) {
+			Matrix m;
+			ComplexDouble c;
+			int8_t meta = peek(&vm->userStack, vm->matvecStrC);
+			FAILANDRETURN((meta == -1), vm->error, "stack empty.Y", NULLFN)
+			switch (ismatfn) {
+				case 0: //det
+					FAILANDRETURN((meta != METAMATRIX), vm->error, "require matrix.", NULLFN)
+					success = matbuild(&m, vm->matvecStrC);
+					FAILANDRETURN((!success), vm->error, "bad input matrix.", NULLFN)
+					success = matdeterminant(&m, &c);
+					FAILANDRETURN((!success), vm->error, "no determinant.", NULLFN)
+					success = complexToString(c, vm->coadiutor, vm->precision, vm->notationStr);
+					FAILANDRETURN((!success), vm->error, "bad determinant.", NULLFN)
+					pop(&vm->userStack, NULL);
+					push(&vm->userStack, vm->coadiutor, METANONE);
+					break;
+				case 1:	//inv,
+					FAILANDRETURN((meta != METAMATRIX), vm->error, "require matrix.", NULLFN)
+					Matrix inv;
+					success = matbuild(&m, vm->matvecStrC);
+					FAILANDRETURN((!success), vm->error, "bad input matrix.", NULLFN)
+					success = matdeterminant(&m, &c);
+					FAILANDRETURN((!success), vm->error, "no determinant.", NULLFN)
+					FAILANDRETURN((m.rows != m.columns), vm->error, "non sqr matrix.", NULLFN)
+					success = matinversion(&m, &inv);
+					FAILANDRETURN((!success), vm->error, "mat inv failed.", NULLFN)
+					success = matrixToString(&inv, vm->matvecStrC, vm->precision, vm->notationStr);
+					FAILANDRETURN((!success), vm->error, "bad mat inv.", NULLFN)
+					pop(&vm->userStack, NULL);
+					push(&vm->userStack, vm->matvecStrC, METAMATRIX);
+					break;
+				case 2:	//idn,
+					break;
+				case 3:	//trc,
+					break;
+				case 4:	//eival, 
+					break;
+				case 5:	//eivec,
+					break;
+				case 6:	//tpose
+					break;
+			}
+		}
+		else if (is1pfn != -1) {
 			//printf("process:------------------- is1pfn = %d\n", is1pfn);
 			success = fn1Param(vm, token, is1pfn, isTrig);
 		} else if (is2pfn != -1) {
@@ -21,7 +66,8 @@ bool process(Machine* vm, char* token) {
 			success = fnOrOp2Param(vm, token, is2pfn);
 		} else if (isvecfn != -1) {
 			success = fnOrOpVec1Param(vm, token, isvecfn, false, false); //not a trig fn., result is not vector
-		} else if (strcmp(token, "cmdpg") == 0) {
+		} else if (strcmp(token, "cmdpg") == 0) { 
+			//we are not using the cmdpg command
 			int8_t meta = peek(&vm->userStack, NULL);
 			FAILANDRETURN((meta != METANONE), vm->error, "no cmdpg here", NULLFN)
 			FAILANDRETURN((meta == -1), vm->error, "stack empty.C", NULLFN)
@@ -131,23 +177,47 @@ bool process(Machine* vm, char* token) {
 			UintStackPop(&vm->execStack); //discard the if/else
 			return true;
 		} else if (token[0] == MATSTARTTOKENC) {
+			int8_t meta = peek(&vm->userStack, NULL);
+			FAILANDRETURN(meta == METAVECTORMATRIXPARTIAL || meta == METAMATRIXPARTIAL, vm->error, "E:nested matrices", NULLFN)
+			//push a matrix indicator
+			push(&vm->userStack, (char*)"{", METAMATRIXPARTIAL);
 		} else if (token[0] == MATLASTTOKENC) {
+			int8_t meta = peek(&vm->userStack, NULL);
+			FAILANDRETURN(meta != METAMATRIXPARTIAL, vm->error, "E:need matrix", NULLFN)
+			pop(&vm->userStack, vm->matvecStrC);
+			if (strcmp(vm->matvecStrC, "{") != 0) {
+				strcat(vm->matvecStrC, "}");
+				push(&vm->userStack, vm->matvecStrC, METAMATRIX); //close the matrix
+			} //else throw out an empty matrix
 		} else if (token[0] == VECSTARTTOKENC) {
 			//parse vector first fragment
 			int8_t meta = peek(&vm->userStack, NULL);
 			FAILANDRETURN(meta == METAVECTORPARTIAL, vm->error, "E:nested vectors", NULLFN)
-			//only METANONE, METAVECTOR, METAMATRIX, METAMATRIXPARTIAL are allowed
-			//push a vector indicator
-			push(&vm->userStack, (char*)"[", METAVECTORPARTIAL);
+			if (meta == METAMATRIXPARTIAL) { //continuing a matrix
+				pop(&vm->userStack, vm->matvecStrC);
+				if (vm->matvecStrC[strlen(vm->matvecStrC) - 1] == '{')
+					strcat(vm->matvecStrC, "[");
+				else
+					strcat(vm->matvecStrC, " [");
+				push(&vm->userStack, vm->matvecStrC, METAVECTORMATRIXPARTIAL);
+			} else { //push a vector indicator
+				push(&vm->userStack, (char*)"[", METAVECTORPARTIAL);
+			}
 		} else if (token[0] == VECLASTTOKENC) {
 			int8_t meta = peek(&vm->userStack, NULL);
-			FAILANDRETURN(meta != METAVECTORPARTIAL, vm->error, "E: need vector", NULLFN)
+			FAILANDRETURN(meta != METAVECTORPARTIAL && meta != METAVECTORMATRIXPARTIAL, vm->error, "E:need vector", NULLFN)
 			//have a '[' -- getting a ']' -- discard the vector 
 			pop(&vm->userStack, vm->matvecStrC);
 			if (strcmp(vm->matvecStrC, "[") != 0) {
-				strcat(vm->matvecStrC, "]");
-				push(&vm->userStack, vm->matvecStrC, METAVECTOR); //close the vector
-			}
+				if (meta == METAVECTORPARTIAL) {
+					strcat(vm->matvecStrC, "]");
+					push(&vm->userStack, vm->matvecStrC, METAVECTOR); //close the vector
+				} else { //METAVECTORMATRIXPARTIAL
+					//validate matrix and fill in blank cells
+					strcat(vm->matvecStrC, "]");
+					push(&vm->userStack, vm->matvecStrC, METAMATRIXPARTIAL); //close the vector inside the matrix
+				}
+			} //else throw out an empty vector
 		} else if (token[0] == POPTOKENC || strcmp(token, DPOPTOKEN) == 0) {
 			success = processPop(vm, token);
 		} else if (token[0] == PRINTTOKENC) { //print register or variable
@@ -163,13 +233,24 @@ bool process(Machine* vm, char* token) {
 			else {
 				//see if the ToS is a partial matrix or vector
 				int8_t meta = peek(&vm->userStack, NULL);
-				if (meta == METAMATRIXPARTIAL) {
+				if (meta == METAVECTORMATRIXPARTIAL) {
+					pop(&vm->userStack, vm->matvecStrC);
+					if (vm->matvecStrC[strlen(vm->matvecStrC) - 1] != '[')
+						strcat(vm->matvecStrC, " ");
+					strcat(vm->matvecStrC, token);
+					push(&vm->userStack, vm->matvecStrC, METAVECTORMATRIXPARTIAL);
 				} else if (meta == METAVECTORPARTIAL) {
 					pop(&vm->userStack, vm->matvecStrC);
-					if (strcmp(vm->matvecStrC, "[") != 0)
+					if (vm->matvecStrC[strlen(vm->matvecStrC) - 1] != '[')
 						strcat(vm->matvecStrC, " ");
 					strcat(vm->matvecStrC, token);
 					push(&vm->userStack, vm->matvecStrC, METAVECTORPARTIAL);
+				} else if (meta == METAMATRIXPARTIAL) {
+					pop(&vm->userStack, vm->matvecStrC);
+					if (vm->matvecStrC[strlen(vm->matvecStrC) - 1] == ']')
+						strcat(vm->matvecStrC, " [");
+					strcat(vm->matvecStrC, token);
+					push(&vm->userStack, vm->matvecStrC, METAVECTORMATRIXPARTIAL);
 				} else {
 					success = processDefaultPush(vm, token);
 				}
