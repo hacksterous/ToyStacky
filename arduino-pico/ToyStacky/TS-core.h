@@ -116,7 +116,7 @@ typedef enum {
 } VariableType;
 
 typedef enum {
-	METANONE,
+	METASCALAR,
 	METAVECTOR,
 	METAMATRIX,
 	METAVECTORPARTIAL,
@@ -180,16 +180,18 @@ typedef struct {
 	/* internal variables */
 	char bak[STRING_SIZE];//backup register
 	char acc[STRING_SIZE];//the accumulator
-	char error[SHORT_STRING_SIZE];//error notification
 	char coadiutor[STRING_SIZE]; //coadiutor = helper
 	char dummy[STRING_SIZE];
+	char error[SHORT_STRING_SIZE];//error notification
 	bigint_t bigA;
 	bigint_t bigB;
 	bigint_t bigC;
 	char matvecStrA[MAX_MATVECSTR_LEN]; 
 	char matvecStrB[MAX_MATVECSTR_LEN];
 	char matvecStrC[MAX_MATVECSTR_LEN];
-
+	Matrix matrixA;
+	Matrix matrixB;
+	Matrix matrixC;
 
 	/* for stack inspection control */
 	//view page - 

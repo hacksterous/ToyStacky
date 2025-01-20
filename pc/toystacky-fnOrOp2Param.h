@@ -6,9 +6,9 @@ bool fnOrOp2Param(Machine* vm, const char* token, int fnindex) {
 	//printf("fnOrOp2Param: A entered. cmeta = %d meta=%d\n", cmeta, meta);
 	if (cmeta == METAVECTOR || meta == METAVECTOR) return fnOrOpVec2Param(vm, token, fnindex, cmeta, meta, true); //returnsVector = true
 	FAILANDRETURN((cmeta == -1), vm->error, "Error: Stack empty", NULLFN)		
-	FAILANDRETURN((cmeta != METANONE), vm->error, "Error: Need scalar op L.", NULLFN)
+	FAILANDRETURN((cmeta != METASCALAR), vm->error, "Error: Need scalar op L.", NULLFN)
 	FAILANDRETURN((meta == -1), vm->error, "Error: stack empty.C", NULLFN)		
-	FAILANDRETURN((meta != METANONE), vm->error, "Error: Need scalar op A.", NULLFN)
+	FAILANDRETURN((meta != METASCALAR), vm->error, "Error: Need scalar op A.", NULLFN)
 	cmeta = peek(&vm->userStack, vm->coadiutor); //c
 	meta = peekn(&vm->userStack, vm->bak, 1);  //b
 	double complex vala, valb;
@@ -37,7 +37,7 @@ bool fnOrOp2Param(Machine* vm, const char* token, int fnindex) {
 		}
 		pop(&vm->userStack, NULL);
 		pop(&vm->userStack, NULL);
-		push(&vm->userStack, vm->acc, METANONE);
+		push(&vm->userStack, vm->acc, METASCALAR);
 		return true;
 	}
 	c.imag = 0;
@@ -101,6 +101,6 @@ bool fnOrOp2Param(Machine* vm, const char* token, int fnindex) {
 	//when no errors are present, actually pop the vars
 	pop(&vm->userStack, NULL);
 	pop(&vm->userStack, NULL);
-	push(&vm->userStack, vm->acc, METANONE);
+	push(&vm->userStack, vm->acc, METASCALAR);
 	return true;
 }

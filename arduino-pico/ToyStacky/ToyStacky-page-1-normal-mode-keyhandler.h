@@ -1,25 +1,12 @@
 int normalPage1ModeKeyhandler (char keyc) {
 	int keyTypePressed;
 	switch (keyc) {
-		//these are operators (in normal mode), result in ' ' + key + \n
 		case 'm': 
 			processNormalImmdOpKeyC("cot");
 			keyTypePressed = 1;
 			break;
 		case 'M': 
 			processNormalImmdOpKeyC("coth");
-			keyTypePressed = 1;
-			break;
-		case 's': 
-			processNormalImmdOpKeyC("sin");
-			keyTypePressed = 1;
-			break;
-		case 'X':
-			processNormalImmdOpKeyC("cos");
-			keyTypePressed = 1;
-			break;
-		case 't':
-			processNormalImmdOpKeyC("tan");
 			keyTypePressed = 1;
 			break;
 		case 'z':

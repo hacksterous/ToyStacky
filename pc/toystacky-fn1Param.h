@@ -48,14 +48,14 @@ bool fn1Param(Machine* vm, const char* token, int fnindex, int isTrig) {
 	int8_t meta = peek(&vm->userStack, NULL);
 	FAILANDRETURN((meta == -1), vm->error, "stack empty.D", NULLFN)
 
-	if (meta == METANONE) {
+	if (meta == METASCALAR) {
 		//scalar, keep in acc
 		peek(&vm->userStack, vm->acc);
 		success = fn1ParamScalar(vm, token, fnindex, isTrig);
 		FAILANDRETURNVAR(!success, vm->error, "E:Math fn '%s' failed. X", fitstr(vm->coadiutor, token, 8))
 		pop(&vm->userStack, NULL);
 		//fn1ParamScalar has the result in acc
-		push(&vm->userStack, vm->acc, METANONE);
+		push(&vm->userStack, vm->acc, METASCALAR);
 	} else if (meta == METAVECTOR) {
 		success = fnOrOpVec1Param(vm, token, fnindex, isTrig, true);
 	}

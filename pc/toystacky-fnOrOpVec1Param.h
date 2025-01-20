@@ -79,7 +79,7 @@ bool fnOrOpVec1Param(Machine* vm, const char* token, int fnindex, bool isTrig, b
 		FAILANDRETURNVAR(!success, vm->error, "fn %s failed", fitstr(vm->coadiutor, token, 9))
 		//pop(&vm->userStack, NULL);
 		//keep vector on stack
-		push(&vm->userStack, vm->acc, METANONE);
+		push(&vm->userStack, vm->acc, METASCALAR);
 	}
 	return true;
 }

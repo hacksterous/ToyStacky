@@ -31,30 +31,36 @@ bool mattransposed(Matrixd *m, Matrixd *trans);
 bool matmultiply(Matrix *m1, Matrix *m2, Matrix* product);
 bool matmultiplyd(Matrixd *m1, Matrixd *m2, Matrixd* product);
 bool matadd(Matrix *m1, Matrix *m2);
-bool mataddd(Matrixd *m1, Matrixd *m2);
 bool matsubtract(Matrix *m1, Matrix *m2);
-bool matsubtractd(Matrixd *m1, Matrixd *m2);
 bool matzero_vector(Matrix *);
 bool matzero_vectord(Matrixd *);
 bool matdeterminant(Matrix *m, ComplexDouble *det);
 bool matdeterminantd(Matrixd *m, double* det);
 bool mateigenvalues(Matrix *m, ComplexDouble *values);
 bool mateigenvaluesd(Matrixd *m, double *values);
-
 bool matrow_scalar_multiply(Matrix *m, int row, ComplexDouble factor);
 bool matrow_scalar_multiplyd(Matrixd *m, int row, double factor);
 ComplexDouble matvector_multiply(ComplexDouble *col, ComplexDouble *row, int length);
 double matvector_multiplyd(double *col, double *row, int length);
 void matvector_addition(ComplexDouble *v1, ComplexDouble *v2, int length);
-double matvector_additiond(double *col, double *row, int length);
+void matvector_additiond(double *col, double *row, int length);
 void matscalar_vector_multiplication(ComplexDouble factor, ComplexDouble *vector, int length);
 void matscalar_vector_multiplicationd(double factor, double *vector, int length);
 void matvector_subtraction(ComplexDouble *v1, ComplexDouble *v2, int length);
 void matvector_subtractiond(double *v1, double *v2, int length);
+bool matprojection(Matrix *m, ComplexDouble *v, int length, ComplexDouble* proj);
+bool matprojectiond(Matrixd *m, double *v, int length, double* proj);
+bool matgram_schmidt(Matrix *m, Matrix *ortho);
+bool matgram_schmidtd(Matrixd *m, Matrixd *ortho);
+bool orthonormal_basis(Matrix *, Matrix *);
+bool orthonormal_basisd(Matrixd *, Matrixd *);
+
+#define FAILMATVEC(failcondition) if (failcondition) return false;								\
 
 /* return SUCCESS if there is at least one zero vector in the matrix */
 bool matzero_vector(Matrix *m){
 	int i, j, counter;
+	FAILMATVEC(m->rows > MAX_MATLEN || m->columns > MAX_MATLEN)
 	if(m == NULL)
 		return FAIL;
 	for(i = 0; i < m->columns; i++){
@@ -71,6 +77,7 @@ bool matzero_vector(Matrix *m){
 
 bool matzero_vectord(Matrixd *m){
 	int i, j, counter;
+	FAILMATVEC(m->rows > MAX_MATLEN || m->columns > MAX_MATLEN)
 	if(m == NULL)
 		return FAIL;
 	for(i = 0; i < m->columns; i++){
@@ -137,6 +144,7 @@ bool matbuild(Matrix* m, char* input){
 	}
 	m->rows = r;
 	m->columns = c;
+	FAILMATVEC(m->rows > MAX_MATLEN || m->columns > MAX_MATLEN)
 	return success;
 }
 
@@ -184,12 +192,14 @@ bool matbuildd(Matrixd* m, char* input){
 	}
 	m->rows = r;
 	m->columns = c;
+	FAILMATVEC(m->rows > MAX_MATLEN || m->columns > MAX_MATLEN)
 	return success;
 }
 
 /* enter 1s along the main diagonal */
 bool identity(int length, Matrix* m){
 	int i, j;
+	FAILMATVEC(length > MAX_MATLEN)
 	m->rows = m->columns = length;
 	for(i = 0; i < length; i++){
 		for(j = 0; j < length; j++){
@@ -202,6 +212,7 @@ bool identity(int length, Matrix* m){
 
 bool identityd(int length, Matrixd* m){
 	int i, j;
+	FAILMATVEC(length > MAX_MATLEN)
 	m->rows = m->columns = length;
 	for(i = 0; i < length; i++){
 		for(j = 0; j < length; j++){
@@ -271,6 +282,7 @@ bool matrow_swap(Matrix *m, int a, int b){
 	int i;
 	if(m == NULL)
 		return FAIL;
+	FAILMATVEC(m->rows > MAX_MATLEN || m->columns > MAX_MATLEN)
 	if(m->rows <= a || m->rows <= b)
 		return FAIL;	
 	for(i = 0; i < m->columns; i++){
@@ -286,6 +298,7 @@ bool matrow_swapd(Matrixd *m, int a, int b){
 	int i;
 	if(m == NULL)
 		return FAIL;
+	FAILMATVEC(m->rows > MAX_MATLEN || m->columns > MAX_MATLEN)
 	if(m->rows <= a || m->rows <= b)
 		return FAIL;	
 	for(i = 0; i < m->columns; i++){
@@ -487,7 +500,7 @@ bool matequalsd(Matrixd *m1, Matrixd *m2){
 	return SUCCESS;
 }
 
-bool clonemat(Matrix *m, Matrix *copy){
+bool matclonemat(Matrix *m, Matrix *copy){
 	int i, j;
 	copy->rows = m->rows;
 	copy->columns = m->columns;
@@ -497,7 +510,7 @@ bool clonemat(Matrix *m, Matrix *copy){
 	return true;
 }
 
-bool clonematd(Matrixd *m, Matrixd *copy){
+bool matclonematd(Matrixd *m, Matrixd *copy){
 	int i, j;
 	copy->rows = m->rows;
 	copy->columns = m->columns;
@@ -530,7 +543,7 @@ bool transposed(Matrixd *m, Matrixd* trans){
 }
 
 /* m1 x m2  */
-bool multiply(Matrix *m1, Matrix *m2, Matrix* product){
+bool matmultiply(Matrix *m1, Matrix *m2, Matrix* product){
 	Matrix trans;
 	int i, j;
 	if(m1 == NULL || m2 == NULL)
@@ -588,7 +601,7 @@ double matvector_multiplyd(double *col, double *row, int length){
 }
 
 /* m1 += m2  */
-bool add(Matrix *m1, Matrix *m2){
+bool matadd(Matrix *m1, Matrix *m2){
 	int i, j;
 	if(m1 == NULL || m2 == NULL)
 		return FAIL;
@@ -601,7 +614,7 @@ bool add(Matrix *m1, Matrix *m2){
 	return SUCCESS;
 }
 
-bool subtract(Matrix *m1, Matrix *m2){
+bool matsubtract(Matrix *m1, Matrix *m2){
 	int i, j;
 	if(m1 == NULL || m2 == NULL)
 		return FAIL;
@@ -629,10 +642,24 @@ void matvector_addition(ComplexDouble *v1, ComplexDouble *v2, int length){
 	}
 }
 
+void matvector_additiond(double *v1, double *v2, int length){
+	int i;
+	for(i = 0; i < length; i++){
+		v1[i] += v2[i];
+	}
+}
+
 void matvector_subtraction(ComplexDouble *v1, ComplexDouble *v2, int length){
 	int i;
 	for(i = 0; i < length; i++){
 		v1[i] = csub(v1[i], v2[i]);
+	}
+}
+
+void matvector_subtractiond(double *v1, double *v2, int length){
+	int i;
+	for(i = 0; i < length; i++){
+		v1[i] -= v2[i];
 	}
 }
 
@@ -644,7 +671,7 @@ bool matdeterminantd(Matrixd *m, double* det){
 		return false;
 	if(m->columns != m->rows)
 		return false;
-	clonematd(m, &copy);
+	matclonematd(m, &copy);
 	*det = 1;
 
 	/* reduce each of the rows to get a lower triangle */	
@@ -670,7 +697,7 @@ bool matdeterminant(Matrix *m, ComplexDouble *det){
 		return false;
 	if(m->columns != m->rows)
 		return false;
-	clonemat(m, &copy);
+	matclonemat(m, &copy);
 	*det = makeComplex(1, 0);
 
 	/* reduce each of the rows to get a lower triangle */	
@@ -697,7 +724,7 @@ bool eigenvalues(Matrix *m, ComplexDouble *values){
 		return false;
 	if(m->rows != m->columns)
 		return false;
-	clonemat(m, &red);
+	matclonemat(m, &red);
 	/* reduce each of the rows to get a lower triangle */	
 	for(i = 0; i < red.columns; i++){
 		for(j = i + 1; j < red.rows; j++){
@@ -717,5 +744,112 @@ bool eigenvalues(Matrix *m, ComplexDouble *values){
 	for(i = 0; i < red.columns; i++)
 		values[i] = red.numbers[i][i];
 	return true;
+}
+
+void matscalar_vector_multiplication(ComplexDouble factor, ComplexDouble *vector, int length){
+	int i;
+	for(i = 0; i < length; i++)
+		vector[i] = cmul(vector[i], factor);
+}
+
+void matscalar_vector_multiplicationd(double factor, double *vector, int length){
+	int i;
+	for(i = 0; i < length; i++)
+		vector[i] *= factor;
+}
+
+bool matprojection(Matrix *m, ComplexDouble *v, int length, ComplexDouble* proj){
+	int i, j;
+	ComplexDouble vector[MAX_MATLEN]; 
+	ComplexDouble factor;
+	if(m->rows != length)
+		return false;
+	if(m == NULL || v == NULL)
+		return false;
+	for(i = 0; i < m->columns; i++){
+		for(j = 0; j < m->rows; j++) {
+			vector[j] = m->numbers[i][j];
+		}
+		factor = cdiv(matvector_multiply(v, vector, m->rows),matvector_multiply(vector, vector, m->rows));
+		matscalar_vector_multiplication(factor, vector, m->rows);
+		matvector_addition(proj, vector, m->rows);
+	}
+	return true;
+}
+
+bool matprojectiond(Matrixd *m, double *v, int length, double* proj){
+	int i, j;
+	double vector[MAX_MATLEN]; 
+	double factor;
+	if(m->rows != length)
+		return false;
+	if(m == NULL || v == NULL)
+		return false;
+	for(i = 0; i < m->columns; i++){
+		for(j = 0; j < m->rows; j++) {
+			vector[j] = m->numbers[i][j];
+		}
+		factor = matvector_multiplyd(v, vector, m->rows)/matvector_multiplyd(vector, vector, m->rows);
+		matscalar_vector_multiplicationd(factor, vector, m->rows);
+		matvector_additiond(proj, vector, m->rows);
+	}
+	return true;
+}
+
+/* change m into an orthogonal matrix  */
+bool matgram_schmidt(Matrix *m, Matrix *ortho){
+	ComplexDouble ortho_vector[MAX_MATLEN]; 
+	ComplexDouble temp[MAX_MATLEN];
+	int i, j;
+	if(m != NULL && m->rows == m->columns && matzero_vector(m) != 1){
+		/* create my empy matrix to have new orthogonal vector be added to */
+		for(i = 0; i < m->rows; i++){
+			ortho_vector[i] = m->numbers[0][i];
+			ortho->numbers[0][i] = m->numbers[0][i];
+		}
+		/* now loop and go through the gs system */
+		for(i = 1; i < m->columns; i++){
+			/* first initialize to the regular vector */
+			for(j = 0; j < m->rows; j++)
+				ortho_vector[j] = m->numbers[i][j];
+			/* get the subtracting factor */
+			matprojection(ortho, ortho_vector, m->rows, temp);
+			/* expand the matrix */
+			ortho->columns++;
+			for(j = 0; j < m->rows; j++)
+				ortho->numbers[ortho->columns - 1][j] = ortho_vector[j];
+			matvector_subtraction(ortho_vector, temp, m->rows);
+		}
+		return true;
+	}
+	return false;
+}
+
+bool matgram_schmidtd(Matrixd *m, Matrixd *ortho){
+	double ortho_vector[MAX_MATLEN]; 
+	double temp[MAX_MATLEN];
+	int i, j;
+	if(m != NULL && m->rows == m->columns && matzero_vectord(m) != 1){
+		/* create my empy matrix to have new orthogonal vector be added to */
+		for(i = 0; i < m->rows; i++) {
+			ortho_vector[i] = m->numbers[0][i];
+			ortho->numbers[0][i] = m->numbers[0][i];
+		}
+		/* now loop and go through the gs system */
+		for(i = 1; i < m->columns; i++){
+			/* first initialize to the regular vector */
+			for(j = 0; j < m->rows; j++)
+				ortho_vector[j] = m->numbers[i][j];
+			/* get the subtracting factor */
+			matprojectiond(ortho, ortho_vector, m->rows, temp);
+			/* expand the matrix */
+			ortho->columns++;
+			for(j = 0; j < m->rows; j++)
+				ortho->numbers[ortho->columns - 1][j] = ortho_vector[j];
+			matvector_subtractiond(ortho_vector, temp, m->rows);
+		}
+		return true;
+	}
+	return false;
 }
 

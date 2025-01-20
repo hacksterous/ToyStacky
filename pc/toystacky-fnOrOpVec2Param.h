@@ -24,14 +24,14 @@ bool fnOrOpVec2Param(Machine* vm, const char* token, int fnindex, int8_t cmeta, 
 	char output2[MAX_TOKEN_LEN];
 	int vectorCombo = 0;
 	if (returnsVector) {
-		if (cmeta == METAVECTOR && meta == METANONE) {
+		if (cmeta == METAVECTOR && meta == METASCALAR) {
 			//ToS is a vector, ToS-1 is a scalar
 			peek(&vm->userStack, vm->matvecStrA);
 			peekn(&vm->userStack, vm->dummy, 1);
 			input = vm->matvecStrA;
 			vectorCombo = 2;
 		}
-		else if (cmeta == METANONE && meta == METAVECTOR) {
+		else if (cmeta == METASCALAR && meta == METAVECTOR) {
 			//ToS-1 is a vector, ToS is a scalar
 			peek(&vm->userStack, vm->dummy);
 			peekn(&vm->userStack, vm->matvecStrA, 1);
@@ -71,12 +71,12 @@ bool fnOrOpVec2Param(Machine* vm, const char* token, int fnindex, int8_t cmeta, 
 
 			//(X) push the two scalars for the math op
 			if (vectorCombo == 1) {
-				push(&vm->userStack, vm->acc, METANONE); //push vector element
-				push(&vm->userStack, vm->dummy, METANONE); //push vector element
+				push(&vm->userStack, vm->acc, METASCALAR); //push vector element
+				push(&vm->userStack, vm->dummy, METASCALAR); //push vector element
 			}
 			else if (vectorCombo == 2 || vectorCombo == 3) {
-				push(&vm->userStack, vm->dummy, METANONE); //push vector element
-				push(&vm->userStack, vm->acc, METANONE); //push vector element
+				push(&vm->userStack, vm->dummy, METASCALAR); //push vector element
+				push(&vm->userStack, vm->acc, METASCALAR); //push vector element
 			}
 
 			success = fnOrOp2Param(vm, token, fnindex);
@@ -128,8 +128,8 @@ bool fnOrOpVec2Param(Machine* vm, const char* token, int fnindex, int8_t cmeta, 
 			//printf("fnOrOpVec2Param: scalar result while loop -- acc = %s, dummy = %s\n", vm->acc, vm->dummy);
 
 			//(X) push the two scalars
-			push(&vm->userStack, vm->dummy, METANONE); //push vector element
-			push(&vm->userStack, vm->acc, METANONE); //push vector element
+			push(&vm->userStack, vm->dummy, METASCALAR); //push vector element
+			push(&vm->userStack, vm->acc, METASCALAR); //push vector element
 			
 			success = fnOrOp2Param(vm, token, fnindex); //fnindex = 6 is multiplication
 			if (!success) {
@@ -157,7 +157,7 @@ bool fnOrOpVec2Param(Machine* vm, const char* token, int fnindex, int8_t cmeta, 
 		success = complexToString(cd, vm->acc, vm->precision, vm->notationStr) && success;
 		pop(&vm->userStack, NULL);
 		pop(&vm->userStack, NULL);
-		push(&vm->userStack, vm->acc, METANONE);
+		push(&vm->userStack, vm->acc, METASCALAR);
 	}
 
 	return true;

@@ -92,7 +92,7 @@ const double __TS_PI__ = 3.141592653589793;
 	}
 
 typedef enum {
-	METANONE,
+	METASCALAR,
 	METAVECTOR,
 	METAMATRIX,
 	METAVECTORPARTIAL,
@@ -101,7 +101,7 @@ typedef enum {
 } StrackMeta;
 
 const char* DEBUGMETA[6] = {
-	"METANONE",
+	"METASCALAR",
 	"METAVECTOR",
 	"METAMATRIX",
 	"METAVECTORPARTIAL",
@@ -368,6 +368,10 @@ typedef struct {
 	bigint_t bigA;
 	bigint_t bigB;
 	bigint_t bigC;
+	Matrix matrixA;
+	Matrix matrixB;
+	Matrix matrixC;
+
 	int cmdPage;	
 	int altState;	
 	double frequency;
@@ -525,15 +529,13 @@ uint8_t conditionalData(size_t execData) {
 	return (execData & 0x7);
 }
 
-bool fnOrOp2Param(Machine* vm, const char* token, int fnindex);
-#include "../arduino-pico/ToyStacky/TS-core-fnOrOpVec2Param.h"
+bool fnOrOpVec2Param(Machine* vm, const char* token, int fnindex, int8_t cmeta, int8_t meta, bool returnsVector);
 #include "../arduino-pico/ToyStacky/TS-core-fnOrOp2Param.h"
+#include "../arduino-pico/ToyStacky/TS-core-fnOrOpMat2Param.h"
+#include "../arduino-pico/ToyStacky/TS-core-fnOrOpVec2Param.h"
 #include "../arduino-pico/ToyStacky/TS-core-fnOrOpVec1Param.h"
+#include "../arduino-pico/ToyStacky/TS-core-fnOrOpMat1Param.h"
 #include "../arduino-pico/ToyStacky/TS-core-fn1Param.h"
-//#include "toystacky-fnOrOpVec2Param.h"
-//#include "toystacky-fnOrOp2Param.h"
-//#include "toystacky-fnOrOpVec1Param.h"
-//#include "toystacky-fn1Param.h"
 
 int isMatFunction(const char* token) {
 	for (int i = 0; i < NUMMATRIXPARAMFN; i++) {

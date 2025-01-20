@@ -61,7 +61,7 @@ const char* __TS_GLOBAL_ERRORCODE[]= { "undef arg",
 
 
 const char* DEBUGMETA[5] = {
-	"METANONE"
+	"METASCALAR"
 	"METAVECTOR",
 	"METAVECTOR",
 	"METAVECTORPARTIAL",
@@ -351,7 +351,7 @@ typedef ComplexDouble (*ComplexFunctionPtrVector)(ComplexDouble, ComplexDouble, 
 
 const char* matrixfnname[] = {
 						"det", "inv",
-						"idn", "trc",
+						"iden", "trace",
 						"eival", "eivec",
 						"tpose"
 						};
@@ -493,8 +493,10 @@ uint8_t conditionalData(int32_t execData) {
 }
 
 #include "TS-core-fnOrOpVec2Param.h"
+#include "TS-core-fnOrOpMat2Param.h"
 #include "TS-core-fnOrOp2Param.h"
 #include "TS-core-fnOrOpVec1Param.h"
+#include "TS-core-fnOrOpMat1Param.h"
 #include "TS-core-fn1Param.h"
 
 int isMatFunction(const char* token) {

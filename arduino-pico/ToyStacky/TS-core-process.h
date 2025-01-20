@@ -24,19 +24,20 @@ bool process(Machine* vm, char* token) {
 					success = matbuild(&m, vm->matvecStrC);
 					FAILANDRETURN((!success), vm->error, "bad input matrix.", NULLFN)
 					success = matdeterminant(&m, &c);
-					FAILANDRETURN((!success), vm->error, "no determinant.", NULLFN)
+					FAILANDRETURN((!success), vm->error, "mat singular.", NULLFN)
 					success = complexToString(c, vm->coadiutor, vm->precision, vm->notationStr);
 					FAILANDRETURN((!success), vm->error, "bad determinant.", NULLFN)
-					pop(&vm->userStack, NULL);
-					push(&vm->userStack, vm->coadiutor, METANONE);
+					//when operating on a vector or matrix and the result is a scalar,
+					//don't pop out the vector/matrix
+					push(&vm->userStack, vm->coadiutor, METASCALAR);
 					break;
-				case 1:	//inv,
+				case 1:	//inv
 					FAILANDRETURN((meta != METAMATRIX), vm->error, "require matrix.", NULLFN)
 					Matrix inv;
 					success = matbuild(&m, vm->matvecStrC);
 					FAILANDRETURN((!success), vm->error, "bad input matrix.", NULLFN)
 					success = matdeterminant(&m, &c);
-					FAILANDRETURN((!success), vm->error, "no determinant.", NULLFN)
+					FAILANDRETURN((!success), vm->error, "matrix singular.", NULLFN)
 					FAILANDRETURN((m.rows != m.columns), vm->error, "non sqr matrix.", NULLFN)
 					success = matinversion(&m, &inv);
 					FAILANDRETURN((!success), vm->error, "mat inv failed.", NULLFN)
@@ -45,13 +46,13 @@ bool process(Machine* vm, char* token) {
 					pop(&vm->userStack, NULL);
 					push(&vm->userStack, vm->matvecStrC, METAMATRIX);
 					break;
-				case 2:	//idn,
+				case 2:	//iden
 					break;
-				case 3:	//trc,
+				case 3:	//trace
 					break;
-				case 4:	//eival, 
+				case 4:	//eival
 					break;
-				case 5:	//eivec,
+				case 5:	//eivec
 					break;
 				case 6:	//tpose
 					break;
@@ -69,7 +70,7 @@ bool process(Machine* vm, char* token) {
 		} else if (strcmp(token, "cmdpg") == 0) { 
 			//we are not using the cmdpg command
 			int8_t meta = peek(&vm->userStack, NULL);
-			FAILANDRETURN((meta != METANONE), vm->error, "no cmdpg here", NULLFN)
+			FAILANDRETURN((meta != METASCALAR), vm->error, "no cmdpg here", NULLFN)
 			FAILANDRETURN((meta == -1), vm->error, "stack empty.C", NULLFN)
 			peek(&vm->userStack, vm->coadiutor);
 			char *endptr;
@@ -95,7 +96,7 @@ bool process(Machine* vm, char* token) {
 			int j = 0;
 			do {
 				//meta = peekn(&vm->userStack, NULL, i++);
-			} while (peekn(&vm->userStack, NULL, i++) == METANONE);
+			} while (peekn(&vm->userStack, NULL, i++) == METASCALAR);
 			//printf("final count i = %d\n", i);
 
 			while (--i > 0) {
@@ -233,26 +234,32 @@ bool process(Machine* vm, char* token) {
 			else {
 				//see if the ToS is a partial matrix or vector
 				int8_t meta = peek(&vm->userStack, NULL);
+				StrackMeta varmeta;
+				//matvecStrA has var value or literal -- variable substitution by value
+				processDefaultPush(vm, token, vm->matvecStrA, &varmeta); 
+				FAILANDRETURN(varmeta != METASCALAR, vm->error, "only scalar var.", NULLFN)
 				if (meta == METAVECTORMATRIXPARTIAL) {
 					pop(&vm->userStack, vm->matvecStrC);
 					if (vm->matvecStrC[strlen(vm->matvecStrC) - 1] != '[')
 						strcat(vm->matvecStrC, " ");
-					strcat(vm->matvecStrC, token);
+					strcat(vm->matvecStrC, vm->matvecStrA);
 					push(&vm->userStack, vm->matvecStrC, METAVECTORMATRIXPARTIAL);
 				} else if (meta == METAVECTORPARTIAL) {
 					pop(&vm->userStack, vm->matvecStrC);
 					if (vm->matvecStrC[strlen(vm->matvecStrC) - 1] != '[')
 						strcat(vm->matvecStrC, " ");
-					strcat(vm->matvecStrC, token);
+					strcat(vm->matvecStrC, vm->matvecStrA);
 					push(&vm->userStack, vm->matvecStrC, METAVECTORPARTIAL);
 				} else if (meta == METAMATRIXPARTIAL) {
 					pop(&vm->userStack, vm->matvecStrC);
 					if (vm->matvecStrC[strlen(vm->matvecStrC) - 1] == ']')
 						strcat(vm->matvecStrC, " [");
-					strcat(vm->matvecStrC, token);
+					else if (vm->matvecStrC[0] == '{') 
+						strcat(vm->matvecStrC, "[");
+					strcat(vm->matvecStrC, vm->matvecStrA);
 					push(&vm->userStack, vm->matvecStrC, METAVECTORMATRIXPARTIAL);
 				} else {
-					success = processDefaultPush(vm, token);
+					push(&vm->userStack, vm->matvecStrA, varmeta);
 				}
 			}
 		}

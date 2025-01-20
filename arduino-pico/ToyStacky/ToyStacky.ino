@@ -41,7 +41,6 @@ char numKeys[ROWS][COLS] =
 	{'4','5','6','-'},
 	{'7','8','9','*'},
 	{'0','.','/','\n'}
-
 };
 
 //LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
@@ -415,6 +414,9 @@ void processImmdOpKeyC (const char* str) {
 #include "ToyStacky-alt-mode-keyhandler.h"
 #include "ToyStacky-page-1-normal-mode-keyhandler.h"
 #include "ToyStacky-page-1-alt-mode-keyhandler.h"
+#include "ToyStacky-page-2-normal-mode-keyhandler.h"
+#include "ToyStacky-page-2-alt-mode-keyhandler.h"
+
 void loop() {
 	//char debug0[10];
 	char keyc = customKeypad.getKey();
@@ -474,6 +476,12 @@ void loop() {
 						break;
 					case 3: //page 1, alt
 						keyTypePressed = altPage1ModeKeyhandler(keyc);
+						break;
+					case 4: //page 2, normal
+						keyTypePressed = normalPage2ModeKeyhandler(keyc);
+						break;
+					case 5: //page 2, alt
+						keyTypePressed = altPage2ModeKeyhandler(keyc);
 						break;
 					default: //page 0, normal
 						keyTypePressed = normalModeKeyhandler(keyc);

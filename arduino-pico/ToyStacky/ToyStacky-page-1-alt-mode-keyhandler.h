@@ -6,7 +6,6 @@
 int altPage1ModeKeyhandler (char keyc) {
 	int keyTypePressed;
 	switch (keyc) {
-		//these are operators (in normal mode), result in ' ' + key + \n
 		case 'm': 
 			processAltImmdOpKeyC("acot");
 			keyTypePressed = 1;
@@ -32,7 +31,6 @@ int altPage1ModeKeyhandler (char keyc) {
 			keyTypePressed = 1;
 			break;
 		default:
-			//adds to user entry but does not execute immediately
 			keyTypePressed = altModeKeyhandler(keyc);
 			break;
 	}

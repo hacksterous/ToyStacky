@@ -217,7 +217,6 @@ char* lcase(char* token) {
 	}
 	return token;
 }
-
 bool doubleToString(double value, char* buf, uint8_t precision, char* notationStr) {
 	if (value == INFINITY || value == -INFINITY) return false;
 	if (alm0double(value)) {
@@ -231,7 +230,6 @@ bool doubleToString(double value, char* buf, uint8_t precision, char* notationSt
 	strcpy(fmt, "%.");
 	itoa(precision, &fmt[2]);
 	strcat(fmt, notationStr);
-	//sprintf(buf, "%.15g", value);
 	sprintf(buf, fmt, value);
 	if (strcmp(lcase(buf), "inf") == 0 || strcmp(lcase(buf), "-inf") == 0) return false;
 	if (strcmp(lcase(buf), "nan") == 0 || strcmp(lcase(buf), "-nan") == 0) return false;
@@ -267,8 +265,8 @@ bool doubleToString(double value, char* buf, uint8_t precision, char* notationSt
 }
 
 bool complexToString(ComplexDouble c, char* value, uint8_t precision, char* notationStr) {
-	char r[SHORT_STRING_SIZE];
-	char i[SHORT_STRING_SIZE];
+	char r[VSHORT_STRING_SIZE];
+	char i[VSHORT_STRING_SIZE];
 	bool goodnum = doubleToString(c.real, r, precision, notationStr);
 	if (!goodnum) return false;
 	goodnum = doubleToString(c.imag, i, precision, notationStr);

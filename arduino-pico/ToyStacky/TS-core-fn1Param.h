@@ -37,16 +37,18 @@ bool fn1Param(Machine* vm, const char* token, int fnindex, int isTrig) {
 	int8_t meta = peek(&vm->userStack, NULL);
 	FAILANDRETURN((meta == -1), vm->error, "stack empty.D", NULLFN)
 
-	if (meta == METANONE) {
+	if (meta == METASCALAR) {
 		peek(&vm->userStack, vm->acc);
 		//scalar, function argument is in vm->acc
 		success = fn1ParamScalar(vm, token, fnindex, isTrig);
 		FAILANDRETURNVAR(!success, vm->error, "%s bad.", fitstr(vm->coadiutor, token, 8))
 		//fn1ParamScalar has the result in acc
 		pop(&vm->userStack, NULL);
-		push(&vm->userStack, vm->acc, METANONE);
+		push(&vm->userStack, vm->acc, METASCALAR);
 	} else if (meta == METAVECTOR) {
 		success = fnOrOpVec1Param(vm, token, fnindex, isTrig, true); //returnsVector = true
+	} else if (meta == METAMATRIX) {
+		success = fnOrOpMat1Param(vm, token, fnindex, isTrig);
 	}
 	return success;
 }
