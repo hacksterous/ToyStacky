@@ -142,7 +142,7 @@ bool stringToDouble(char* str, double* dbl) {
 		//SerialPrint(1, "stringToDouble: done with true ------------------- dbl = %g", *dbl);
 		if (rlc) str[len-1] = rlc;
 		if (errno == ERANGE) return false;
-		if (abs(*dbl) == DOUBLE_EPS) return false;
+		if (fabs(*dbl) <= DOUBLE_EPS) return false;
 		return true;
 	}
 }

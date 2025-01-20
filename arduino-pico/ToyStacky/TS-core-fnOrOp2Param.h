@@ -52,7 +52,7 @@ bool fnOrOp2Param(Machine* vm, const char* token, int fnindex) {
 				c.imag = 2 * 3.141592653589793L * vm->frequency * c.real;
 				c.real = 0;
 			} //else keep value of c.real
-			//printf("fnOrOp2Param: isRealNumber: coadiutor (RLC) -- vm->frequency = %lf returned real = %lf imag = %lf ", vm->frequency, c.real, c.imag);
+			printf("fnOrOp2Param: isRealNumber: coadiutor (RLC) -- vm->frequency = %lf returned real = %lf imag = %lf ", vm->frequency, c.real, c.imag);
 		}
 	} else {
 		FAILANDRETURN(true, vm->error, "bad operand.A", NULLFN)
@@ -74,15 +74,17 @@ bool fnOrOp2Param(Machine* vm, const char* token, int fnindex) {
 			} //else keep value of d.real
 			//printf("fnOrOp2Param: isRealNumber: bak (RLC) -- vm->frequency = %lf returned real = %lf imag = %lf ", vm->frequency, d.real, d.imag);
 		}
-		//printf("fnOrOp2Param: d = %s returned %d ", vm->bak, success);
+		//printf("fnOrOp2Param: d = %s returned d real = %lf imag = %lf\n", vm->bak, d.real, d.imag);
 	}  else {
 		FAILANDRETURN(true, vm->error, "bad operand.B", NULLFN)
 	}
 	FAILANDRETURN(!success, vm->error, "bad operand.B2", NULLFN)
 	//call 2-parameter function
+	//printf("fnOrOp2Param: calling call2ParamMathFunction c real = %lf d real = %lf\n", c.real, d.real);
 	c = call2ParamMathFunction(fnindex, d, c);
-	if (abs(c.real) < DOUBLE_EPS) c.real = 0.0;
-	if (abs(c.imag) < DOUBLE_EPS) c.imag = 0.0;
+	if (fabs(c.real) < DOUBLE_EPS) c.real = 0.0;
+	if (fabs(c.imag) < DOUBLE_EPS) c.imag = 0.0;
+	//printf("fnOrOp2Param: returned from call2ParamMathFunction c.real = %lf\n", c.real);
 	success = complexToString(c, vm->coadiutor, vm->precision, vm->notationStr); //result in coadiutor
 	//SerialPrint(5, "fnOrOp2Param: 2 ------------------- got ", token, " data returned from function = ", vm->coadiutor, "\r\n");
 	FAILANDRETURNVAR(!success, vm->error, "Bad fn %s", fitstr(vm->coadiutor, token, 8))
