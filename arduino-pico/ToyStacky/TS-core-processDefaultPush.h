@@ -26,8 +26,10 @@ bool processDefaultPush(Machine* vm, char* token, char* retstr, StrackMeta* meta
 		//token is a real or complex number or string literal
 		double dbl;
 		char rlc = strIsRLC(token);
+		bool s2c = stringToComplex(token, &c);
 		bool s2d = stringToDouble(token, &dbl);
-		if (stringToComplex(token, &c) || s2d) {
+		//printf("processDefaultPush: A: token = %s\n", token);
+		if (s2c || s2d) {
 			if (s2d) {
 				//token is an RLC type double -- 1.234e3l
 				doubleToString(dbl, retstr, vm->precision, vm->notationStr);
@@ -38,6 +40,7 @@ bool processDefaultPush(Machine* vm, char* token, char* retstr, StrackMeta* meta
 					strcat(retstr, RLCstr);
 				}
 			} else {
+				//printf("processDefaultPush: got complex = %s\n", token);
 				strcpy(retstr, token);
 			}
 			//printf("processDefaultPush: A: retstr = %s\n", retstr);

@@ -133,6 +133,7 @@ bool stringToDouble(char* str, double* dbl) {
 	if (rlc) {
 		str[len-1] = '\0';
 	}
+	//printf("stringToDouble: got %s\n", str);
 	*dbl = strtod(str, &endPtr);
 	//if (endPtr == str) {
 	if (*endPtr != '\0') {
@@ -141,8 +142,7 @@ bool stringToDouble(char* str, double* dbl) {
 	} else {
 		//SerialPrint(1, "stringToDouble: done with true ------------------- dbl = %g", *dbl);
 		if (rlc) str[len-1] = rlc;
-		if (errno == ERANGE) return false;
-		if (fabs(*dbl) <= DOUBLE_EPS) return false;
+		if (errno) return false;
 		return true;
 	}
 }
@@ -157,6 +157,7 @@ bool stringToComplex(const char *input, ComplexDouble* c) {
 	char str2[SHORT_STRING_SIZE];
 	int failpoint = parseComplex(input, str1, str2);
 	//SerialPrint(1, "stringToComplex: parseComplex returned %d str1 = %s --- str2 = %s", failpoint, str1, str2);
+	//printf("stringToComplex: parseComplex returned %d str1 = %s --- str2 = %s\n", failpoint, str1, str2);
 	double r;
 	double i;
 	bool success;
@@ -164,6 +165,7 @@ bool stringToComplex(const char *input, ComplexDouble* c) {
 	if (str1[0] != '\0' && str2[0] != '\0') {
 		success = stringToDouble(str1, &r);
 		success = success && stringToDouble(str2, &i);
+		//printf("stringToComplex: success1 = %d\n", success);
 		if (!success) {
 			return false;
 		} else {
@@ -173,6 +175,7 @@ bool stringToComplex(const char *input, ComplexDouble* c) {
 		}
 	} else if (str1[0] != '\0' && str2[0] == '\0') {
 		success = stringToDouble(str1, &i);
+		//printf("stringToComplex: success2 = %d\n", success);
 		if (!success) {
 			return false;
 		} else {
