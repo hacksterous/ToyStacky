@@ -29,6 +29,7 @@ int normalModeKeyhandler (char keyc) {
 				vm.userInput[len + 1] = '\0';
 				SerialPrint(3, "Got \n : vm.userInput = ", vm.userInput, "\n\r");
 			}
+			vm.partialComplex = false; //any pending ')' has already been added by tokenizer
 			strcpy(vm.userInputInterpret, vm.userInput);
 			clearUserInput();
 			rp2040.fifo.push(CORE0_TO_CORE1_START);
@@ -49,14 +50,20 @@ int normalModeKeyhandler (char keyc) {
 					vm.userInputPos--;
 					vm.userInput[len] = '\0';
 				}
-				if (lastChar) 
+				if (lastChar) {
 					showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
-				else {
+					vm.partialVector = false;
+					vm.partialMatrix = false;
+					vm.partialComplex = false;
+				} else {
 					showStackHP(&vm, 0, DISPLAY_LINECOUNT - 2);
 					showUserEntryLine(1);
 				}
 			} else {
 				//backspace on null entry --> drop command
+				vm.partialVector = false;
+				vm.partialMatrix = false;
+				vm.partialComplex = false;
 				clearUserInput();
 				keyTypePressed = 1;
 				strcpy(vm.userInputInterpret, "1@@"); //<1> <@@> -- drop one existing entry

@@ -217,6 +217,8 @@ ComplexDouble cpower(ComplexDouble c, ComplexDouble d) {
 }
 
 ComplexDouble cpowerd(ComplexDouble c, double d) {
+	if (alm0double(c.real) && alm0double(c.imag))
+		return makeComplex(0.0, 0.0);
 	if (alm0double(c.imag) && (d >= 1.0))
 		return makeComplex(pow(c.real, d), 0.0);
 	if (alm0double(c.imag) && (d == 0.0))
