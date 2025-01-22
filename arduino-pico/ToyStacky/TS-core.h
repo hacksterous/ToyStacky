@@ -42,6 +42,7 @@ License: GNU GPL v3
 #define RIGHTARROW char(0x7e)
 #define LEFTARROW  char(0x7f)
 #define OFLOWIND char(0xeb)
+#define SIGMAIND char(0xe5)
 
 #define COMSTARTTOKENC '('
 #define VECSTARTTOKENC '['

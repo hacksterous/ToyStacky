@@ -81,6 +81,28 @@ void eraseUserEntryLine() {
 //int viewPage;
 //int topEntryNum; //stack entry number shown at top row
 //int pointerRow; //entry pointed to by right pointing arrow
+
+void showViewPage(){
+	lcd.setCursor(0, 2);
+	switch (vm.viewPage) {
+		case STACK_VIEW: lcd.print('S');break;
+		case ENTRY_VIEW: lcd.print('V');break;
+		case VARLIST_VIEW: lcd.print('L');break;
+		case STATUS_VIEW: lcd.print(SIGMAIND);break; //sigma 0xe5
+		case EDIT_VIEW: lcd.print('E');break;
+		default: lcd.print(' ');break; //NORMAL_VIEW
+	}
+}
+
+void stackViewShowUpDownIndicators(int topRowNum){
+	lcd.setCursor(0, 0);
+	if (vm.topEntryNum < (vm.userStack.itemCount - 1)) lcd.write(UPIND);
+	else lcd.print(' ');
+	lcd.setCursor(0, topRowNum);
+	if ((vm.topEntryNum - topRowNum) > 0) lcd.write(DOWNIND);
+	else lcd.print(' ');
+}
+
 void updatesForUpMotion() {
 	int topRowNum = DISPLAY_LINECOUNT - 1;// == 3
 	int8_t lastPointerRow = vm.pointerRow;
@@ -92,17 +114,16 @@ void updatesForUpMotion() {
 	} else if (vm.viewPage == STACK_VIEW) {
 		if (vm.pointerRow > 0) {
 			//pointRow is 0 at topmost row
-			if (DISPLAY_LINECOUNT - vm.pointerRow < vm.userStack.itemCount)
+			if ((DISPLAY_LINECOUNT - vm.pointerRow) < vm.userStack.itemCount)
 				vm.pointerRow--;
 		} else if (vm.pointerRow == 0) {
-			//int8_t meta = peekn(&vm.userStack, NULL, vm.topEntryNum + 1);
-			//if (meta != -1) {
-			if (vm.topEntryNum < vm.userStack.itemCount - 1) {
+			if (vm.topEntryNum < (vm.userStack.itemCount - 1)) {
 				vm.topEntryNum++;
 				showStackHP(&vm, vm.topEntryNum - topRowNum, vm.topEntryNum);
 			} else return;
 		}
 	}
+	stackViewShowUpDownIndicators(topRowNum);
 	lcd.setCursor(1, lastPointerRow); //col, row
 	lcd.print(' ');
 	lcd.setCursor(1, vm.pointerRow); //col, row
@@ -127,6 +148,7 @@ void updatesForDownMotion() {
 			showStackHP(&vm, vm.topEntryNum - topRowNum, vm.topEntryNum);
 		}
 	}
+	stackViewShowUpDownIndicators(topRowNum);
 	lcd.setCursor(1, lastPointerRow); //col, row
 	lcd.print(' ');
 	lcd.setCursor(1, vm.pointerRow); //col, row
@@ -190,9 +212,9 @@ void updatesForLeftMotion() {
 					zstrncpy(vm.userDisplay, &vm.userInput[vm.userInputPos], DISPLAY_LINESIZE - 2);
 					lcd.print(vm.userDisplay);
 					vm.userInputRightOflow = true;
-					SerialPrint(2, "updatesForLeftMotion: 10 11 D case ", "\n\r");
+					//SerialPrint(2, "updatesForLeftMotion: 10 11 D case ", "\n\r");
 				} else {
-					SerialPrint(2, ">>>>>>> updatesForLeftMotion: 10 11 E case ERROR: can't have this", "\n\r");
+					//SerialPrint(2, ">>>>>>> updatesForLeftMotion: 10 11 E case ERROR: can't have this", "\n\r");
 				}
 			}
 		}
@@ -218,7 +240,7 @@ void updatesForRightMotion(){
 			vm.userInputPos++;
 		if (vm.cursorPos > DISPLAY_LINESIZE - 1)
 			vm.cursorPos = DISPLAY_LINESIZE - 1;
-		SerialPrint(2, "updatesForRightMotion: 00 10 case ", "\n\r");
+		//SerialPrint(2, "updatesForRightMotion: 00 10 case ", "\n\r");
 		if (vm.cursorPos == DISPLAY_LINESIZE - 1) {
 			if (vm.userInputPos == len) {
 				//show cursor entry position on col 19 and move left
@@ -227,11 +249,11 @@ void updatesForRightMotion(){
 					lcd.print(LEFTARROW);
 					vm.userInputLeftOflow = true;
 					zstrncpy(vm.userDisplay, &vm.userInput[len - DISPLAY_LINESIZE + 2], DISPLAY_LINESIZE - 2);
-					SerialPrint(2, "updatesForRightMotion: 00 10 A case ", "\n\r");
+					//SerialPrint(2, "updatesForRightMotion: 00 10 A case ", "\n\r");
 					lcd.print(vm.userDisplay);
 					lcd.print(' ');
 				} else {
-					SerialPrint(2, "updatesForRightMotion: 00 10 B case ", "\n\r");
+					//SerialPrint(2, "updatesForRightMotion: 00 10 B case ", "\n\r");
 					lcd.setCursor(DISPLAY_LINESIZE - len, 3); //col, row
 					zstrncpy(vm.userDisplay, &vm.userInput[len - DISPLAY_LINESIZE + 1], len);
 					lcd.print(vm.userDisplay);
@@ -253,7 +275,7 @@ void updatesForRightMotion(){
 			if (vm.userInputPos < len - 3) {
 				//right scroll is required
 				vm.userInputPos++;
-				SerialPrint(2, "updatesForRightMotion: 01 11 B case ", "\n\r");
+				//SerialPrint(2, "updatesForRightMotion: 01 11 B case ", "\n\r");
 				lcd.setCursor(0, 3);
 				lcd.print(LEFTARROW);
 				vm.userInputLeftOflow = true;
@@ -269,7 +291,7 @@ void updatesForRightMotion(){
 				lcd.setCursor(0, 3); //col, row
 				lcd.print(LEFTARROW);
 				vm.userInputLeftOflow = true;
-				SerialPrint(2, "updatesForRightMotion: 01 11 C case ", "\n\r");
+				//SerialPrint(2, "updatesForRightMotion: 01 11 C case ", "\n\r");
 				zstrncpy(vm.userDisplay, &vm.userInput[vm.userInputPos - DISPLAY_LINESIZE + 3], DISPLAY_LINESIZE - 1);
 				lcd.print(vm.userDisplay);
 				lcd.print(' ');
@@ -519,7 +541,6 @@ void loop() {
 				case '\n':
 					int8_t meta;
 					vm.viewPage = ENTRY_VIEW;
-					lcd.clear();
 					//display the entry
 					meta = peekn(&vm.userStack, NULL, vm.topEntryNum - vm.pointerRow);
 					if (meta != -1) {
@@ -532,6 +553,7 @@ void loop() {
 					//only 19 columns - leave leftmost col for up/dn indication
 					formatVariable(&vm, vm.matvecStrC, DISPLAY_LINESIZE - 1);
 					showVariable(&vm);
+					showViewPage();
 					break;
 				default: 
 					break;
@@ -557,13 +579,21 @@ void loop() {
 					//variables used in the stack view are preserved
 					vm.viewPage = STACK_VIEW;
 					lcd.clear();
+					showViewPage();
 					//restore previous stack view
 					showStackHP(&vm, vm.topEntryNum - DISPLAY_LINECOUNT + 1, vm.topEntryNum);
 					lcd.setCursor(1, vm.pointerRow); //col, row
 					lcd.print(RIGHTARROW);
 					break;
 				case '\n':
-					//going back to normal view clear variables 
+					int8_t meta;
+					meta = peekn(&vm.userStack, NULL, vm.topEntryNum - vm.pointerRow);
+					if (meta != -1) {
+						peekn(&vm.userStack, vm.matvecStrC, vm.topEntryNum - vm.pointerRow);
+					} else {
+						vm.matvecStrC[0] = '\0';
+					}
+					//going back to normal view
 					//used in entry view
 					vm.topVarFragNum = 0;
 					vm.varFragCount = 0;
@@ -572,8 +602,17 @@ void loop() {
 					vm.pointerRow = DISPLAY_LINECOUNT - 1;
 					vm.viewPage = NORMAL_VIEW;
 					lcd.clear();
-					//FIXME: can we copy the item into userInput, update userInputPos
+					#define NOCOPYUSER
+					#ifndef NOCOPYUSER
 					showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
+					#else
+					showStackHP(&vm, 0, DISPLAY_LINECOUNT - 2);
+					clearUserInput();
+					zstrncpy(vm.userInput, vm.matvecStrC, STRING_SIZE - 1);
+					zstrncpy(vm.userDisplay, vm.matvecStrC, STRING_SIZE - 1);
+					vm.userInputPos = strlen(vm.userInput);
+					showUserEntryLine(0);
+					#endif
 					showModes(&vm);
 					break;
 				default: 

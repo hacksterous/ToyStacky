@@ -167,11 +167,13 @@ int normalModeKeyhandler (char keyc) {
 			keyTypePressed = 3;
 			lcd.noCursor();
 			updatesForUpMotion();
+			showViewPage();
 			break;
 		case 'D': //down
 			keyTypePressed = 4;
 			lcd.noCursor();
 			updatesForDownMotion();
+			showViewPage();
 			break;
 		case '<': //left
 			keyTypePressed = 7;
