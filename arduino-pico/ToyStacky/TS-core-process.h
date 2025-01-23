@@ -33,16 +33,15 @@ bool process(Machine* vm, char* token) {
 					break;
 				case 1:	//inv
 					FAILANDRETURN((meta != METAMATRIX), vm->error, "require matrix.", NULLFN)
-					Matrix inv;
 					success = matbuild(&m, vm->matvecStrC);
 					FAILANDRETURN((!success), vm->error, "bad input matrix.", NULLFN)
 					success = matdeterminant(&m, &c);
 					FAILANDRETURN((!success), vm->error, "no det.", NULLFN)
-					FAILANDRETURN((abso(c) == 0), vm->error, "mat singular.", NULLFN)
+					FAILANDRETURN(alm0(c), vm->error, "mat singular.", NULLFN)
 					FAILANDRETURN((m.rows != m.columns), vm->error, "non sqr matrix.", NULLFN)
-					success = matinversion(&m, &inv);
+					success = matinversion(&m, &vm->matrixC);
 					FAILANDRETURN((!success), vm->error, "mat inv failed.", NULLFN)
-					success = matrixToString(&inv, vm->matvecStrC, vm->precision, vm->notationStr);
+					success = matrixToString(&vm->matrixC, vm->matvecStrC, vm->precision, vm->notationStr);
 					FAILANDRETURN((!success), vm->error, "bad mat inv.", NULLFN)
 					pop(&vm->userStack, NULL);
 					push(&vm->userStack, vm->matvecStrC, METAMATRIX);
