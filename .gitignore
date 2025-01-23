@@ -49,3 +49,8 @@ arduino-pico/ToyStacky/bak-7-jan-2024/ToyStacky-alt-mode-keyhandler.h
 arduino-pico/ToyStacky/bak-7-jan-2024/ToyStacky-normal-mode-keyhandler.h
 arduino-pico/ToyStacky/bak-7-jan-2024/ToyStacky-page-1-alt-mode-keyhandler.h
 arduino-pico/ToyStacky/bak-7-jan-2024/ToyStacky-page-1-normal-mode-keyhandler.h
+pc/unused/toystacky-fn1Param.h
+pc/unused/toystacky-fnOrOp2Param.h
+pc/unused/toystacky-fnOrOpVec1Param.h
+pc/unused/toystacky-fnOrOpVec2Param.h
+pc/unused/*
