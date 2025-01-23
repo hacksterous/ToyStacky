@@ -125,7 +125,7 @@ char strIsRLC(char* str) {
 	else return 0;
 }
 
-bool stringToDouble(char* str, double* dbl) {
+bool stringToDouble(char* str, long double* dbl) {
 	//SerialPrint(1, "stringToDouble: entered ------------------- str = %s", str);
 	char* endPtr;
 	int32_t len = strlen(str);
@@ -134,7 +134,7 @@ bool stringToDouble(char* str, double* dbl) {
 		str[len-1] = '\0';
 	}
 	//printf("stringToDouble: got %s\n", str);
-	*dbl = strtod(str, &endPtr);
+	*dbl = strtold(str, &endPtr);
 	//if (endPtr == str) {
 	if (*endPtr != '\0') {
 		//SerialPrint(1, "stringToDouble: done with false ------------------- dbl = %g", *dbl);
@@ -158,8 +158,8 @@ bool stringToComplex(const char *input, ComplexDouble* c) {
 	int failpoint = parseComplex(input, str1, str2);
 	//SerialPrint(1, "stringToComplex: parseComplex returned %d str1 = %s --- str2 = %s", failpoint, str1, str2);
 	//printf("stringToComplex: parseComplex returned %d str1 = %s --- str2 = %s\n", failpoint, str1, str2);
-	double r;
-	double i;
+	long double r;
+	long double i;
 	bool success;
 	if (failpoint != 0) return false;
 	if (str1[0] != '\0' && str2[0] != '\0') {
@@ -229,7 +229,7 @@ bool doubleToString(double value, char* buf, uint8_t precision, char* notationSt
 	char fmt[7];
 	//for small numbers (with exponent -10 etc), 16 decimal places
 	//will give wrong digits - since these are beyond the precision
-	//of double floats
+	//of long double floats
 	strcpy(fmt, "%.");
 	itoa(precision, &fmt[2]);
 	strcat(fmt, notationStr);
@@ -249,7 +249,7 @@ bool doubleToString(double value, char* buf, uint8_t precision, char* notationSt
 	}
 	if (expoIsNeg == false) return true;
 	char* endPtr;
-	int expo = strtod(buf + i, &endPtr);
+	int expo = strtold(buf + i, &endPtr);
 	if (expoIsNeg == true) {
 		if (expo > 12) {
 			strcpy(fmt, "%.3g");

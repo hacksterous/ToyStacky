@@ -1,6 +1,6 @@
 bool popIntoVariable (Machine* vm, char* var) {
 	ComplexDouble c;
-	double dbl;
+	long double dbl;
 	bool success;
 
 	//printf("popIntoVariable: entered with var %s\n", var);
@@ -69,7 +69,7 @@ bool popIntoVariable (Machine* vm, char* var) {
 
 bool processPop(Machine* vm, char* token) {
 	int8_t meta;
-	double dbl;
+	long double dbl;
 	char accliteral[] = "acc"; 
 	//printf("processPop: entered with token %s\n", token);
 	//check if the user was in the middle of entering a vector

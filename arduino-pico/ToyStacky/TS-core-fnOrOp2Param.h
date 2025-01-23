@@ -52,7 +52,7 @@ bool fnOrOp2Param(Machine* vm, const char* token, int fnindex) {
 				c.imag = 2 * 3.141592653589793L * vm->frequency * c.real;
 				c.real = 0;
 			} //else keep value of c.real
-			printf("fnOrOp2Param: isRealNumber: coadiutor (RLC) -- vm->frequency = %lf returned real = %lf imag = %lf ", vm->frequency, c.real, c.imag);
+			//printf("fnOrOp2Param: isRealNumber: coadiutor (RLC) -- vm->frequency = %Lf returned real = %Lf imag = %lf ", vm->frequency, c.real, c.imag);
 		}
 	} else {
 		FAILANDRETURN(true, vm->error, "bad operand.A", NULLFN)

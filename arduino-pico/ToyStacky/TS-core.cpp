@@ -67,10 +67,10 @@ const char* DEBUGMETA[5] = {
 	"METAVECTORPARTIAL",
 	"METAMATRIXPARTIAL"};
 
-const double __TS_PI__ = 3.141592653589793;
+const long double __TS_PI__ = 3.141592653589793;
 void (*NULLFN)(void) = NULL;
 
-ComplexDouble makeComplex(double re, double im) {
+ComplexDouble makeComplex(double re, long double im) {
 	ComplexDouble ret;
 	ret.real = re;
 	ret.imag = im;
@@ -342,7 +342,7 @@ void showUserEntryLine(int bsp){
 #include "TS-core-math.h"
 #include "TS-core-numString.h"
 
-typedef double (*RealFunctionPtr)(ComplexDouble);
+typedef long double (*RealFunctionPtr)(ComplexDouble);
 typedef void (*BigIntVoidFunctionPtr)(const bigint_t*, const bigint_t*, bigint_t*);
 typedef int (*BigIntIntFunctionPtr)(const bigint_t*, const bigint_t*);
 typedef ComplexDouble (*ComplexFunctionPtr1Param)(ComplexDouble);

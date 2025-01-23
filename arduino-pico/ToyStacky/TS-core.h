@@ -5,7 +5,7 @@ License: GNU GPL v3
 #ifndef __TS_CORE_H__
 #define __TS_CORE_H__
 
-#define MAX_MATVECSTR_LEN 4900 //enough for one 12x12 matrix of double complex
+#define MAX_MATVECSTR_LEN 4900 //enough for one 12x12 matrix of long double complex
 #define MAX_MATVECELEMENTS 150
 #define MAX_MATLEN 12
 #define MAX_CMD_PAGES 5
@@ -126,11 +126,11 @@ typedef enum {
 } StrackMeta;
 
 typedef struct {
-	double real;
-	double imag;
+	long double real;
+	long double imag;
 } ComplexDouble;
 
-ComplexDouble makeComplex(double re, double im);
+ComplexDouble makeComplex(double re, long double im);
 #define MKCPLX(a,...) makeComplex(a, (0, ##__VA_ARGS__))
 
 typedef struct Matrix{
@@ -142,7 +142,7 @@ typedef struct Matrix{
 typedef struct Matrixd{
 	int rows;
 	int columns;
-	double numbers[MAX_MATLEN][MAX_MATLEN];
+	long double numbers[MAX_MATLEN][MAX_MATLEN];
 } Matrixd;
 
 typedef struct {
@@ -220,7 +220,7 @@ typedef struct {
 
 	/* for math operations */
 	bool modeDegrees;
-	double frequency;
+	long double frequency;
 
 	/* for user entry and display management */
 	int cursorPos;

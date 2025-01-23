@@ -16,7 +16,7 @@ License: GNU GPL v3
 #include "bigint.h"
 
 #define DESKTOP_PC
-#define MAX_MATVECSTR_LEN 4900 //enough for one 12x12 matrix of double complex
+#define MAX_MATVECSTR_LEN 4900 //enough for one 12x12 matrix of long double complex
 #define MAX_MATLEN 12
 #define MAX_CMD_PAGES 4
 #define MAX_TOKEN_LEN 129
@@ -68,7 +68,7 @@ License: GNU GPL v3
 #define DPOPTOKEN "@@"
 
 void (*NULLFN)(void) = NULL;
-const double __TS_PI__ = 3.141592653589793;
+const long double __TS_PI__ = 3.141592653589793;
 #define MKCPLX(a,...) makeComplex(a, (0, ##__VA_ARGS__))
 
 #define FAILANDRETURN(failcondition,dest,src,fnptr)	\
@@ -109,11 +109,11 @@ const char* DEBUGMETA[6] = {
 	"METAMATRIXPARTIAL"};
 
 typedef struct {
-	double real;
-	double imag;
+	long double real;
+	long double imag;
 } ComplexDouble;
 
-ComplexDouble makeComplex(double re, double im) {
+ComplexDouble makeComplex(double re, long double im) {
 	ComplexDouble ret;
 	ret.real = re;
 	ret.imag = im;
@@ -129,7 +129,7 @@ typedef struct Matrix{
 typedef struct Matrixd{
 	int rows;
 	int columns;
-	double numbers[MAX_MATLEN][MAX_MATLEN];
+	long double numbers[MAX_MATLEN][MAX_MATLEN];
 } Matrixd;
 
 #define __DEBUG_TOYSTACKY__
@@ -189,7 +189,7 @@ typedef struct {
 } UintStack;
 
 #include "../arduino-pico/ToyStacky/TS-core-math.h"
-typedef double (*RealFunctionPtr)(ComplexDouble);
+typedef long double (*RealFunctionPtr)(ComplexDouble);
 typedef void (*BigIntVoidFunctionPtr)(const bigint_t*, const bigint_t*, bigint_t*);
 typedef int (*BigIntIntFunctionPtr)(const bigint_t*, const bigint_t*);
 typedef ComplexDouble (*ComplexFunctionPtr1Param)(ComplexDouble);
@@ -374,7 +374,7 @@ typedef struct {
 
 	int cmdPage;	
 	int altState;	
-	double frequency;
+	long double frequency;
 	bool modeDegrees;
 	bool partialVector;
 	bool partialMatrix;
@@ -405,7 +405,7 @@ void printLedger(Ledger* ledger) {
 		if (variable->type == VARIABLE_TYPE_STRING) {
 			printf("Variable %s at vartable index %d: %s\n", variable->name, varCount, ledger->memory + variable->value.stringValueIndex);
 		} else {
-			printf("Variable %s at vartable index %d: %.15f\n", variable->name, varCount, variable->value.doubleValue.real);
+			printf("Variable %s at vartable index %d: %.15Lf\n", variable->name, varCount, variable->value.doubleValue.real);
 		}
 		varCount++;
 	}

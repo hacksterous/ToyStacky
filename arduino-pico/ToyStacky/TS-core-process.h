@@ -125,7 +125,7 @@ bool process(Machine* vm, char* token) {
 			return true;
 		} else if (strcmp(token, "dupn") == 0) { //duplicates the nth item from ToS, ToS is 1
 			int8_t meta = peek(&vm->userStack, vm->matvecStrC);
-			double d;
+			long double d;
 			FAILANDRETURN((meta == -1), vm->error, "stack empty", NULLFN)
 			if (isRealNumber(vm->matvecStrC)) { //real number
 				success = stringToDouble(vm->matvecStrC, &d);

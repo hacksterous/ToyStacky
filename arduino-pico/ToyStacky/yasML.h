@@ -19,9 +19,9 @@ bool matprintd(Matrixd *m);
 bool matrow_swap(Matrix *m, int a, int b);
 bool matrow_swapd(Matrixd *m, int a, int b);
 bool matscalar_multiply(Matrix *m, ComplexDouble f);
-bool matscalar_multiplyd(Matrixd *m, double f);
+bool matscalar_multiplyd(Matrixd *m, long double f);
 bool matreduce(Matrix *m, int a, int b, ComplexDouble factor);
-bool matreduced(Matrixd *m, int a, int b, double factor);
+bool matreduced(Matrixd *m, int a, int b, long double factor);
 bool matequals(Matrix *m1, Matrix *m2);
 bool matequalsd(Matrixd *m1, Matrixd *m2);
 bool matclonemat(Matrix *m, Matrix *copy);
@@ -35,21 +35,21 @@ bool matsubtract(Matrix *m1, Matrix *m2);
 bool matzero_vector(Matrix *);
 bool matzero_vectord(Matrixd *);
 bool matdeterminant(Matrix *m, ComplexDouble *det);
-bool matdeterminantd(Matrixd *m, double* det);
+bool matdeterminantd(Matrixd *m, long double* det);
 bool mateigenvalues(Matrix *m, ComplexDouble *values);
-bool mateigenvaluesd(Matrixd *m, double *values);
+bool mateigenvaluesd(Matrixd *m, long double *values);
 bool matrow_scalar_multiply(Matrix *m, int row, ComplexDouble factor);
-bool matrow_scalar_multiplyd(Matrixd *m, int row, double factor);
+bool matrow_scalar_multiplyd(Matrixd *m, int row, long double factor);
 ComplexDouble matvector_multiply(ComplexDouble *col, ComplexDouble *row, int length);
-double matvector_multiplyd(double *col, double *row, int length);
+long double matvector_multiplyd(long double *col, long double *row, int length);
 void matvector_addition(ComplexDouble *v1, ComplexDouble *v2, int length);
-void matvector_additiond(double *col, double *row, int length);
+void matvector_additiond(long double *col, long double *row, int length);
 void matscalar_vector_multiplication(ComplexDouble factor, ComplexDouble *vector, int length);
-void matscalar_vector_multiplicationd(double factor, double *vector, int length);
+void matscalar_vector_multiplicationd(long double factor, long double *vector, int length);
 void matvector_subtraction(ComplexDouble *v1, ComplexDouble *v2, int length);
-void matvector_subtractiond(double *v1, double *v2, int length);
+void matvector_subtractiond(long double *v1, long double *v2, int length);
 bool matprojection(Matrix *m, ComplexDouble *v, int length, ComplexDouble* proj);
-bool matprojectiond(Matrixd *m, double *v, int length, double* proj);
+bool matprojectiond(Matrixd *m, long double *v, int length, long double* proj);
 bool matgram_schmidt(Matrix *m, Matrix *ortho);
 bool matgram_schmidtd(Matrixd *m, Matrixd *ortho);
 bool orthonormal_basis(Matrix *, Matrix *);
@@ -113,7 +113,7 @@ bool matbuild(Matrix* m, char* input){
 		else {
             input = extract_realnum(input, num);
 			if (*num != '\0') {
-				double d;
+				long double d;
 				success = stringToDouble(num, &d);
 				m->numbers[r][c] = makeComplex(d, 0);
 				c++;//increment column number
@@ -133,7 +133,7 @@ bool matbuild(Matrix* m, char* input){
 			//	char *rawnum;
 			//	char* stop;
 			//	rawnum = removeDblQuotes(num);
-			//	double d = strtod(rawnum, &stop); //bignum to double
+			//	long double d = strtold(rawnum, &stop); //bignum to double
 			//	if (errno != 0 || stop[0] != '\0') d = 0;
 			//	m->numbers[r][c] = makeComplex(d, 0);
 			//	c++;
@@ -169,7 +169,7 @@ bool matbuildd(Matrixd* m, char* input){
 		else {
             input = extract_realnum(input, num);
 			if (*num != '\0') {
-				double d;
+				long double d;
 				success = stringToDouble(num, &d);
 				m->numbers[r][c] = d;
 				c++;//increment column number
@@ -181,7 +181,7 @@ bool matbuildd(Matrixd* m, char* input){
 		    //	char *rawnum;
 		    //	char* stop;
 		    //	rawnum = removeDblQuotes(num);
-		    //	double d = strtod(rawnum, &stop); //bignum to double
+		    //	long double d = strtodl(rawnum, &stop); //bignum to double
 		    //	if (errno != 0 || stop[0] != '\0') d = 0;
 		    //	m->numbers[r][c] = d;
 		    //	c++;
@@ -230,7 +230,7 @@ bool print(Matrix *m){
 		return FAIL;
 	for(i = 0; i < m->rows; i++){
 		for(j = 0; j < m->columns; j++){
-			printf("(%f %f)", m->numbers[i][j].real, m->numbers[i][j].imag);
+			printf("(%Lf %Lf)", m->numbers[i][j].real, m->numbers[i][j].imag);
 		}
 		printf("\n");
 	}
@@ -243,7 +243,7 @@ bool printd(Matrixd *m){
 		return FAIL;
 	for(i = 0; i < m->rows; i++){
 		for(j = 0; j < m->columns; j++){
-			printf("%lf ", m->numbers[i][j]);
+			printf("%Lf ", m->numbers[i][j]);
 		}
 		printf("\n");
 	}
@@ -262,11 +262,11 @@ bool matrixToString (Matrix *m, char* str, uint8_t precision, char* notationStr)
 		strcat(copy++, "[");
 		for(j = 0; j < m->columns; j++){
 			if (alm0double(m->numbers[i][j].imag)) //pure imag
-				sprintf(buf, "%.15g", m->numbers[i][j].real);
+				sprintf(buf, "%.15Lg", m->numbers[i][j].real);
 			else if (alm0double(m->numbers[i][j].real)) //pure imag
-				sprintf(buf, "(%.15g)", m->numbers[i][j].imag);
+				sprintf(buf, "(%.15Lg)", m->numbers[i][j].imag);
 			else
-				sprintf(buf, "(%.15g %.15g)", m->numbers[i][j].real, m->numbers[i][j].imag);
+				sprintf(buf, "(%.15Lg %.15Lg)", m->numbers[i][j].real, m->numbers[i][j].imag);
 			strcat(copy, buf);
 			copy += strlen(buf);
 			if (j != m->columns - 1) strcat(copy++, " ");
@@ -294,7 +294,7 @@ bool matrow_swap(Matrix *m, int a, int b){
 }
 
 bool matrow_swapd(Matrixd *m, int a, int b){
-	double temp;
+	long double temp;
 	int i;
 	if(m == NULL)
 		return FAIL;
@@ -387,7 +387,7 @@ bool matinversion(Matrix *m, Matrix* invert){
 }
 
 /* reduce row b by factor*a  */
-bool matreduced(Matrixd *m, int a, int b, double factor){
+bool matreduced(Matrixd *m, int a, int b, long double factor){
 	int i;
 	if(m == NULL)
 		return FAIL;
@@ -402,7 +402,7 @@ bool matreduced(Matrixd *m, int a, int b, double factor){
 /* matrix m will become the identity so the caller must save their matrix themselves  */
 bool matinversiond(Matrixd *m, Matrixd* invert){
 	int i, j, l;
-	double factor;
+	long double factor;
 	if(m == NULL)
 		return false;
 	if(m->columns != m->rows)
@@ -459,7 +459,7 @@ bool matrow_scalar_multiply(Matrix *m, int row, ComplexDouble factor){
 	return SUCCESS;
 }
 
-bool matrow_scalar_multiplyd(Matrixd *m, int row, double factor){
+bool matrow_scalar_multiplyd(Matrixd *m, int row, long double factor){
 	int i;
 	if(m == NULL)
 		return FAIL;
@@ -590,8 +590,8 @@ ComplexDouble matvector_multiply(ComplexDouble *col, ComplexDouble *row, int len
 	return sum;
 }
 
-double matvector_multiplyd(double *col, double *row, int length){
-	double sum;
+long double matvector_multiplyd(long double *col, long double *row, int length){
+	long double sum;
 	int i;
 	sum = 0;
 	for(i = 0; i < length; i++){
@@ -642,7 +642,7 @@ void matvector_addition(ComplexDouble *v1, ComplexDouble *v2, int length){
 	}
 }
 
-void matvector_additiond(double *v1, double *v2, int length){
+void matvector_additiond(long double *v1, long double *v2, int length){
 	int i;
 	for(i = 0; i < length; i++){
 		v1[i] += v2[i];
@@ -656,17 +656,17 @@ void matvector_subtraction(ComplexDouble *v1, ComplexDouble *v2, int length){
 	}
 }
 
-void matvector_subtractiond(double *v1, double *v2, int length){
+void matvector_subtractiond(long double *v1, long double *v2, int length){
 	int i;
 	for(i = 0; i < length; i++){
 		v1[i] -= v2[i];
 	}
 }
 
-bool matdeterminantd(Matrixd *m, double* det){
+bool matdeterminantd(Matrixd *m, long double* det){
 	Matrixd copy;
 	int i, j;
-	double factor;
+	long double factor;
 	if(m == NULL)
 		return false;
 	if(m->columns != m->rows)
@@ -752,7 +752,7 @@ void matscalar_vector_multiplication(ComplexDouble factor, ComplexDouble *vector
 		vector[i] = cmul(vector[i], factor);
 }
 
-void matscalar_vector_multiplicationd(double factor, double *vector, int length){
+void matscalar_vector_multiplicationd(long double factor, long double *vector, int length){
 	int i;
 	for(i = 0; i < length; i++)
 		vector[i] *= factor;
@@ -777,10 +777,10 @@ bool matprojection(Matrix *m, ComplexDouble *v, int length, ComplexDouble* proj)
 	return true;
 }
 
-bool matprojectiond(Matrixd *m, double *v, int length, double* proj){
+bool matprojectiond(Matrixd *m, long double *v, int length, long double* proj){
 	int i, j;
-	double vector[MAX_MATLEN]; 
-	double factor;
+	long double vector[MAX_MATLEN]; 
+	long double factor;
 	if(m->rows != length)
 		return false;
 	if(m == NULL || v == NULL)
@@ -826,8 +826,8 @@ bool matgram_schmidt(Matrix *m, Matrix *ortho){
 }
 
 bool matgram_schmidtd(Matrixd *m, Matrixd *ortho){
-	double ortho_vector[MAX_MATLEN]; 
-	double temp[MAX_MATLEN];
+	long double ortho_vector[MAX_MATLEN]; 
+	long double temp[MAX_MATLEN];
 	int i, j;
 	if(m != NULL && m->rows == m->columns && matzero_vectord(m) != 1){
 		/* create my empy matrix to have new orthogonal vector be added to */

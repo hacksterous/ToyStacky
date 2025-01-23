@@ -1,20 +1,20 @@
-double sgn(double value) {
+long double sgn(long double value) {
 	if (signbit(value)) return (-1.0);
 	else return (1.0);
 }
 
-double abso (ComplexDouble value) {
+long double abso (ComplexDouble value) {
 	return sqrt(value.real * value.real + value.imag * value.imag);
 }
 
 bool alm0(ComplexDouble value) {
-	//limit of double precision
+	//limit of long double precision
 	if (fabs(value.real) < DOUBLE_EPS && fabs(value.imag) < DOUBLE_EPS) return true;
 	else return false;
 }
 
-bool alm0double(double value) {
-	//limit of double precision
+bool alm0double(long double value) {
+	//limit of long double precision
 	if (fabs(value) < DOUBLE_EPS) return true;
 	else return false;
 }
@@ -27,7 +27,7 @@ ComplexDouble cabso (ComplexDouble value) {
 	return makeComplex(abso(value), 0);
 }
 
-double cargu (ComplexDouble value) {
+long double cargu (ComplexDouble value) {
 	if (alm0double(value.real)) {
 		if (alm0double(value.real)) {
 			errno = 10000;
@@ -49,11 +49,11 @@ double cargu (ComplexDouble value) {
 		return 0;
 }
 
-double crealpart (ComplexDouble value) {
+long double crealpart (ComplexDouble value) {
 	return value.real;
 }
 
-double cimagpart (ComplexDouble value) {
+long double cimagpart (ComplexDouble value) {
 	return value.imag;
 }
 
@@ -65,7 +65,7 @@ ComplexDouble cadd(ComplexDouble value, ComplexDouble second) {
 	return makeComplex(value.real + second.real, value.imag + second.imag);
 }
 
-ComplexDouble caddd(ComplexDouble value, double second) {
+ComplexDouble caddd(ComplexDouble value, long double second) {
 	return makeComplex(value.real + second, value.imag);
 }
 
@@ -73,7 +73,7 @@ ComplexDouble csub(ComplexDouble value, ComplexDouble second) {
 	return makeComplex(value.real - second.real, value.imag - second.imag);
 }
 
-ComplexDouble csubd(ComplexDouble value, double second) {
+ComplexDouble csubd(ComplexDouble value, long double second) {
 	return makeComplex(value.real - second, value.imag);
 }
 
@@ -89,7 +89,7 @@ ComplexDouble cdiv(ComplexDouble value, ComplexDouble second) {
 	return makeComplex(nom.real / denom, nom.imag / denom);
 }
 
-ComplexDouble cdivd(ComplexDouble value, double second) {
+ComplexDouble cdivd(ComplexDouble value, long double second) {
 	return makeComplex(value.real / second, value.imag / second);
 }
 
@@ -216,7 +216,7 @@ ComplexDouble cpower(ComplexDouble c, ComplexDouble d) {
 	return (cexpo(cmul(cln(c), d))); 
 }
 
-ComplexDouble cpowerd(ComplexDouble c, double d) {
+ComplexDouble cpowerd(ComplexDouble c, long double d) {
 	if (alm0double(c.real) && alm0double(c.imag))
 		return makeComplex(0.0, 0.0);
 	if (alm0double(c.imag) && (d >= 1.0))
