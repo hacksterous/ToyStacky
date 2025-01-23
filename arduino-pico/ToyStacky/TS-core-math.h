@@ -35,7 +35,7 @@ long double cargu (ComplexDouble value) {
 		}
 		return ((value.imag < 0)? -1.5707963267948965L: 1.5707963267948965L);
 	}
-	double princ =  atan(value.imag/value.real);
+	long double princ =  atan(value.imag/value.real);
 	//printf ("cargu: sign of real = %f sign of imag = %f\n", sgn(value.real), sgn(value.imag));
 	if (value.real >= 0 && value.imag >= 0)
 		return princ; //1st quadrant ok
@@ -83,7 +83,7 @@ ComplexDouble cmul(ComplexDouble value, ComplexDouble second) {
 }
 
 ComplexDouble cdiv(ComplexDouble value, ComplexDouble second) {
-	double denom = second.real * second.real + second.imag * second.imag;
+	long double denom = second.real * second.real + second.imag * second.imag;
 	if (alm0double(denom)) return makeComplex(0, 0);
 	ComplexDouble nom = cmul(value, conjugate(second));
 	return makeComplex(nom.real / denom, nom.imag / denom);
@@ -158,9 +158,9 @@ ComplexDouble clte(ComplexDouble value, ComplexDouble second) {
 }
 
 ComplexDouble cln(ComplexDouble c) {
-	double re = c.real;
-	double im = c.imag;
-	double r, j, imdre;
+	long double re = c.real;
+	long double im = c.imag;
+	long double r, j, imdre;
 	if (!alm0double(re) && alm0double(im) && (re > 0.0)) {
 		//imag is 0
 		//re is positive
@@ -197,9 +197,9 @@ ComplexDouble cexpo(ComplexDouble c) {
 	if (alm0double(c.imag)) {
 		return makeComplex(exp(c.real), 0);
 	}
-	double r = c.real;
-	double j = c.imag;
-	double rexp = exp(r);
+	long double r = c.real;
+	long double j = c.imag;
+	long double rexp = exp(r);
 	r = rexp * cos(j);
 	if (!alm0double(c.imag))
 		j = rexp * sin(j);
@@ -307,7 +307,7 @@ ComplexDouble carcsine(ComplexDouble c) {
 	ComplexDouble j = makeComplex(0.0, 1.0);
 	ComplexDouble c1_m_zz = csub(makeComplex(1.0, 0.0), cmul(c, c));
 	ComplexDouble csqrt_c1_m_zz = csqroot(cabso(c1_m_zz));
-	double rarg_c1_m_zz = cargu(c1_m_zz);
+	long double rarg_c1_m_zz = cargu(c1_m_zz);
 	ComplexDouble cterm1 = cmul(j, c);
 	ComplexDouble cexp_arg_1_m_zz_i_d_2 = cexpo(makeComplex(0.0, rarg_c1_m_zz/2));
 	ComplexDouble cterm2 = cmul(csqrt_c1_m_zz, cexp_arg_1_m_zz_i_d_2);
@@ -339,7 +339,7 @@ ComplexDouble carccosine(ComplexDouble c) {
 	ComplexDouble j = makeComplex(0.0, 1.0);
 	ComplexDouble c1_m_zz = csub(makeComplex(1.0, 0.0), cmul(c, c));
 	ComplexDouble csqrt_c1_m_zz = csqroot(cabso(c1_m_zz));
-	double rarg_c1_m_zz = cargu(c1_m_zz);
+	long double rarg_c1_m_zz = cargu(c1_m_zz);
 	ComplexDouble cterm1 = c;
 	ComplexDouble cexp_arg_1_m_zz_i_d_2 = cexpo(makeComplex(0.0, rarg_c1_m_zz/2));
 	ComplexDouble cterm2a = cmul(csqrt_c1_m_zz, cexp_arg_1_m_zz_i_d_2);
@@ -365,7 +365,7 @@ ComplexDouble carctangent(ComplexDouble c) {
 
 ComplexDouble carccotangent(ComplexDouble c) {
 	if (alm0double(c.imag)){
-		double at = atan(c.real);
+		long double at = atan(c.real);
 		if (alm0double(at)) {
 			errno = 10007;
 			return makeComplex(0.0, 0.0);
@@ -386,7 +386,7 @@ ComplexDouble carccotangent(ComplexDouble c) {
 ComplexDouble carcsinehyp(ComplexDouble c) {
 	ComplexDouble c1_p_zz = cadd(makeComplex(1.0, 0.0), cmul(c, c));
 	ComplexDouble csqrt_c1_p_zz = csqroot(cabso(c1_p_zz));
-	double rarg_c1_p_zz = cargu(c1_p_zz);
+	long double rarg_c1_p_zz = cargu(c1_p_zz);
 	ComplexDouble cterm1 = c;
 	ComplexDouble cexp_arg_1_p_zz_i_d_2 = cexpo(makeComplex(0.0, rarg_c1_p_zz/2));
 	ComplexDouble cterm2 = cmul(csqrt_c1_p_zz, cexp_arg_1_p_zz_i_d_2);
@@ -397,7 +397,7 @@ ComplexDouble carcsinehyp(ComplexDouble c) {
 ComplexDouble carccosinehyp(ComplexDouble c) {
 	ComplexDouble czz_m_1 = csub(cmul(c, c), makeComplex(1.0, 0.0));
 	ComplexDouble csqrt_czz_m_1 = csqroot(cabso(czz_m_1));
-	double rarg_czz_m_1 = cargu(czz_m_1);
+	long double rarg_czz_m_1 = cargu(czz_m_1);
 	ComplexDouble cterm1 = c;
 	ComplexDouble cexp_arg_czz_m_1 = cexpo(makeComplex(0.0, rarg_czz_m_1/2));
 	ComplexDouble cterm2 = cmul(csqrt_czz_m_1, cexp_arg_czz_m_1);

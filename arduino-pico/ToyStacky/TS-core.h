@@ -29,8 +29,9 @@ License: GNU GPL v3
 #define SHORT_STRING_SIZE 51 //%.15g gives 24 * 2 + 3
 #define VSHORT_STRING_SIZE 25
 //#define DOUBLE_EPS 2.2250738585072014e-308
-#define DOUBLEFN_EPS 9e-16 //for return values of functions
-#define DOUBLE_EPS 9e-16
+//#define DOUBLEFN_EPS 9e-16 //for return values of functions
+#define DOUBLE_EPS __LDBL_MIN__
+#define DOUBLEFN_EPS __LDBL_MIN__
 
 //For LCD with Japanese char set: HD44780U A00
 #define UPIND 1
@@ -250,7 +251,7 @@ typedef struct {
 	unsigned int TS0RTCFreq;
 
 	uint8_t precision;
-	char notationStr[2];
+	char notationStr[3];
 
 } Machine;
 

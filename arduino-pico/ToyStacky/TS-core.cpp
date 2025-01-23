@@ -636,7 +636,7 @@ void initMachine(Machine* vm) {
 	vm->partialVector = false;
 	vm->partialMatrix = false;
 	vm->partialComplex = false;
-	vm->precision = 14;
-	strcpy(vm->notationStr, "g");
+	vm->precision = 15;
+	strcpy(vm->notationStr, "Lg");
 }
 

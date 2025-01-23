@@ -32,8 +32,10 @@ License: GNU GPL v3
 #define BIGINT_SIZE 30 //holds a number as big as described in a decimal-coded 128 char long string
 #define SHORT_STRING_SIZE 51 //%.15g gives 24 * 2 + 3
 #define VSHORT_STRING_SIZE 25
-#define DOUBLE_EPS 1.5e-16
-#define DOUBLEFN_EPS 1.5e-16 //for return values of functions
+//#define DOUBLE_EPS 1.5e-200
+//#define DOUBLEFN_EPS 1.5e-16 //for return values of functions
+#define DOUBLE_EPS __LDBL_MIN__
+#define DOUBLEFN_EPS __LDBL_MIN__
 
 #define COMSTARTTOKENC '('
 #define VECSTARTTOKENC '['
@@ -381,7 +383,7 @@ typedef struct {
 	bool partialComplex;
 
 	uint8_t precision;
-	char notationStr[2];
+	char notationStr[3];
 
 } Machine;
 static Machine vm;
@@ -622,8 +624,8 @@ void initMachine(Machine* vm) {
 	vm->partialComplex = false;
 	vm->cmdPage = 0;
 	vm->altState = 0;
-	vm->precision = 14;
-	strcpy(vm->notationStr, "g");
+	vm->precision = 15;
+	strcpy(vm->notationStr, "Lg");
 }
 
 #include "../arduino-pico/ToyStacky/TS-core-processPop.h"

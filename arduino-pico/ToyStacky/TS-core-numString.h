@@ -220,7 +220,7 @@ char* lcase(char* token) {
 	}
 	return token;
 }
-bool doubleToString(double value, char* buf, uint8_t precision, char* notationStr) {
+bool doubleToString(long double value, char* buf, uint8_t precision, char* notationStr) {
 	if (value == INFINITY || value == -INFINITY) return false;
 	if (alm0double(value)) {
 		strcpy(buf, "0");
@@ -237,34 +237,38 @@ bool doubleToString(double value, char* buf, uint8_t precision, char* notationSt
 	if (strcmp(lcase(buf), "inf") == 0 || strcmp(lcase(buf), "-inf") == 0) return false;
 	if (strcmp(lcase(buf), "nan") == 0 || strcmp(lcase(buf), "-nan") == 0) return false;
 
-	int i = 0;
-	if (buf[0] == '-') i++; //skip any opening '-'
-	bool expoIsNeg = false;
-	for (i = i; buf[i] != '\0'; i++) {
-		if (buf[i] == '-') {
-			i++;
-			expoIsNeg = true;
-			break;
-		}
-	}
-	if (expoIsNeg == false) return true;
-	char* endPtr;
-	int expo = strtold(buf + i, &endPtr);
-	if (expoIsNeg == true) {
-		if (expo > 12) {
-			strcpy(fmt, "%.3g");
-		} else {
-			int numDecimals = precision - 1 - expo;
-			if (numDecimals < 6) numDecimals = 6;
-			strcpy(fmt, "%.");
-			itoa(numDecimals, &fmt[2]);
-			strcat(fmt, "g");
-		}
-	}
-	sprintf(buf, fmt, value);
-
 	if (buf == NULL) return false;
 	return true;
+
+	// --	int i = 0;
+	// --	if (buf[0] == '-') i++; //skip any opening '-'
+	// --	bool expoIsNeg = false;
+	// --	for (i = i; buf[i] != '\0'; i++) {
+	// --		if (buf[i] == '-') {
+	// --			i++;
+	// --			expoIsNeg = true;
+	// --			break;
+	// --		}
+	// --	}
+	// --	if (expoIsNeg == false) return true;
+	// --	//char* endPtr;
+	// --	//int expo = strtold(buf + i, &endPtr);
+	// --	if (expoIsNeg == true) {
+	// --		strcpy(fmt, "%.15Lg");
+	// --		//if (expo > 12) {
+	// --		//	strcpy(fmt, "%.15Lg");
+	// --		//} else {
+	// --		//	int numDecimals = 15;//precision - 1 - expo;
+	// --		//	if (numDecimals < 6) numDecimals = 6;
+	// --		//	strcpy(fmt, "%.");
+	// --		//	itoa(numDecimals, &fmt[2]);
+	// --		//	strcat(fmt, "Lg");
+	// --		//}
+	// --	}
+	// --	sprintf(buf, fmt, value);
+	// --	
+	// --	if (buf == NULL) return false;
+	// --	return true;
 }
 
 bool complexToString(ComplexDouble c, char* value, uint8_t precision, char* notationStr) {
