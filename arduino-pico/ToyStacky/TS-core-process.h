@@ -67,21 +67,24 @@ bool process(Machine* vm, char* token) {
 			success = fnOrOp2Param(vm, token, is2pfn);
 		} else if (isvecfn != -1) {
 			success = fnOrOpVec1Param(vm, token, isvecfn, false, false); //not a trig fn., result is not vector
-		} else if (strcmp(token, "bar") == 0) { 
-			int8_t meta = peek(&vm->userStack, NULL);
+		} else if (strcmp(token, "bar") == 0) { //barrier or unbarrier
+			int8_t meta = peekbarrier(&vm->userStack, NULL);
 			//meaningless to put barrier on empty stack
-			FAILANDRETURN((meta == -1), vm->error, "stack empty.C", NULLFN)
-			pop(&vm->userStack, vm->coadiutor);
-			push(&vm->userStack, vm->coadiutor, (meta | 0x8)); //set the barrier bit
+			FAILANDRETURN((meta == -1), vm->error, "stack empty.W", NULLFN)
+			pop(&vm->userStack, vm->matvecStrC);
+			if (meta & 0x8) //already has barrier
+				push(&vm->userStack, vm->matvecStrC, (meta & 0x7)); //clear the barrier bit
+			else
+				push(&vm->userStack, vm->matvecStrC, (meta | 0x8)); //set the barrier bit
 			//printf("process: pushed meta = %d\n", (meta | 0x8));
 		} else if (strcmp(token, "swp") == 0) {
-			int8_t cmeta = pop(&vm->userStack, vm->coadiutor);
+			int8_t cmeta = pop(&vm->userStack, vm->matvecStrC);
 			FAILANDRETURN((cmeta == -1), vm->error, "stack empty.B0", NULLFN)
-			int8_t meta = pop(&vm->userStack, vm->bak);
-			if (meta == -1) push(&vm->userStack, vm->coadiutor, cmeta); //restore on error
+			int8_t meta = pop(&vm->userStack, vm->matvecStrB);
+			if (meta == -1) push(&vm->userStack, vm->matvecStrC, cmeta); //restore on error
 			FAILANDRETURN((meta == -1), vm->error, "stack empty.B", NULLFN)
-			push(&vm->userStack, vm->coadiutor, cmeta);
-			push(&vm->userStack, vm->bak, meta);
+			push(&vm->userStack, vm->matvecStrC, cmeta);
+			push(&vm->userStack, vm->matvecStrB, meta);
 			return true;
 		} else if (strcmp(token, "vec") == 0) {
 			int8_t meta = peek(&vm->userStack, NULL);
@@ -146,15 +149,15 @@ bool process(Machine* vm, char* token) {
 			return true;
 		} else if (strcmp(token, IFTOKEN) == 0) {
 			//printf ("-------------------Found if -- now popping vm->userStack\n");
-			pop(&vm->userStack, vm->acc);
+			pop(&vm->userStack, vm->matvecStrA);
 			ComplexDouble conditionComplex;
 			success = false;
 			//evaluate the if/else condition using the same variable
-			if (isComplexNumber(vm->acc)) { //complex
-				success = stringToComplex(vm->acc, &conditionComplex);
+			if (isComplexNumber(vm->matvecStrA)) { //complex
+				success = stringToComplex(vm->matvecStrA, &conditionComplex);
 				ifCondition = !alm0double(conditionComplex.real) || !alm0double(conditionComplex.imag);
-			} else if (isRealNumber(vm->acc)) { //real number
-				success = stringToDouble(vm->acc, &conditionComplex.real);
+			} else if (isRealNumber(vm->matvecStrA)) { //real number
+				success = stringToDouble(vm->matvecStrA, &conditionComplex.real);
 				ifCondition = !alm0double(conditionComplex.real);
 				//printf("-------------------Found if: conditionComplex.real = %.15g\n", conditionComplex.real);
 			} else { //string

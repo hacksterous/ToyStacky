@@ -67,7 +67,7 @@ const char* DEBUGMETA[5] = {
 	"METAVECTORPARTIAL",
 	"METAMATRIXPARTIAL"};
 
-const long double __TS_PI__ = 3.141592653589793;
+const long double __TS_PI__ = 3.141592653589793L;
 void (*NULLFN)(void) = NULL;
 
 ComplexDouble makeComplex(double re, long double im) {

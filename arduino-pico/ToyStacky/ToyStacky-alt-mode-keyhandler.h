@@ -51,7 +51,7 @@ int altModeKeyhandler (char keyc) {
 		//these are operators (in normal mode), result in ' ' + key + \n
 		case 'u': 
 			//to degrees
-			processAltImmdOpKeyC("180 * __TS_PI_STR__ /");
+			processAltImmdOpKeyC("180 * 3.1415926535897932 /");
 			keyTypePressed = 1;
 			break;
 		case 'b':
@@ -60,7 +60,7 @@ int altModeKeyhandler (char keyc) {
 			break;
 		case 'D': 
 			//to radians
-			processAltImmdOpKeyC("__TS_PI_STR__ * 180 /");
+			processAltImmdOpKeyC("3.1415926535897932 * 180 /");
 			keyTypePressed = 1;
 			break;
 		case 'd': 
