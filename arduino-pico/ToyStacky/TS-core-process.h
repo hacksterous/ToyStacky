@@ -67,20 +67,13 @@ bool process(Machine* vm, char* token) {
 			success = fnOrOp2Param(vm, token, is2pfn);
 		} else if (isvecfn != -1) {
 			success = fnOrOpVec1Param(vm, token, isvecfn, false, false); //not a trig fn., result is not vector
-		} else if (strcmp(token, "cmdpg") == 0) { 
-			//we are not using the cmdpg command
+		} else if (strcmp(token, "bar") == 0) { 
 			int8_t meta = peek(&vm->userStack, NULL);
-			FAILANDRETURN((meta != METASCALAR), vm->error, "no cmdpg here", NULLFN)
+			//meaningless to put barrier on empty stack
 			FAILANDRETURN((meta == -1), vm->error, "stack empty.C", NULLFN)
-			peek(&vm->userStack, vm->coadiutor);
-			char *endptr;
-			unsigned long int n = strtoul(vm->coadiutor, &endptr, 10);
-			//if ToS has a complex number, n will be 0
-			if (n < MAX_CMD_PAGES) {
-				//if the page number is allowed, load into cmdPage 
-				vm->cmdPage = n;
-				pop(&vm->userStack, vm->coadiutor);
-			}
+			pop(&vm->userStack, vm->coadiutor);
+			push(&vm->userStack, vm->coadiutor, (meta | 0x8)); //set the barrier bit
+			//printf("process: pushed meta = %d\n", (meta | 0x8));
 		} else if (strcmp(token, "swp") == 0) {
 			int8_t cmeta = pop(&vm->userStack, vm->coadiutor);
 			FAILANDRETURN((cmeta == -1), vm->error, "stack empty.B0", NULLFN)
@@ -91,19 +84,29 @@ bool process(Machine* vm, char* token) {
 			push(&vm->userStack, vm->bak, meta);
 			return true;
 		} else if (strcmp(token, "vec") == 0) {
-			strcpy(vm->matvecStrC, "[");
+			int8_t meta = peek(&vm->userStack, NULL);
+			FAILANDRETURN((meta == -1), vm->error, "stack empty.Z", NULLFN)
 			int i = 0;
 			int j = 0;
 			do {
-				//meta = peekn(&vm->userStack, NULL, i++);
-			} while (peekn(&vm->userStack, NULL, i++) == METASCALAR);
+				//break on seeing a stack barrier
+				//printf("in do-while loop count i = %d\n", i);
+				meta = peeknbarrier(&vm->userStack, NULL, i);
+				//printf("in do-while loop at count i = %d and meta returned %d\n", i, meta);
+				if ((meta & 0x7) != METASCALAR || (meta & METABARRIER)) {
+					break;
+				}
+				i++;
+			} while (true);
 			//printf("final count i = %d\n", i);
-
-			while (--i > 0) {
+			if (i == 0) return true; //no vectorizable elements
+			strcpy(vm->matvecStrC, "[");
+			while (i > 0) {
 				peekn(&vm->userStack, vm->acc, i - 1);
 				strcat(vm->matvecStrC, vm->acc);
 				if (i != 1) strcat(vm->matvecStrC, " ");
 				j++;
+				i--;
 			}
 			//printf("j count i = %d\n", j);
 			while (j-- > 0) pop(&vm->userStack, NULL);

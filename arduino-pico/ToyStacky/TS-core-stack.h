@@ -33,7 +33,7 @@ int8_t pop(Strack *s, char* output) {
 		output = NULL;
 		return -1;
 	}
-	int8_t meta = (s->stackLen[s->topLen] >> 28) & 0xf;
+	int8_t meta = (s->stackLen[s->topLen] >> 28) & 0x7; //keep bit[3] for BARRIER
 	int32_t len = s->stackLen[s->topLen--] & 0x0fffffff;
 	if (output)
 		strcpy(output, &s->stackStr[s->topStr - len + 1]);
@@ -47,7 +47,7 @@ int8_t peek(Strack *s, char output[STRING_SIZE]) {
 		output = NULL;		
 		return -1;
 	}
-	int8_t meta = (s->stackLen[s->topLen] >> 28) & 0xf;
+	int8_t meta = (s->stackLen[s->topLen] >> 28) & 0x7; //keep bit[3] for BARRIER
 	int32_t len = s->stackLen[s->topLen] & 0x0fffffff; 
 	if (output)
 		strcpy(output, &s->stackStr[s->topStr - len + 1]);
@@ -72,7 +72,60 @@ int8_t peekn(Strack* s, char output[STRING_SIZE], int n) {
 	}
 	//now s->topStr - stringLen will point to the first string
 	stringPtr = &s->stackStr[s->topStr - stringLen];
+	meta = (s->stackLen[s->topLen - n + 1] >> 28) & 0x7; //keep bit[3] for BARRIER
+	if (output)
+		strcpy(output, stringPtr);
+	return meta;
+}
+
+//the 'barrier' versions of pop, peek and peekn provide the METABARRIER bit value
+int8_t popbarrier(Strack *s, char* output) {
+	if (stackIsEmpty(s)) {
+		output = NULL;
+		return -1;
+	}
+	int8_t meta = (s->stackLen[s->topLen] >> 28) & 0xf;
+	int32_t len = s->stackLen[s->topLen--] & 0x0fffffff;
+	if (output)
+		strcpy(output, &s->stackStr[s->topStr - len + 1]);
+	s->topStr -= len;
+	s->itemCount--;
+	return meta;
+}
+
+int8_t peekbarrier(Strack *s, char output[STRING_SIZE]) {
+	if (stackIsEmpty(s)) {
+		output = NULL;
+		return -1;
+	}
+	int8_t meta = (s->stackLen[s->topLen] >> 28) & 0xf;
+	int32_t len = s->stackLen[s->topLen] & 0x0fffffff; 
+	if (output)
+		strcpy(output, &s->stackStr[s->topStr - len + 1]);
+	return meta;
+}
+
+int8_t peeknbarrier(Strack* s, char output[STRING_SIZE], int n) {
+	//n = 0: return T
+	//n = 1: return T - 1
+	//printf("Called peeknbarrier with n = %d stackEmpty = %d topLen = %d\n", n, stackIsEmpty(s), s->topLen);
+	if (n == 0) return peekbarrier(s, output);
+	if (stackIsEmpty(s) || (n > s->topLen)) {
+		output = NULL;
+		return -1;
+	}
+	n++;
+
+	char* stringPtr;
+	int32_t stringLen = -1;
+	int8_t meta;
+	for (int i = 0; i < n; i++) {
+		stringLen += s->stackLen[s->topLen - i] & 0x0fffffff;
+	}
+	//now s->topStr - stringLen will point to the first string
+	stringPtr = &s->stackStr[s->topStr - stringLen];
 	meta = (s->stackLen[s->topLen - n + 1] >> 28) & 0xf;
+	//printf("Called peeknbarrier with n = %d now returning with %s\n", n, stringPtr);
 	if (output)
 		strcpy(output, stringPtr);
 	return meta;

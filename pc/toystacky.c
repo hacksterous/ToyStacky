@@ -110,6 +110,8 @@ const char* DEBUGMETA[6] = {
 	"METAVECTORMATRIXPARTIAL",
 	"METAMATRIXPARTIAL"};
 
+#define METABARRIER 0x8
+
 typedef struct {
 	long double real;
 	long double imag;
@@ -247,7 +249,7 @@ BigIntVoidFunctionPtr bigfnvoid2param[] = {NULL, bigint_max, bigint_min, bigint_
 
 BigIntIntFunctionPtr bigfnint2param[] = {bigint_gt, bigint_lt, bigint_gte, bigint_lte, bigint_eq, bigint_neq};
 
-const char* vecfn1paramname[] = {"sum", "sqsum", "var", "sd", "mean", "rs"};
+const char* vecfn1paramname[] = {"sum", "sqsum", "var", "sd", "mean", "rsum"};
 const char* vecfn2paramname[] = {"dot"};
 const int NUMVECFNS = 6;
 const int NUMVEC2FNS = 1;
@@ -456,6 +458,7 @@ void printStack(Strack* s, int count, bool firstLast) {
 	char* stringPtr;
 	size_t stringLen = -1;
 	int8_t meta;
+	int8_t barrier;
 	//int rightOflowIndicatorPos = -1;
 	//char display[STRING_SIZE]; //coadiutor = helper
 	if (firstLast) {
@@ -469,15 +472,14 @@ void printStack(Strack* s, int count, bool firstLast) {
 			//printf("printStack - doing firstLast -- s->topLen = %d and stringLen = %lu\n", s->topLen, stringLen);
 			stringPtr = &s->stackStr[s->topStr - stringLen];
 			meta = (s->stackLen[s->topLen - count + i + 1] >> 28) & 0xf;
+			//printf("printStack: at first barrier = %d\n", barrier);
+			barrier = meta & 0x8;
+			meta = meta & 0x7;
+			//printf("printStack: barrier = %d meta = %s\n", barrier, DEBUGMETA[meta]);
 			//printf("printStack - doing firstLast -- s->topLen = %d and stringLen = %lu and meta = %d\n", s->topLen, stringLen, meta);
-			//printf("\t%s%s%s meta = %s\n", 
-			//		(meta == 1)? "[]": ((meta == 2)? "{}": ""), 
-			//		stringPtr, 
-			//		(meta == 3)? "[": ((meta == 4)? "{": ""), 
-			//		DEBUGMETA[meta]);
-			printf("\t%s meta = %s\n", 
+			printf("\t%s meta = %s %s\n", 
 					stringPtr, 
-					DEBUGMETA[meta]);
+					DEBUGMETA[meta], (barrier)? "BARRIER":"");
 
 			stringLen -= strlen(stringPtr) + 1;
 		}

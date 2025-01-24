@@ -110,14 +110,16 @@ void showVariable(Machine* vm) {
 
 void showStackEntries(Machine* vm, int linestart, int lineend) {
 	int8_t meta;
+	int8_t barrier;
 	int maxrowval = lineend;
 	for (int i = linestart; i <= lineend; i++) {
 		lcd.setCursor(2, lineend - i); //col, row
 		lcd.print("                  ");
 		memset(vm->userDisplay, 0, SHORT_STRING_SIZE);
-		meta = peekn(&vm->userStack, vm->coadiutor, i);
+		meta = peeknbarrier(&vm->userStack, vm->coadiutor, i);
+		barrier = (meta & 0x8) >> 3;
 		if (meta != -1) {
-			makeComplexMatVecStringFit(vm->userDisplay, vm->coadiutor, NUMBER_LINESIZE);
+			makeComplexMatVecStringFit(vm->userDisplay, vm->coadiutor, NUMBER_LINESIZE, barrier);
 			lcd.setCursor(1, lineend - i);
 			lcd.setCursor(DISPLAY_LINESIZE - strlen(vm->userDisplay), lineend - i);
 			lcd.print(vm->userDisplay);

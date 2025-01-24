@@ -231,29 +231,32 @@ void makeStringFit(char*dest, const char* src, int len) {
 	}
 }
 
-void addOFlowIndicator(char*dest) {
+void addOFlowIndicator(char*dest, int8_t barrier) {
 	char indicator[] = {OFLOWIND, '\0'};
+	char barrierind[] = {BARRIERIND, '\0'};
 	strcat(dest, indicator);
+	if (barrier) strcat(dest, barrierind);
 }
 
-void makeComplexStringFit(char*dest, const char* src, int len) {
+void makeComplexStringFit(char*dest, const char* src, int len, int8_t barrier) {
+	//barrier is 0 or 1
 	char temp0[VSHORT_STRING_SIZE];
 	char temp1[VSHORT_STRING_SIZE];
 	int spacePos = 0;
 
 	int slen = strlen(src);
 
-	if (slen <= NUMBER_LINESIZE) {
+	if (slen <= NUMBER_LINESIZE - barrier) {
 		strcpy(dest, src);
 		return;
 	}
 
 	if (src[0] != '(') {
 		//number is real
-		makeStringFit(temp0, src, NUMBER_LINESIZE - 1);
+		makeStringFit(temp0, src, NUMBER_LINESIZE - 1 - barrier);
 		//SerialPrint(3, "makeComplexStringFit:  vm->coadiutor = ", temp0, "\r\n");
 		strcat(dest, temp0);
-		addOFlowIndicator(dest);
+		addOFlowIndicator(dest, barrier);
 		return;
 	}
 
@@ -267,12 +270,12 @@ void makeComplexStringFit(char*dest, const char* src, int len) {
 		//space was not found, so this is a pure imaginary number
 		zstrncpy(temp0, &src[1], slen - 2);//copy the number into temp0
 		if (slen > NUMBER_LINESIZE)
-			makeStringFit(temp1, temp0, NUMBER_LINESIZE_WO_PARENS - 1); //keep space for '(' & ')' and overflow ind
+			makeStringFit(temp1, temp0, NUMBER_LINESIZE_WO_PARENS - 1 - barrier); //keep space for '(' & ')' and overflow ind
 		else	
-			makeStringFit(temp1, temp0, NUMBER_LINESIZE_WO_PARENS); //keep space for '(' & ')'
+			makeStringFit(temp1, temp0, NUMBER_LINESIZE_WO_PARENS - barrier); //keep space for '(' & ')'
 		strcat(dest, temp1);
 		strcat(dest, ")");
-		if (slen > NUMBER_LINESIZE) addOFlowIndicator(dest);
+		if (slen > NUMBER_LINESIZE) addOFlowIndicator(dest, barrier);
 	} else {
 		//complex number
 		//real part length = spacePos - 2
@@ -284,31 +287,31 @@ void makeComplexStringFit(char*dest, const char* src, int len) {
 		if (realIsLong || imagIsLong) {
 			//both real and complex parts are longer than half of available display space
 			zstrncpy(temp0, &src[1], spacePos - 2);//copy the real part number into temp0
-			makeStringFit(temp1, temp0, COMPLEX_NUM_DISP_SIZE);
+			makeStringFit(temp1, temp0, COMPLEX_NUM_DISP_SIZE - barrier);
 			//temp1 is now the real part
 			strcat(dest, temp1);
 			strcat(dest, " ");
 			zstrncpy(temp1, &src[spacePos + 1], slen - spacePos - 2);
-			makeStringFit(temp0, temp1, COMPLEX_NUM_DISP_SIZE);
+			makeStringFit(temp0, temp1, COMPLEX_NUM_DISP_SIZE - barrier);
 			//temp0 is now the imag part
 			strcat(dest, temp0);
 			strcat(dest, ")");
-			addOFlowIndicator(dest);
+			addOFlowIndicator(dest, barrier);
 		} else {
 			strcpy(dest, src);
 		}
 	}
 }
 
-void makeComplexMatVecStringFit(char*dest, const char* src, int len) {
+void makeComplexMatVecStringFit(char*dest, const char* src, int len, int8_t barrier) {
 	if (src[0] == '[' || src[0] == '{') {
 		if ((int)strlen(src) > len) {
 			zstrncpy(dest, src, len - 1);
-			addOFlowIndicator(dest);
+			addOFlowIndicator(dest, barrier);
 		}
 		else strcpy(dest, src);
 	}
-	else makeComplexStringFit(dest, src, NUMBER_LINESIZE);
+	else makeComplexStringFit(dest, src, NUMBER_LINESIZE, barrier);
 }
 
 #include "TS-core-showStack.h"
@@ -398,7 +401,7 @@ BigIntVoidFunctionPtr bigfnvoid2param[] = {NULL, bigint_max, bigint_min, bigint_
 
 BigIntIntFunctionPtr bigfnint2param[] = {bigint_gt, bigint_lt, bigint_gte, bigint_lte, bigint_eq, bigint_neq};
 
-const char* vecfn1paramname[] = {"sum", "sqsum", "var", "sd", "mean", "rs"};
+const char* vecfn1paramname[] = {"sum", "sqsum", "var", "sd", "mean", "rsum"};
 const char* vecfn2paramname[] = {"dot"};
 const int NUMVECFNS = 6;
 const int NUMVEC2FNS = 1;

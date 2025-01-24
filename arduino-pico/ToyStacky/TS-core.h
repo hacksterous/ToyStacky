@@ -44,6 +44,7 @@ License: GNU GPL v3
 #define LEFTARROW  char(0x7f)
 #define OFLOWIND char(0xeb)
 #define SIGMAIND char(0xe5)
+#define BARRIERIND char(0xff)
 
 #define COMSTARTTOKENC '('
 #define VECSTARTTOKENC '['
@@ -125,6 +126,8 @@ typedef enum {
 	METAVECTORMATRIXPARTIAL,
 	METAMATRIXPARTIAL
 } StrackMeta;
+
+#define METABARRIER 0x8
 
 typedef struct {
 	long double real;
