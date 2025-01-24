@@ -8,6 +8,7 @@ bool fn1ParamScalar(Machine* vm, const char* fnname, int fnindex, int isTrig) {
 		success = stringToDouble(vm->acc, &c.real);
 
 	FAILANDRETURNVAR(!success, vm->error, "%s bad.", fitstr(vm->coadiutor, fnname, 8))
+	//printf ("fn1ParamScalar: called with fn index = %d\n", fnindex);
 	if (fnindex < NUMMATH1PARAMFN) {
 		if (vm->modeDegrees && isTrig == 1)
 			//convert input to radians for trig fns
@@ -17,8 +18,8 @@ bool fn1ParamScalar(Machine* vm, const char* fnname, int fnindex, int isTrig) {
 			//convert result to degrees for inverse trig fns
 			c = makeComplex(c.real * 180.0/3.141592653589793L, c.imag * 180.0/3.141592653589793L);
 	} else if (fnindex < NUMMATH1PARAMFN + NUMREAL1PARAMFN) {
-		c.imag = 0.0;
 		c.real = call1ParamRealFunction(fnindex - NUMMATH1PARAMFN, c);
+		c.imag = 0.0;
 	}
 	FAILANDRETURNVAR((c.real == INFINITY || c.imag == INFINITY || c.real == -INFINITY || c.imag == -INFINITY), 
 		vm->error, "'%s' inf!", fitstr(vm->coadiutor, fnname, 8))
