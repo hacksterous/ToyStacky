@@ -83,8 +83,8 @@ bool fnOrOpMat2Param(Machine* vm, const char* token, int fnindex, int8_t cmeta, 
 			if (success) {
 				//matMulDiv will copy any error message to vm->error
 				//and the result in vm->matvecStrC
-				pop(&vm->userStack, NULL);
-				pop(&vm->userStack, NULL);
+				pop(&vm->userStack, vm->lastX);
+				pop(&vm->userStack, vm->lastY);
 				push(&vm->userStack, vm->matvecStrC, METAMATRIX);
 			}
 			return success;
@@ -143,8 +143,8 @@ bool fnOrOpMat2Param(Machine* vm, const char* token, int fnindex, int8_t cmeta, 
 		if (i != vm->matrixA.rows - 1) strcat(vm->matvecStrB, " [");
 	}
 	strcat(vm->matvecStrB, "}");
-	pop(&vm->userStack, NULL);
-	pop(&vm->userStack, NULL);
+	pop(&vm->userStack, vm->lastX);
+	pop(&vm->userStack, vm->lastY);
 	push(&vm->userStack, vm->matvecStrC, METAMATRIX);
 
 	return true;

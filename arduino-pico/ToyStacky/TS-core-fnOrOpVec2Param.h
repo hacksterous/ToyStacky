@@ -98,12 +98,12 @@ bool fnOrOpVec2Param(Machine* vm, const char* token, int fnindex, int8_t cmeta, 
 			//printf ("fnOrOpVec2Param: loop, vm->matvecStrC = %s\n", vm->matvecStrC);
 		}
 		strcat(vm->matvecStrC, "]");
-		pop(&vm->userStack, NULL);
-		pop(&vm->userStack, NULL);
+		pop(&vm->userStack, vm->lastX);
+		pop(&vm->userStack, vm->lastY);
 		push(&vm->userStack, vm->matvecStrC, METAVECTOR);
 	} else {
 		//only the dot product operator returns a scalar
-		FAILANDRETURN((cmeta != METAVECTOR || meta != METAVECTOR), vm->error, "E: require vectors.", NULLFN)
+		FAILANDRETURN((cmeta != METAVECTOR || meta != METAVECTOR), vm->error, "require vectors.", NULLFN)
 		//both ToS-1 and ToS are vectors
 		peek(&vm->userStack, vm->matvecStrA);
 		peekn(&vm->userStack, vm->matvecStrB, 1);
@@ -154,8 +154,8 @@ bool fnOrOpVec2Param(Machine* vm, const char* token, int fnindex, int8_t cmeta, 
 		if (fabsl(c.real) < DOUBLE_EPS) c.real = 0.0;
 		if (fabsl(c.imag) < DOUBLE_EPS) c.imag = 0.0;
 		success = complexToString(c, vm->acc, vm->precision, vm->notationStr) && success;
-		pop(&vm->userStack, NULL);
-		pop(&vm->userStack, NULL);
+		pop(&vm->userStack, vm->lastX);
+		pop(&vm->userStack, vm->lastY);
 		push(&vm->userStack, vm->acc, METASCALAR);
 	}
 

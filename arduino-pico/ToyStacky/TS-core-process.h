@@ -13,6 +13,9 @@ bool process(Machine* vm, char* token) {
 		int is2pfn = is2ParamFunction(token);
 		int isvecfn = isVec1ParamFunction(token);
 		int isTrig = is1ParamTrigFunction(token);
+		//keep top two stack entries in last registers
+		peek(&vm->userStack, vm->lastX);
+		peekn(&vm->userStack, vm->lastY, 1);
 		if (ismatfn != -1) {
 			Matrix m;
 			ComplexDouble c;
@@ -86,6 +89,40 @@ bool process(Machine* vm, char* token) {
 			push(&vm->userStack, vm->matvecStrC, cmeta);
 			push(&vm->userStack, vm->matvecStrB, meta);
 			return true;
+		} else if (strcmp(token, "cmplx") == 0) {
+			//make or unmake complex numbers
+			long double re;
+			long double im;
+			ComplexDouble c;
+			int8_t cmeta = peek(&vm->userStack, vm->matvecStrC);
+			FAILANDRETURN((cmeta == -1), vm->error, "stack empty.B", NULLFN)
+			success = stringToComplex(vm->matvecStrC, &c);
+			if (success) {
+				//current ToS is a complex number, uncomplex it
+				doubleToString(c.real, vm->bak, vm->precision, vm->notationStr);
+				doubleToString(c.imag, vm->acc, vm->precision, vm->notationStr);
+				pop(&vm->userStack, NULL);
+				//earlier (ToS-1) number will real part, later (ToS) number is imag part
+				push(&vm->userStack, vm->bak, METASCALAR);
+				push(&vm->userStack, vm->acc, METASCALAR);
+			} else {
+				//if two real numbers are available at the ToS, create a complex number
+				//earlier number is real part, later number is imag part
+				int8_t meta = peekn(&vm->userStack, vm->matvecStrB, 1);
+				FAILANDRETURN((meta == -1), vm->error, "need 1 more scalar", NULLFN)
+				FAILANDRETURN((cmeta != METASCALAR || meta != METASCALAR), vm->error, "need 2 scalars", NULLFN)
+				success = stringToDouble(vm->matvecStrB, &re);//earlier (ToS-1) number is real part
+				success = stringToDouble(vm->matvecStrC, &im) & success;//later (ToS) number is imag part
+				FAILANDRETURN(!success, vm->error, "need 2 reals", NULLFN)
+				success = strIsRLC(vm->matvecStrB) && strIsRLC(vm->matvecStrC);
+				FAILANDRETURN(success, vm->error, "no RLC here", NULLFN)
+				strcpy(vm->matvecStrA, "("); 
+				strcat(vm->matvecStrA, vm->matvecStrB); strcat(vm->matvecStrA, " "); strcat(vm->matvecStrA, vm->matvecStrC);
+				strcat(vm->matvecStrA, ")");
+				pop(&vm->userStack, NULL);
+				pop(&vm->userStack, NULL);
+				push(&vm->userStack, vm->matvecStrA, METASCALAR);
+			}
 		} else if (strcmp(token, "vec") == 0) {
 			int8_t meta = peek(&vm->userStack, NULL);
 			FAILANDRETURN((meta == -1), vm->error, "stack empty.Z", NULLFN)
@@ -170,27 +207,27 @@ bool process(Machine* vm, char* token) {
 			return success;
 		} else if (strcmp(token, ELSETOKEN) == 0) {
 			//printf ("-------------------Found else -- execData = %lu\n", execData);
-			FAILANDRETURN((conditionalData(execData) == 0x0), vm->error, "E:else w/o if A", NULLFN)
-			FAILANDRETURN(!doingIf, vm->error, "E:else w/o if.", NULLFN)
-			FAILANDRETURN(UintStackIsEmpty(&vm->execStack), vm->error, "E:else w/o if B", NULLFN)
+			FAILANDRETURN((conditionalData(execData) == 0x0), vm->error, "else w/o if A", NULLFN)
+			FAILANDRETURN(!doingIf, vm->error, "else w/o if.", NULLFN)
+			FAILANDRETURN(UintStackIsEmpty(&vm->execStack), vm->error, "else w/o if B", NULLFN)
 			UintStackPop(&vm->execStack); //discard the if
 			execData = makeExecStackData(true, ifCondition, false); //condition is same, doing else
 			//printf ("-------------------Found else -- set execData to = %lu\n", execData);
 			UintStackPush(&vm->execStack, execData);
 			return true;
 		} else if (strcmp(token, ENDIFTOKEN) == 0) {
-			FAILANDRETURN((conditionalData(execData) == 0x0), vm->error, "E:fi w/o if A", NULLFN)
-			FAILANDRETURN(UintStackIsEmpty(&vm->execStack), vm->error, "E:fi w/o if B", NULLFN)
+			FAILANDRETURN((conditionalData(execData) == 0x0), vm->error, "fi w/o if A", NULLFN)
+			FAILANDRETURN(UintStackIsEmpty(&vm->execStack), vm->error, "fi w/o if B", NULLFN)
 			UintStackPop(&vm->execStack); //discard the if/else
 			return true;
 		} else if (token[0] == MATSTARTTOKENC) {
 			int8_t meta = peek(&vm->userStack, NULL);
-			FAILANDRETURN(meta == METAVECTORMATRIXPARTIAL || meta == METAMATRIXPARTIAL, vm->error, "E:nested matrices", NULLFN)
+			FAILANDRETURN(meta == METAVECTORMATRIXPARTIAL || meta == METAMATRIXPARTIAL, vm->error, "nested matrices", NULLFN)
 			//push a matrix indicator
 			push(&vm->userStack, (char*)"{", METAMATRIXPARTIAL);
 		} else if (token[0] == MATLASTTOKENC) {
 			int8_t meta = peek(&vm->userStack, NULL);
-			FAILANDRETURN(meta != METAMATRIXPARTIAL, vm->error, "E:need matrix", NULLFN)
+			FAILANDRETURN(meta != METAMATRIXPARTIAL, vm->error, "need matrix", NULLFN)
 			pop(&vm->userStack, vm->matvecStrC);
 			if (strcmp(vm->matvecStrC, "{") != 0) {
 				strcat(vm->matvecStrC, "}");
@@ -199,7 +236,7 @@ bool process(Machine* vm, char* token) {
 		} else if (token[0] == VECSTARTTOKENC) {
 			//parse vector first fragment
 			int8_t meta = peek(&vm->userStack, NULL);
-			FAILANDRETURN(meta == METAVECTORPARTIAL, vm->error, "E:nested vectors", NULLFN)
+			FAILANDRETURN(meta == METAVECTORPARTIAL, vm->error, "nested vectors", NULLFN)
 			if (meta == METAMATRIXPARTIAL) { //continuing a matrix
 				pop(&vm->userStack, vm->matvecStrC);
 				if (vm->matvecStrC[strlen(vm->matvecStrC) - 1] == '{')
@@ -212,7 +249,7 @@ bool process(Machine* vm, char* token) {
 			}
 		} else if (token[0] == VECLASTTOKENC) {
 			int8_t meta = peek(&vm->userStack, NULL);
-			FAILANDRETURN(meta != METAVECTORPARTIAL && meta != METAVECTORMATRIXPARTIAL, vm->error, "E:need vector", NULLFN)
+			FAILANDRETURN(meta != METAVECTORPARTIAL && meta != METAVECTORMATRIXPARTIAL, vm->error, "need vector", NULLFN)
 			//have a '[' -- getting a ']' -- discard the vector 
 			pop(&vm->userStack, vm->matvecStrC);
 			if (strcmp(vm->matvecStrC, "[") != 0) {
@@ -235,7 +272,7 @@ bool process(Machine* vm, char* token) {
 				//found <variable>@
 				token[tokenlen - 1] = '\0';
 				success = popIntoVariable (vm, token);
-				FAILANDRETURN(!success, vm->error, "E:bad var", NULLFN)
+				FAILANDRETURN(!success, vm->error, "bad var", NULLFN)
 			}
 			else {
 				//see if the ToS is a partial matrix or vector

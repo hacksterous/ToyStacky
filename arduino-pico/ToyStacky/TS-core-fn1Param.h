@@ -44,7 +44,7 @@ bool fn1Param(Machine* vm, const char* token, int fnindex, int isTrig) {
 		success = fn1ParamScalar(vm, token, fnindex, isTrig);
 		FAILANDRETURNVAR(!success, vm->error, "%s bad.", fitstr(vm->coadiutor, token, 8))
 		//fn1ParamScalar has the result in acc
-		pop(&vm->userStack, NULL);
+		pop(&vm->userStack, vm->lastX);
 		push(&vm->userStack, vm->acc, METASCALAR);
 	} else if (meta == METAVECTOR) {
 		success = fnOrOpVec1Param(vm, token, fnindex, isTrig, true); //returnsVector = true

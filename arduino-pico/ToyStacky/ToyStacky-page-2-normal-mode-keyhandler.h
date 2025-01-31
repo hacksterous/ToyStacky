@@ -1,13 +1,14 @@
+//Page 2 is the Programming mode
 /*
 	{'u','a','b','c'},
 	{'D','d','e','f'},
-	{'C','[','v','"'},
-	{'A','(','{','@'},
+	{'P','[','%','"'},
+	{'A','{','(','l'},
 
 	{'m','M','q','\b'},
 	{'p','s','X','t'},
-	{'h','z','n','T'},
-	{'l',' ','<','>'},
+	{'x','z','n','T'},
+	{'@',' ','<','>'},
 
 	{'1','2','3','+'},
 	{'4','5','6','-'},
@@ -18,31 +19,6 @@
 int normalPage2ModeKeyhandler (char keyc) {
 	int keyTypePressed;
 	switch (keyc) {
-		//these are operators (in normal mode), result in ' ' + key + \n
-		case 'm': 
-			processNormalImmdOpKeyC("mat");
-			keyTypePressed = 1;
-			break;
-		case 'M': 
-			processNormalImmdOpKeyC("det");
-			keyTypePressed = 1;
-			break;
-		case 'z':
-			processNormalImmdOpKeyC("unmat");
-			keyTypePressed = 1;
-			break;
-		case 'n':
-			processNormalImmdOpKeyC("inv");
-			keyTypePressed = 1;
-			break;
-		case 'T':
-			processNormalImmdOpKeyC("eival");
-			keyTypePressed = 1;
-			break;
-		case ' ':
-			processNormalImmdOpKeyC("unvec");
-			keyTypePressed = 1;
-			break;
 		default:
 			keyTypePressed = normalModeKeyhandler(keyc);
 			break;

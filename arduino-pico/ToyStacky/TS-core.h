@@ -28,10 +28,10 @@ License: GNU GPL v3
 #define STRING_SIZE 101
 #define SHORT_STRING_SIZE 51 //%.15g gives 24 * 2 + 3
 #define VSHORT_STRING_SIZE 25
-//#define DOUBLE_EPS 2.2250738585072014e-308
-//#define DOUBLEFN_EPS 9e-16 //for return values of functions
-#define DOUBLE_EPS __LDBL_MIN__
-#define DOUBLEFN_EPS __LDBL_MIN__
+//#define DOUBLE_EPS __LDBL_MIN__
+#define DOUBLE_EPS 9e-16 
+//#define DOUBLEFN_EPS __LDBL_MIN__
+#define DOUBLEFN_EPS 9e-16 //for return values of functions
 
 //For LCD with Japanese char set: HD44780U A00
 #define UPIND 1
@@ -44,7 +44,13 @@ License: GNU GPL v3
 #define LEFTARROW  char(0x7f)
 #define OFLOWIND char(0xeb)
 #define SIGMAIND char(0xe5)
-#define BARRIERIND char(0xff)
+#define ALPHAIND char(0xe0)
+#define BARRIERIND char(0xa2)
+
+#define CMDPG_0 char(0xdb)
+#define CMDPG_1 char(0xd5)
+#define CMDPG_3 char(0xd6)
+#define CMDPG_4 char(0xd1)
 
 #define COMSTARTTOKENC '('
 #define VECSTARTTOKENC '['
@@ -108,6 +114,7 @@ typedef enum {
 	ENTRY_VIEW,
 	VARLIST_VIEW,
 	STATUS_VIEW,
+	QUICK_VIEW,
 	EDIT_VIEW
 } ViewPageType;
 
@@ -194,6 +201,8 @@ typedef struct {
 	char matvecStrA[MAX_MATVECSTR_LEN]; 
 	char matvecStrB[MAX_MATVECSTR_LEN];
 	char matvecStrC[MAX_MATVECSTR_LEN];
+	char lastY[MAX_MATVECSTR_LEN];
+	char lastX[MAX_MATVECSTR_LEN];
 	Matrix matrixA;
 	Matrix matrixB;
 	Matrix matrixC;
@@ -209,6 +218,8 @@ typedef struct {
 	int viewPage;
 	int topEntryNum; //stack entry number shown at top row
 	int pointerRow; //entry pointed to by right pointing arrow
+
+	int quickViewPage; //in QUICK_VIEW mode
 
 	/* for variable viewer */
 	//for displaying on screen, a variable/stack item is split
@@ -242,16 +253,12 @@ typedef struct {
 	bool timerRunning;
 	bool repeatingAlarm;
 	bool LEDState;
-	uint8_t timeHour;
-	uint8_t timeMin;
-	uint8_t timeSec;
 	float locationLat;
 	float locationLong;
 	float locationTimeZone;
 	uint8_t alarmHour;
 	uint8_t alarmMin;
 	uint8_t alarmSec;
-	unsigned int TS0RTCFreq;
 
 	uint8_t precision;
 	char notationStr[3];
@@ -282,4 +289,5 @@ void showStackHP(Machine* vm, int linestart, int linecount);
 void initStacks(Machine* vm);
 void eraseUserEntryLine();
 void toggleLED();
+
 #endif

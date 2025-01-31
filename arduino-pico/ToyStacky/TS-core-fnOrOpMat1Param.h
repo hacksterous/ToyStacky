@@ -32,7 +32,7 @@ bool fnOrOpMat1Param(Machine* vm, const char* token, int fnindex, bool isTrig) {
 		if (i != m.rows - 1) strcat(vm->matvecStrB, " [");
 	}
 	strcat(vm->matvecStrB, "}");
-	pop(&vm->userStack, NULL);
+	pop(&vm->userStack, vm->lastX);
 	push(&vm->userStack, vm->matvecStrB, METAVECTOR);
 	return true;
 

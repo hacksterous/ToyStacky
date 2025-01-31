@@ -67,7 +67,7 @@ const char* DEBUGMETA[5] = {
 	"METAVECTORPARTIAL",
 	"METAMATRIXPARTIAL"};
 
-const long double __TS_PI__ = 3.141592653589793L;
+const long double __TS_PI__ = 3.14159265358979323846L;
 void (*NULLFN)(void) = NULL;
 
 ComplexDouble makeComplex(double re, long double im) {
@@ -170,66 +170,53 @@ char* fitstr(char*dest, const char* src, int32_t len) {
 bool fn1ParamScalar(Machine* vm, const char* fnname, int fnindex, int isTrig);
 #include "TS-core-ledger.h"
 #include "TS-core-stack.h"
+#include "TS-core-math.h"
+#include "TS-core-numString.h"
 
-void makeStringFit(char*dest, const char* src, int len) {
-	//returns 1 if string is to be shortened, 0 if it fits in the size
-	char srcCopy[VSHORT_STRING_SIZE];
-
-	int slen = strlen(src);
-
-	if (slen <= len) {
-		strcpy(dest, src);
-		return;
-	}
-
-	strcpy(srcCopy, src);
-	int expoIndex = 0;
-	for (expoIndex = 0; expoIndex < slen; expoIndex++) {
-		if ((srcCopy[expoIndex] == 'e') || (srcCopy[expoIndex] == 'E')) {
-			if (srcCopy[expoIndex + 1] == '+') {
-				//remove unnecessary '+' after the 'e'
-				memmove(&srcCopy[expoIndex + 1], &srcCopy[expoIndex + 2], slen - expoIndex - 2);
-				srcCopy[slen - 1] = '\0';
-				slen--; //replacing src with srcCopy
-			}
-			break;
-		}
-	}
-	memset(dest, 0, VSHORT_STRING_SIZE);
-	if (expoIndex == slen) {
-		//does not have the exponent format
-		if (slen > len) {
-			//bigint --  show right overflow
-			zstrncpy(dest, srcCopy, len);
-			dest[len] = '\0';
-		} else {
-			zstrncpy(dest, srcCopy, slen);
-			dest[slen] = '\0';
-		}
-	}
-
-	//Expo-format number
-	int partMantissaLen = len - (slen - expoIndex);
-	//printf("------------makeStringFit: partMantissaLen = %d\n", partMantissaLen);
-	//we want to remove some digits from the mantissa
-	//part of the real number so that it fits within len
-	//partmantissalen = len - (slen - expoIndex) + 1
-	//this has to be less than if we have to truncate
-	//the mantissa
-	//slen - expoIndex --> exponent part
-	if (slen > len) {
-		zstrncpy(dest, srcCopy, partMantissaLen);
-		if (dest[partMantissaLen - 1] == '.') { //ending in a '.' - remove it
-			zstrncpy(dest + partMantissaLen - 1, &srcCopy[expoIndex], slen - expoIndex);
-			dest[len - 1] = '\0';
-		} else {
-			zstrncpy(dest + partMantissaLen, &srcCopy[expoIndex], slen - expoIndex);
-			dest[len] = '\0';
-		}
-	} else {
-		strcpy(dest, srcCopy);
-	}
+void makeLDoubleStringFit(char*dest, char* src, int len) {
+	char expstr[10];
+	char fmt[10];
+	char* cPtr;
+	long double dbl;
+	long int exponent;
+	int adjlen;
+	int pos = 0;
+	dbl = strtold(src, &cPtr);
+	sprintf(dest, "%.15Le", dbl);//force into exp notation
+	//printf("A: dest = %s\n", dest);
+	cPtr = strchr(dest, 'e');
+	if (cPtr) {
+		pos = (int) (cPtr - dest);//position of 'e'
+		strcpy(expstr, &dest[pos + 1]);
+	} 
+	else strcpy(expstr, "");
+	//printf("B: pos = %d\n", pos);	
+	//printf("C: expstr = %s\n", expstr);	
+	exponent = strtol((const char*)&dest[pos + 1], &cPtr, 10);
+	if (exponent != 0) itoa(exponent, expstr);
+	else strcpy(expstr, "");
+	//printf("D: expstr = '%s'\n", expstr);
+	pos = strlen(expstr);
+	if (pos)
+		adjlen = len - pos - 3;// leave space for the 'e', '.' and integer part
+	else
+		adjlen = len - pos - 2;// leave space for the '.' and integer part
+	if (dbl < 0) adjlen--;
+	if (adjlen < 0) adjlen = 0;
+	//printf("E: strlen(expstr) = %ld\n", strlen(expstr));	
+	strcpy(fmt, "%.");
+	itoa(adjlen, &fmt[2]);
+	strcat(fmt, "Le");
+	//printf("F: fmt = '%s'\n", fmt);	
+	sprintf(dest, fmt, dbl); 
+	pos = (int)(strchr(dest, 'e') - dest); //pos will be non-zero
+	dest[pos] = '\0';
+	//printf("G: dest = '%s'\n", dest);	
+	if (exponent != 0) strcat(dest, "e");
+	strcat(dest, expstr);
+	//printf("Z: adjlen = %d expstr = '%s' dest = '%s'\n", adjlen, expstr, dest);	
 }
+
 
 void addOFlowIndicator(char*dest, int8_t barrier) {
 	char indicator[] = {OFLOWIND, '\0'};
@@ -238,7 +225,7 @@ void addOFlowIndicator(char*dest, int8_t barrier) {
 	if (barrier) strcat(dest, barrierind);
 }
 
-void makeComplexStringFit(char*dest, const char* src, int len, int8_t barrier) {
+void makeComplexStringFit(char*dest, char* src, int len, int8_t barrier) {
 	//barrier is 0 or 1
 	char temp0[VSHORT_STRING_SIZE];
 	char temp1[VSHORT_STRING_SIZE];
@@ -253,15 +240,13 @@ void makeComplexStringFit(char*dest, const char* src, int len, int8_t barrier) {
 
 	if (src[0] != '(') {
 		//number is real
-		makeStringFit(temp0, src, NUMBER_LINESIZE - 1 - barrier);
-		//SerialPrint(3, "makeComplexStringFit:  vm->coadiutor = ", temp0, "\r\n");
-		strcat(dest, temp0);
+		makeLDoubleStringFit(dest, src, NUMBER_LINESIZE - 1 - barrier);
 		addOFlowIndicator(dest, barrier);
 		return;
 	}
 
 	//code below is only for imaginary or complex numbers
-	strcat(dest, "(");
+	strcpy(dest, "(");
 
 	while (src[spacePos] != ' ' && src[spacePos++] != '\0');
 
@@ -269,41 +254,29 @@ void makeComplexStringFit(char*dest, const char* src, int len, int8_t barrier) {
 	if (spacePos > (slen - 2)) {
 		//space was not found, so this is a pure imaginary number
 		zstrncpy(temp0, &src[1], slen - 2);//copy the number into temp0
-		if (slen > NUMBER_LINESIZE)
-			makeStringFit(temp1, temp0, NUMBER_LINESIZE_WO_PARENS - 1 - barrier); //keep space for '(' & ')' and overflow ind
-		else	
-			makeStringFit(temp1, temp0, NUMBER_LINESIZE_WO_PARENS - barrier); //keep space for '(' & ')'
+		makeLDoubleStringFit(temp1, temp0, NUMBER_LINESIZE_WO_PARENS - 1 - barrier); //keep space for '(' & ')' and overflow ind
 		strcat(dest, temp1);
 		strcat(dest, ")");
 		if (slen > NUMBER_LINESIZE) addOFlowIndicator(dest, barrier);
 	} else {
 		//complex number
-		//real part length = spacePos - 2
-		//imag part length = slen - spacePos - 2
-		bool realIsLong = (spacePos > COMPLEX_NUM_DISP_SIZE + 2);
-		int realDiff = spacePos - COMPLEX_NUM_DISP_SIZE - 2; //how much is the real longer than COMPLEX_NUM_DISP_SIZE?
-		bool imagIsLong = ((slen - spacePos) > COMPLEX_NUM_DISP_SIZE + 2);
-		int imagDiff = slen - spacePos - COMPLEX_NUM_DISP_SIZE - 2; //how much is the imag longer than COMPLEX_NUM_DISP_SIZE?
-		if (realIsLong || imagIsLong) {
-			//both real and complex parts are longer than half of available display space
-			zstrncpy(temp0, &src[1], spacePos - 2);//copy the real part number into temp0
-			makeStringFit(temp1, temp0, COMPLEX_NUM_DISP_SIZE - barrier);
-			//temp1 is now the real part
-			strcat(dest, temp1);
-			strcat(dest, " ");
-			zstrncpy(temp1, &src[spacePos + 1], slen - spacePos - 2);
-			makeStringFit(temp0, temp1, COMPLEX_NUM_DISP_SIZE - barrier);
-			//temp0 is now the imag part
-			strcat(dest, temp0);
-			strcat(dest, ")");
-			addOFlowIndicator(dest, barrier);
-		} else {
-			strcpy(dest, src);
-		}
+		//real part length = spacePos - 1
+		//imag part length = slen - (spacePos - 1) - 3 = slen - spacePos - 2
+		zstrncpy(temp0, &src[1], spacePos - 1);
+		makeLDoubleStringFit(temp1, temp0, COMPLEX_NUM_DISP_SIZE - barrier);
+		//temp1 is now the real part
+		strcat(dest, temp1);
+		strcat(dest, " ");
+		zstrncpy(temp1, &src[spacePos + 1], slen - spacePos - 2);
+		makeLDoubleStringFit(temp0, temp1, COMPLEX_NUM_DISP_SIZE - barrier);
+		//temp0 is now the imag part
+		strcat(dest, temp0);
+		strcat(dest, ")");
+		addOFlowIndicator(dest, barrier);
 	}
 }
 
-void makeComplexMatVecStringFit(char*dest, const char* src, int len, int8_t barrier) {
+void makeComplexMatVecStringFit(char*dest, char* src, int len, int8_t barrier) {
 	if (src[0] == '[' || src[0] == '{') {
 		if ((int)strlen(src) > len) {
 			zstrncpy(dest, src, len - 1);
@@ -340,10 +313,6 @@ void showUserEntryLine(int bsp){
 	lcd.print(vm.userDisplay);
 	lcd.setCursor(vm.cursorPos, 3); //col, row
 }
-
-
-#include "TS-core-math.h"
-#include "TS-core-numString.h"
 
 typedef long double (*RealFunctionPtr)(ComplexDouble);
 typedef void (*BigIntVoidFunctionPtr)(const bigint_t*, const bigint_t*, bigint_t*);

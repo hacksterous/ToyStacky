@@ -1,17 +1,17 @@
-//Page 2 is the Matrix/Vector mode
+//Page 2 is the Programming mode
 int altPage2ModeKeyhandler (char keyc) {
 	int keyTypePressed;
 	switch (keyc) {
 		case 'm': 
-			processAltImmdOpKeyC("tpose");
+			processImmdOpKeyC("tpose");
 			keyTypePressed = 1;
 			break;
 		case 'n': 
-			processAltImmdOpKeyC("trace");
+			processImmdOpKeyC("trace");
 			keyTypePressed = 1;
 			break;
 		case 'T':
-			processAltImmdOpKeyC("eivec");
+			processImmdOpKeyC("eivec");
 			keyTypePressed = 1;
 			break;
 		default:

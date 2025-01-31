@@ -369,6 +369,9 @@ typedef struct {
 	char matvecStrA[MAX_MATVECSTR_LEN]; 
 	char matvecStrB[MAX_MATVECSTR_LEN];
 	char matvecStrC[MAX_MATVECSTR_LEN];
+	char lastY[MAX_MATVECSTR_LEN];
+	char lastX[MAX_MATVECSTR_LEN];
+
 	bigint_t bigA;
 	bigint_t bigB;
 	bigint_t bigC;

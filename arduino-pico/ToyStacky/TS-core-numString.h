@@ -126,22 +126,24 @@ char strIsRLC(char* str) {
 }
 
 bool stringToDouble(char* str, long double* dbl) {
-	//SerialPrint(1, "stringToDouble: entered ------------------- str = %s", str);
+	//printf("stringToDouble: entered ------------------- str = %s\n", str);
 	char* endPtr;
 	int32_t len = strlen(str);
 	char rlc = strIsRLC(str);
 	if (rlc) {
 		str[len-1] = '\0';
 	}
-	//printf("stringToDouble: got %s\n", str);
+	//printf("stringToDouble: 0. got %s\n", str);
+	errno = 0;
 	*dbl = strtold(str, &endPtr);
 	//if (endPtr == str) {
 	if (*endPtr != '\0') {
-		//SerialPrint(1, "stringToDouble: done with false ------------------- dbl = %g", *dbl);
+		//printf("stringToDouble: done with false A ------------------- dbl = %Lg\n", *dbl);
 		return false;
 	} else {
-		//SerialPrint(1, "stringToDouble: done with true ------------------- dbl = %g", *dbl);
+		//printf("stringToDouble: done with true ------------------- dbl = %Lg\n", *dbl);
 		if (rlc) str[len-1] = rlc;
+		//printf("stringToDouble: done with false B ------------------- dbl = %Lg errno = %d\n", *dbl, errno);
 		if (errno) return false;
 		return true;
 	}
@@ -239,36 +241,6 @@ bool doubleToString(long double value, char* buf, uint8_t precision, char* notat
 
 	if (buf == NULL) return false;
 	return true;
-
-	// --	int i = 0;
-	// --	if (buf[0] == '-') i++; //skip any opening '-'
-	// --	bool expoIsNeg = false;
-	// --	for (i = i; buf[i] != '\0'; i++) {
-	// --		if (buf[i] == '-') {
-	// --			i++;
-	// --			expoIsNeg = true;
-	// --			break;
-	// --		}
-	// --	}
-	// --	if (expoIsNeg == false) return true;
-	// --	//char* endPtr;
-	// --	//int expo = strtold(buf + i, &endPtr);
-	// --	if (expoIsNeg == true) {
-	// --		strcpy(fmt, "%.15Lg");
-	// --		//if (expo > 12) {
-	// --		//	strcpy(fmt, "%.15Lg");
-	// --		//} else {
-	// --		//	int numDecimals = 15;//precision - 1 - expo;
-	// --		//	if (numDecimals < 6) numDecimals = 6;
-	// --		//	strcpy(fmt, "%.");
-	// --		//	itoa(numDecimals, &fmt[2]);
-	// --		//	strcat(fmt, "Lg");
-	// --		//}
-	// --	}
-	// --	sprintf(buf, fmt, value);
-	// --	
-	// --	if (buf == NULL) return false;
-	// --	return true;
 }
 
 bool complexToString(ComplexDouble c, char* value, uint8_t precision, char* notationStr) {

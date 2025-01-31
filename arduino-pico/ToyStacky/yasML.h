@@ -133,6 +133,7 @@ bool matbuild(Matrix* m, char* input){
 			//	char *rawnum;
 			//	char* stop;
 			//	rawnum = removeDblQuotes(num);
+			//  errno = 0;
 			//	long double d = strtold(rawnum, &stop); //bignum to double
 			//	if (errno != 0 || stop[0] != '\0') d = 0;
 			//	m->numbers[r][c] = makeComplex(d, 0);

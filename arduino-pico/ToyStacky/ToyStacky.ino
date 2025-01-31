@@ -25,17 +25,17 @@ const byte ROWS = 12;
 const byte COLS = 4;
 
 //define the cymbols on the buttons of the keypads
-char numKeys[ROWS][COLS] = 
+char numKeys[ROWS][COLS] =
 {
 	{'u','a','b','c'},
 	{'D','d','e','f'},
-	{'C','[','v','"'},
-	{'A','(','{','@'},
+	{'P','[','%','"'},
+	{'A','{','(','l'},
 
 	{'m','M','q','\b'},
 	{'p','s','X','t'},
-	{'h','z','n','T'},
-	{'l',' ','<','>'},
+	{'x','z','n','T'},
+	{'@',' ','<','>'},
 
 	{'1','2','3','+'},
 	{'4','5','6','-'},
@@ -47,10 +47,10 @@ char numKeys[ROWS][COLS] =
 LiquidCrystal lcd(18, 19, 20, 21, 22, 26);
 byte rowPins[ROWS] = {15, 14, 13, 12, 11, 10, 9, 8, 3, 2, 1, 0}; //these are inputs
 byte colPins[COLS] = {7, 6, 5, 4}; //these are outputs
-Keypad customKeypad = Keypad( makeKeymap(numKeys), rowPins, colPins, ROWS, COLS); 
+Keypad customKeypad = Keypad( makeKeymap(numKeys), rowPins, colPins, ROWS, COLS);
 
 // 0=user continues to edit; 1=evaluate immediately; 2=backspace; ... others ...
-int keyTypePressed = -1; 
+int keyTypePressed = -1;
 	
 void printRegisters(Machine* vm) {
 }
@@ -71,11 +71,11 @@ void eraseUserEntryLine() {
 	lcd.setCursor(vm.cursorPos, DISPLAY_LINECOUNT - 1); //col, row
 }
 
-//view page - 
-//0: normal, 
-//1: stack view, 
-//2: variable view, 
-//3: variable list view, 
+//view page -
+//0: normal,
+//1: stack view,
+//2: variable view,
+//3: variable list view,
 //4: internal status view
 //5: code editor view
 //int viewPage;
@@ -88,29 +88,33 @@ void showViewPage(){
 		case STACK_VIEW: lcd.print('S');break;
 		case ENTRY_VIEW: lcd.print('V');break;
 		case VARLIST_VIEW: lcd.print('L');break;
-		case STATUS_VIEW: lcd.print(SIGMAIND);break; //sigma 0xe5
-		case EDIT_VIEW: lcd.print('E');break;
+		case STATUS_VIEW: lcd.print(SIGMAIND);break;
+		case QUICK_VIEW: lcd.print('Q');break;
+		case EDIT_VIEW: lcd.print(ALPHAIND);break;
 		default: lcd.print(' ');break; //NORMAL_VIEW
 	}
 }
 
-void stackViewShowUpDownIndicators(int topRowNum){
+void stackViewShowUpDownIndicators(int bottomRowNum){
 	lcd.setCursor(0, 0);
 	if (vm.topEntryNum < (vm.userStack.itemCount - 1)) lcd.write(UPIND);
 	else lcd.print(' ');
-	lcd.setCursor(0, topRowNum);
-	if ((vm.topEntryNum - topRowNum) > 0) lcd.write(DOWNIND);
+	lcd.setCursor(0, bottomRowNum);
+	if ((vm.topEntryNum - bottomRowNum) > 0) lcd.write(DOWNIND);
 	else lcd.print(' ');
 }
 
 void updatesForUpMotion() {
-	int topRowNum = DISPLAY_LINECOUNT - 1;// == 3
+	int bottomRowNum = DISPLAY_LINECOUNT - 1;// == 3
 	int8_t lastPointerRow = vm.pointerRow;
 	if (vm.viewPage == NORMAL_VIEW) {
-		showStackHP(&vm, 0, topRowNum);
+		//clean up any top exceeding pointers
+		showStackHP(&vm, 0, bottomRowNum);
 		cleanUpModes(&vm);
 		vm.viewPage = STACK_VIEW;
-		vm.pointerRow = topRowNum;
+		vm.pointerRow = bottomRowNum;
+		lcd.setCursor(1, 0);
+		lcd.print(' ');
 	} else if (vm.viewPage == STACK_VIEW) {
 		if (vm.pointerRow > 0) {
 			//pointRow is 0 at topmost row
@@ -119,11 +123,11 @@ void updatesForUpMotion() {
 		} else if (vm.pointerRow == 0) {
 			if (vm.topEntryNum < (vm.userStack.itemCount - 1)) {
 				vm.topEntryNum++;
-				showStackHP(&vm, vm.topEntryNum - topRowNum, vm.topEntryNum);
+				showStackHP(&vm, vm.topEntryNum - bottomRowNum, vm.topEntryNum);
 			} else return;
 		}
 	}
-	stackViewShowUpDownIndicators(topRowNum);
+	stackViewShowUpDownIndicators(bottomRowNum);
 	lcd.setCursor(1, lastPointerRow); //col, row
 	lcd.print(' ');
 	lcd.setCursor(1, vm.pointerRow); //col, row
@@ -131,24 +135,27 @@ void updatesForUpMotion() {
 }
 
 void updatesForDownMotion() {
-	int topRowNum = DISPLAY_LINECOUNT - 1;// == 3
+	int bottomRowNum = DISPLAY_LINECOUNT - 1;// == 3
 	int8_t lastPointerRow = vm.pointerRow;
 	if (vm.viewPage == NORMAL_VIEW) {
-		showStackHP(&vm, 0, topRowNum);
+		//clean up any top exceeding pointers
+		showStackHP(&vm, 0, bottomRowNum);
 		cleanUpModes(&vm);
 		vm.viewPage = STACK_VIEW;
-		vm.pointerRow = topRowNum;
+		vm.pointerRow = bottomRowNum;
+		lcd.setCursor(1, 0);
+		lcd.print(' ');
 	} else if (vm.viewPage == STACK_VIEW) {
-		if (vm.pointerRow < topRowNum) {
+		if (vm.pointerRow < bottomRowNum) {
 			//pointRow is DISPLAY_LINECOUNT - 1 at bottommost row
 			vm.pointerRow++;
-		} else if (vm.pointerRow == topRowNum) {
-			if (vm.topEntryNum > topRowNum)
+		} else if (vm.pointerRow == bottomRowNum) {
+			if (vm.topEntryNum > bottomRowNum)
 				vm.topEntryNum--;
-			showStackHP(&vm, vm.topEntryNum - topRowNum, vm.topEntryNum);
+			showStackHP(&vm, vm.topEntryNum - bottomRowNum, vm.topEntryNum);
 		}
 	}
-	stackViewShowUpDownIndicators(topRowNum);
+	stackViewShowUpDownIndicators(bottomRowNum);
 	lcd.setCursor(1, lastPointerRow); //col, row
 	lcd.print(' ');
 	lcd.setCursor(1, vm.pointerRow); //col, row
@@ -160,11 +167,23 @@ void cleanUpStackView(){
 	lcd.print(' ');
 }
 
+void quickViewMotion(bool right) {
+
+
+}
+
 void updatesForLeftMotion() {
 	int len = strlen(vm.userInput);
+	if (vm.viewPage == QUICK_VIEW) {
+		//user is not editing the line
+		//vm.userInput[0] == '\0' and vm.userInputPos == 0
+		vm.viewPage = QUICK_VIEW;
+		quickViewMotion(false); //left
+		return;
+	}
 
 	memset(vm.userDisplay, 0, SHORT_STRING_SIZE);
-	if ((!vm.userInputLeftOflow && !vm.userInputRightOflow) || 
+	if ((!vm.userInputLeftOflow && !vm.userInputRightOflow) ||
 		(!vm.userInputLeftOflow && vm.userInputRightOflow)) {
 		//no scrolled indicators
 		//limit movement beyond first char
@@ -174,7 +193,7 @@ void updatesForLeftMotion() {
 			vm.userInputPos--;
 		if (vm.cursorPos < DISPLAY_LINESIZE - len - 1)
 			vm.cursorPos = DISPLAY_LINESIZE - len - 1;
-		SerialPrint(2, "updatesForLeftMotion: 00 01 case ", "\n\r");
+		//SerialPrint(2, "updatesForLeftMotion: 00 01 case ", "\n\r");
 	} else if ((vm.userInputLeftOflow && !vm.userInputRightOflow) ||
 			(vm.userInputLeftOflow && vm.userInputRightOflow)) {
 		//if user input string is larger than 19, so has scrolled left
@@ -228,9 +247,16 @@ void updatesForLeftMotion() {
 
 void updatesForRightMotion(){
 	int len = strlen(vm.userInput);
-	memset(vm.userDisplay, 0, SHORT_STRING_SIZE);
+	if (vm.viewPage == QUICK_VIEW) {
+		//user is not editing the line
+		//vm.userInput[0] == '\0' and vm.userInputPos == 0
+		vm.viewPage = QUICK_VIEW;
+		quickViewMotion(true); //right
+		return;
+	}
 
-	if ((!vm.userInputLeftOflow && !vm.userInputRightOflow) || 
+	memset(vm.userDisplay, 0, SHORT_STRING_SIZE);
+	if ((!vm.userInputLeftOflow && !vm.userInputRightOflow) ||
 		(vm.userInputLeftOflow && !vm.userInputRightOflow)) {
 		//no scrolled indicators
 		//limit movement beyond first char
@@ -252,9 +278,10 @@ void updatesForRightMotion(){
 					//SerialPrint(2, "updatesForRightMotion: 00 10 A case ", "\n\r");
 					lcd.print(vm.userDisplay);
 					lcd.print(' ');
+				} else if (false) {
 				} else {
 					//SerialPrint(2, "updatesForRightMotion: 00 10 B case ", "\n\r");
-					lcd.setCursor(DISPLAY_LINESIZE - len, 3); //col, row
+					lcd.setCursor(DISPLAY_LINESIZE - len - 1, 3); //col, row
 					zstrncpy(vm.userDisplay, &vm.userInput[len - DISPLAY_LINESIZE + 1], len);
 					lcd.print(vm.userDisplay);
 				}
@@ -312,7 +339,6 @@ void setup() {
 	digitalWrite(LED_BUILTIN, LOW);	// turn the LED off (LOW is the voltage level)
 	vm.LEDState = false;
 
-	//FIXME - remove once tim command works
     datetime_t alarm = {
 		.year  = 2023,
         .month = 9,
@@ -333,7 +359,7 @@ void setup() {
     // Start the RTC
     rtc_init();
     rtc_set_datetime(&alarm);
-	vm.TS0RTCFreq = clock_get_hz(clk_rtc);
+	//vm.TS0RTCFreq = clock_get_hz(clk_rtc);
 
     alarm.sec  = vm.alarmSec;
 	rtc_set_alarm(&alarm, &toggleLED);
@@ -390,6 +416,7 @@ void setup() {
 	  B11110,
 	};
 
+	char version[20];
 	// initialize digital pin LED_BUILTIN as an output.
 	lcd.createChar(UPIND, upIndicator);
 	lcd.createChar(DOWNIND, downIndicator);
@@ -397,15 +424,16 @@ void setup() {
 	lcd.createChar(ALTLOCKIND, altLockIndicator);
 	lcd.createChar(TWOIND, twoIndicator);
 	lcd.begin(DISPLAY_LINESIZE, DISPLAY_LINECOUNT); //20 cols, 4 rows
-	lcd.setCursor(DISPLAY_STATUS_WIDTH, 0);
+	lcd.noCursor();
+	lcd.setCursor(1, 0);
 	lcd.print("....Toy Stacky....");
-	lcd.setCursor(DISPLAY_STATUS_WIDTH, 1);
-	lcd.print("   ....v1.0....   ");
-	lcd.setCursor(DISPLAY_STATUS_WIDTH, 2);
+	lcd.setCursor(1, 1);
+	lcd.print("   ....v1.1....   ");
+	sprintf(version, "%s %s", __DATE__, __TIME__);
+	lcd.setCursor(1, 2);
 	lcd.print("     ..TS-0..     ");
 	lcd.setCursor(0, DISPLAY_LINECOUNT - 1);
-	lcd.print("                      ");
-	lcd.cursor();
+	lcd.print(version);
 	lcd.setCursor(DISPLAY_LINESIZE - 1, 3); //col, row
 	Serial.begin(115200); //works at 9600 ONLY!!
 }
@@ -421,11 +449,11 @@ void loop1() {
 }
 
 void processImmdOpKeyC (const char* str) {
-	if ((vm.userInputPos > 0) && (vm.userInputPos < STRING_SIZE)) {
+	if ((vm.userInputPos > 0) && (vm.userInputPos < STRING_SIZE - 1)) {
 		vm.userInput[vm.userInputPos++] = ' ';
 		SerialPrint(1, "\n\r");
 	}
-	strcpy(&vm.userInput[vm.userInputPos], str); 
+	strcpy(&vm.userInput[vm.userInputPos], str);
 	SerialPrint(1, "\n\r");
 	strcpy(vm.userInputInterpret, vm.userInput);
 	clearUserInput();
@@ -439,17 +467,22 @@ void processImmdOpKeyC (const char* str) {
 #include "ToyStacky-page-2-normal-mode-keyhandler.h"
 #include "ToyStacky-page-2-alt-mode-keyhandler.h"
 
+void goBackToNormalMode() {
+	//going back to normal view clear variables
+	vm.viewPage = NORMAL_VIEW;
+	vm.topEntryNum = DISPLAY_LINECOUNT - 1;
+	vm.pointerRow = DISPLAY_LINECOUNT - 1;
+	lcd.clear();
+	showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
+	showModes(&vm);
+}
+
 void loop() {
-	//char debug0[10];
 	char keyc = customKeypad.getKey();
 
 	if (keyc) {
-		//debug0[0] = keyc; debug0[1] = '\0';
-		//SerialPrint(3, "Key stroke -- got ", debug0, "\n\r");
-		
 		if (vm.viewPage == NORMAL_VIEW) {
-			if (keyc == 'C' && (vm.altState == 0x0)) { //command page
-				//processImmdOpKeyC("cmdpg");
+			if (keyc == 'P' && (vm.altState == 0x0)) { //command page
 				if (vm.cmdPage < (MAX_CMD_PAGES - 1)) vm.cmdPage++;
 				else vm.cmdPage = 0;
 				keyTypePressed = 5;
@@ -510,13 +543,44 @@ void loop() {
 						break;
 				}
 				if (vm.altState == 1) vm.altState = 0;
-				showModes(&vm);
+				//showModes only when left/right keys are not pressed
+				//(in NORMAL_VIEW mode)
+				//this is because while editing, current line can scroll and
+				//occupy all 20 columns and showModes function clears
+				//the leftmost 2 columns of lowest row
+				if (keyTypePressed != 7 && keyTypePressed != 8) showModes(&vm);
 			}
 			if ((vm.userInput[0] != '\0') && (keyTypePressed == 0)) {
 				//user is editing the bottom row
 				showStackHP(&vm, 0, DISPLAY_LINECOUNT - 2);
 				eraseUserEntryLine();
 				showUserEntryLine(0);
+			}
+			if (keyTypePressed != 0 && keyTypePressed != 2) //immd key and not backspace
+				vm.partialComplex = false; //any pending ')' has already been added by tokenizer
+		} else if (vm.viewPage == QUICK_VIEW) { //quick view mode for top of stack
+			switch (keyc) {
+				case '\n':
+				case '\b':
+					vm.viewPage = NORMAL_VIEW;
+					showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
+					showModes(&vm);
+					break;
+				case '<': //add code to navigate
+					break;
+				case '>': //add code to navigate
+					break;
+				default:
+					vm.viewPage = NORMAL_VIEW;
+					showModes(&vm);
+					normalModeKeyhandler(keyc);
+					if ((vm.userInput[0] != '\0') && (keyTypePressed == 0)) {
+						//user is editing the bottom row
+						showStackHP(&vm, 0, DISPLAY_LINECOUNT - 2);
+						eraseUserEntryLine();
+						showUserEntryLine(0);
+					}
+					break;
 			}
 		} else if (vm.viewPage == STACK_VIEW) { //stack view mode
 			switch (keyc) {
@@ -529,14 +593,15 @@ void loop() {
 					updatesForDownMotion();
 					break;
 				case '\b':
-					//going back to normal view clear variables 
+					//going back to normal view clear variables
 					//used in stack view
-					vm.viewPage = NORMAL_VIEW;
-					vm.topEntryNum = DISPLAY_LINECOUNT - 1;
-					vm.pointerRow = DISPLAY_LINECOUNT - 1;
-					lcd.clear();
-					showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
-					showModes(&vm);
+					goBackToNormalMode();
+					//vm.viewPage = NORMAL_VIEW;
+					//vm.topEntryNum = DISPLAY_LINECOUNT - 1;
+					//vm.pointerRow = DISPLAY_LINECOUNT - 1;
+					//lcd.clear();
+					//showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
+					//showModes(&vm);
 					break;
 				case '\n':
 					int8_t meta;
@@ -555,7 +620,7 @@ void loop() {
 					showVariable(&vm);
 					showViewPage();
 					break;
-				default: 
+				default:
 					break;
 			}
 		} else if (vm.viewPage == ENTRY_VIEW) { //single entry view mode
@@ -571,7 +636,7 @@ void loop() {
 					showVariable(&vm);
 					break;
 				case '\b':
-					//going back to stack view clear variables 
+					//going back to stack view clear variables
 					//used in entry view
 					vm.topVarFragNum = 0;
 					vm.varFragCount = 0;
@@ -602,29 +667,29 @@ void loop() {
 					vm.pointerRow = DISPLAY_LINECOUNT - 1;
 					vm.viewPage = NORMAL_VIEW;
 					lcd.clear();
-					#define NOCOPYUSER
-					#ifndef NOCOPYUSER
+					#define COPYUSER
+					#ifndef COPYUSER
 					showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
+					showModes(&vm);
 					#else
 					showStackHP(&vm, 0, DISPLAY_LINECOUNT - 2);
 					clearUserInput();
 					zstrncpy(vm.userInput, vm.matvecStrC, STRING_SIZE - 1);
-					zstrncpy(vm.userDisplay, vm.matvecStrC, STRING_SIZE - 1);
 					vm.userInputPos = strlen(vm.userInput);
+					if (vm.userInputPos < DISPLAY_LINESIZE - 1)
+						vm.cursorPos = vm.userInputPos;
+					else
+						vm.cursorPos = DISPLAY_LINESIZE - 1;
 					showUserEntryLine(0);
 					#endif
-					showModes(&vm);
 					break;
-				default: 
+				default:
 					break;
 			}
 		}
 	}
-	if (rp2040.fifo.pop_nb(&core1msg)) { 
+	if (rp2040.fifo.pop_nb(&core1msg)) {
 		//non-blocking; until core 1 says done
-		//if (keyTypePressed == 5)
-			//for displaying the command page number immediately
-		//	showModes(&vm);
 		showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
 	}
 }

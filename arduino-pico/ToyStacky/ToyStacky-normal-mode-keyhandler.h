@@ -1,9 +1,3 @@
-void processNormalImmdOpKeyC (const char* str) {
-	//results in key + \n -- modify to ' ' + key + \n
-	if (vm.userInputPos >= STRING_SIZE - 7) return;
-	processImmdOpKeyC(str);
-}
-
 int normalModeKeyhandler (char keyc) {
 	int len;
 	int keyTypePressed;
@@ -20,16 +14,15 @@ int normalModeKeyhandler (char keyc) {
 			SerialPrint(1, "\r");
 	
 			if (vm.userInput[0] == '\0') {
-				if (strcmp(vm.error, "\0") == 0) {
+				if (strcmp(vm.error, "\0") == 0)
 					//no error has happened already
 					strcpy(vm.userInput, "dup");
-				} else 
+				else
 					showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
 			} else {
 				vm.userInput[len + 1] = '\0';
-				SerialPrint(3, "Got \n : vm.userInput = ", vm.userInput, "\n\r");
+				//SerialPrint(3, "Got \n : vm.userInput = ", vm.userInput, "\n\r");
 			}
-			vm.partialComplex = false; //any pending ')' has already been added by tokenizer
 			strcpy(vm.userInputInterpret, vm.userInput);
 			clearUserInput();
 			rp2040.fifo.push(CORE0_TO_CORE1_START);
@@ -72,60 +65,60 @@ int normalModeKeyhandler (char keyc) {
 			//SerialPrint(3, "Got backspace: vm.userInput = ", vm.userInput, "\r\n");
 			break;
 		//these are operators (in normal mode), result in ' ' + key + \n
-		case 'm': 
-			processNormalImmdOpKeyC("mean");
+		case 'm':
+			processImmdOpKeyC("mean");
 			keyTypePressed = 1;
 			break;
-		case 'M': 
-			processNormalImmdOpKeyC("abs");
+		case 'M':
+			processImmdOpKeyC("abs");
 			keyTypePressed = 1;
 			break;
-		case 'q': 
-			processNormalImmdOpKeyC("sqrt");
+		case 'q':
+			processImmdOpKeyC("sqrt");
 			keyTypePressed = 1;
 			break;
-		case 'p': 
-			processNormalImmdOpKeyC("pow");
+		case 'p':
+			processImmdOpKeyC("pow");
 			keyTypePressed = 1;
 			break;
-		case 's': 
-			processNormalImmdOpKeyC("sin");
+		case 's':
+			processImmdOpKeyC("sin");
 			keyTypePressed = 1;
 			break;
 		case 'X':
-			processNormalImmdOpKeyC("cos");
+			processImmdOpKeyC("cos");
 			keyTypePressed = 1;
 			break;
 		case 't':
-			processNormalImmdOpKeyC("tan");
+			processImmdOpKeyC("tan");
 			keyTypePressed = 1;
 			break;
 		case 'z':
-			processNormalImmdOpKeyC("log");
+			processImmdOpKeyC("log");
 			keyTypePressed = 1;
 			break;
 		case 'n':
-			processNormalImmdOpKeyC("exp");
+			processImmdOpKeyC("exp");
 			keyTypePressed = 1;
 			break;
 		case 'T':
-			processNormalImmdOpKeyC("2 pow");
+			processImmdOpKeyC("2 pow");
 			keyTypePressed = 1;
 			break;
-		case 'v':
-			processNormalImmdOpKeyC("vec");
+		case '%':
+			processImmdOpKeyC("100 / *"); //y% of x. ToS = y, ToS-1 = x
 			keyTypePressed = 1;
 			break;
 		case '*':
 		case '/':
 		case '+':
-		case ')': 
-		case ']': 
-		case '}': 
+		case ')':
+		case ']':
+		case '}':
 		case '@':
-			//these don't call processNormalImmdOpKeyC, but all other actions are same as above
+			//these don't call processImmdOpKeyC, but all other actions are same as above
 			keyTypePressed = 1;
-			if ((vm.userInputPos > 0) && (vm.userInputPos < STRING_SIZE)) {
+			if ((vm.userInputPos > 0) && (vm.userInputPos < STRING_SIZE - 1)) {
 				vm.userInput[vm.userInputPos++] = ' ';
 				SerialPrint(1, "\n\r");
 			}
@@ -137,7 +130,7 @@ int normalModeKeyhandler (char keyc) {
 			rp2040.fifo.push(CORE0_TO_CORE1_START);
 			break;
 		case '-': //can result in just a '-' (initial) or '-' + \n (non-initial)
-			if ((vm.userInputPos > 0) && (vm.userInputPos < STRING_SIZE) && vm.userInput[vm.userInputPos-1] != 'e') {
+			if ((vm.userInputPos > 0) && (vm.userInputPos < STRING_SIZE - 1) && vm.userInput[vm.userInputPos-1] != 'e') {
 				//non spaces followed by a '-'
 				//"1e-" will not cause immediate evaluation as this is part of an incomplete number
 				keyTypePressed = 1;
@@ -153,7 +146,7 @@ int normalModeKeyhandler (char keyc) {
 			} else {
 				//first char or -number
 				keyTypePressed = 0;
-				if (vm.userInputPos < STRING_SIZE) {
+				if (vm.userInputPos < STRING_SIZE - 1) {
 					vm.userInput[vm.userInputPos++] = '-';
 					if (vm.cursorPos < DISPLAY_LINESIZE - 1)
 						vm.cursorPos++;
@@ -184,9 +177,10 @@ int normalModeKeyhandler (char keyc) {
 			updatesForRightMotion();
 			break;
 		default:
+			//these need no translation and no immediate operation
 			keyTypePressed = 0;
-			Serial.print(keyc);
-			if (((keyc != ' ') || (vm.userInputPos > 0)) && (vm.userInputPos < STRING_SIZE)) {
+			//Serial.print(keyc);
+			if (((keyc != ' ') || (vm.userInputPos > 0)) && (vm.userInputPos < STRING_SIZE - 1)) {
 				//space cannot be entered at start when vm.userInputPos = 0
 				vm.userInput[vm.userInputPos++] = keyc;
 				if (vm.cursorPos < DISPLAY_LINESIZE - 1)

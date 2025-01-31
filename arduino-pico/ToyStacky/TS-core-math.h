@@ -4,18 +4,18 @@ long double sgn(long double value) {
 }
 
 long double abso (ComplexDouble value) {
-	return sqrt(value.real * value.real + value.imag * value.imag);
+	return sqrtl(value.real * value.real + value.imag * value.imag);
 }
 
 bool alm0(ComplexDouble value) {
 	//limit of long double precision
-	if (fabs(value.real) < DOUBLE_EPS && fabs(value.imag) < DOUBLE_EPS) return true;
+	if (fabsl(value.real) < DOUBLE_EPS && fabsl(value.imag) < DOUBLE_EPS) return true;
 	else return false;
 }
 
 bool alm0double(long double value) {
 	//limit of long double precision
-	if (fabs(value) < DOUBLE_EPS) return true;
+	if (fabsl(value) < DOUBLE_EPS) return true;
 	else return false;
 }
 
@@ -33,16 +33,16 @@ long double cargu (ComplexDouble value) {
 			errno = 10000;
 			return 0; //undef arg
 		}
-		return ((value.imag < 0)? -1.5707963267948965L: 1.5707963267948965L);
+		return ((value.imag < 0)? -1.570796326794896619L: 1.570796326794896619L);
 	}
-	long double princ =  atan(value.imag/value.real);
+	long double princ =  atanl(value.imag/value.real);
 	//printf ("cargu: sign of real = %f sign of imag = %f\n", sgn(value.real), sgn(value.imag));
 	if (value.real >= 0 && value.imag >= 0)
 		return princ; //1st quadrant ok
 	else if (value.real < 0 && value.imag >= 0)
-		return princ + 3.141592653589793L; //2nd quadrant ok
+		return princ + 3.14159265358979323846L; //2nd quadrant ok
 	else if (value.real < 0 && value.imag < 0)
-		return princ - 3.141592653589793L;//3rd quadrant ok
+		return princ - 3.14159265358979323846L;//3rd quadrant ok
 	else if (value.real >= 0 && value.imag < 0)
 		return princ; //4th quadrant ok
 	else
@@ -164,24 +164,24 @@ ComplexDouble cln(ComplexDouble c) {
 	if (!alm0double(re) && alm0double(im) && (re > 0.0)) {
 		//imag is 0
 		//re is positive
-		return makeComplex(log(re), 0);
+		return makeComplex(logl(re), 0);
 	} else if (!alm0double(re)) {
 		if (re > 0.0) {
-			r = log(re);
+			r = logl(re);
 			j = 0.0;
 		} else {
 			//log of a negative number = log (-1) * log of the negative of the negative number
 			//log (-1) = pi * i
-			r = log(-re);
+			r = logl(-re);
 			j = __TS_PI__;
 		}
 		if (!alm0double(im)) {
 			imdre = (im/re);
-			r += log(imdre*imdre + 1)/2;
+			r += logl(imdre*imdre + 1)/2;
 			j += atan(imdre);
 		} 
 	} else if (!alm0double(im)) {
-		r = log(im);
+		r = logl(im);
 		j = 0.5 * __TS_PI__  * sgn(im);
 	} else {
 		r = 0;
@@ -199,7 +199,7 @@ ComplexDouble cexpo(ComplexDouble c) {
 	}
 	long double r = c.real;
 	long double j = c.imag;
-	long double rexp = exp(r);
+	long double rexp = expl(r);
 	r = rexp * cos(j);
 	if (!alm0double(c.imag))
 		j = rexp * sin(j);

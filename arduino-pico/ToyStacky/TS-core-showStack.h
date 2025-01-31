@@ -13,17 +13,17 @@ void showModes (Machine* vm) {
 	lcd.setCursor(0, 0);
 	switch(vm->cmdPage) {
 		case 0:
-			lcd.print(char(0xdb)); break;
+			lcd.print(CMDPG_0); break;
 		case 1:
-			lcd.print(char(0xd5)); break;
+			lcd.print(CMDPG_1); break;
 		case 2:
 			lcd.write(TWOIND); break;
 		case 3:
-			lcd.print(char(0xd6)); break;
+			lcd.print(CMDPG_3); break;
 		case 4:
-			lcd.print(char(0xd1)); break;
+			lcd.print(CMDPG_4); break;
 		default:
-			lcd.print(char(0xdb)); break;
+			lcd.print(CMDPG_0); break;
 	}
 
 	lcd.setCursor(0, 1);
@@ -121,6 +121,7 @@ void showStackEntries(Machine* vm, int linestart, int lineend) {
 		if (meta != -1) {
 			makeComplexMatVecStringFit(vm->userDisplay, vm->coadiutor, NUMBER_LINESIZE, barrier);
 			lcd.setCursor(1, lineend - i);
+			lcd.print(" ");
 			lcd.setCursor(DISPLAY_LINESIZE - strlen(vm->userDisplay), lineend - i);
 			lcd.print(vm->userDisplay);
 		} else {
@@ -129,6 +130,14 @@ void showStackEntries(Machine* vm, int linestart, int lineend) {
 			lcd.setCursor(DISPLAY_STATUS_WIDTH, lineend - i);
 			lcd.print("..................");
 		}
+	}
+	//in normal mode, if stack count exceeds display line count, show up arrow
+	if (vm->viewPage == NORMAL_VIEW) {
+		lcd.setCursor(1, 0);
+		if (vm->userStack.itemCount > DISPLAY_LINECOUNT) 
+			lcd.write(UPIND);
+		else
+			lcd.print(' ');
 	}
 }
 
