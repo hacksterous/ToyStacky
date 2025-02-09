@@ -1,6 +1,6 @@
 int normalModeKeyhandler (char keyc) {
 	int len;
-	int keyTypePressed;
+	int keyTypePressed = -1;
 	len = strlen(vm.userInput);
 	switch (keyc) {
 		case '\n':
@@ -14,11 +14,7 @@ int normalModeKeyhandler (char keyc) {
 			SerialPrint(1, "\r");
 	
 			if (vm.userInput[0] == '\0') {
-				if (strcmp(vm.error, "\0") == 0)
-					//no error has happened already
-					strcpy(vm.userInput, "dup");
-				else
-					showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
+				strcpy(vm.userInput, "dup");
 			} else {
 				vm.userInput[len + 1] = '\0';
 				//SerialPrint(3, "Got \n : vm.userInput = ", vm.userInput, "\n\r");
@@ -28,7 +24,6 @@ int normalModeKeyhandler (char keyc) {
 			rp2040.fifo.push(CORE0_TO_CORE1_START);
 			break;
 		case '\b':
-			Serial.print(keyc);
 			if (vm.userInputPos > 0) {
 				bool lastChar = (vm.userInputPos == 1) && (vm.cursorPos == DISPLAY_LINESIZE - 1);
 				keyTypePressed = 2;
@@ -135,12 +130,12 @@ int normalModeKeyhandler (char keyc) {
 				//"1e-" will not cause immediate evaluation as this is part of an incomplete number
 				keyTypePressed = 1;
 				vm.userInput[vm.userInputPos++] = ' ';
-				SerialPrint(1, "\n\r");
+				//SerialPrint(1, "\n\r");
 				vm.userInput[vm.userInputPos++] = '-';
 				vm.userInput[vm.userInputPos] = '\0';
-				SerialPrint(1, "\n\r");
+				//SerialPrint(1, "\n\r");
 				strcpy(vm.userInputInterpret, vm.userInput);
-				SerialPrint(3, "Got - non-initial: vm.userInput = ", vm.userInput, "\n\r");
+				//SerialPrint(3, "Got - non-initial: vm.userInput = ", vm.userInput, "\n\r");
 				clearUserInput();
 				rp2040.fifo.push(CORE0_TO_CORE1_START);
 			} else {
@@ -150,7 +145,7 @@ int normalModeKeyhandler (char keyc) {
 					vm.userInput[vm.userInputPos++] = '-';
 					if (vm.cursorPos < DISPLAY_LINESIZE - 1)
 						vm.cursorPos++;
-					SerialPrint(3, "Got - initial: vm.userInput = ", vm.userInput, "\n\r");
+					//SerialPrint(3, "Got - initial: vm.userInput = ", vm.userInput, "\n\r");
 					//SerialPrint(1, "\n\r");
 				}
 			}
@@ -163,17 +158,28 @@ int normalModeKeyhandler (char keyc) {
 			showViewPage();
 			break;
 		case 'D': //down
-			keyTypePressed = 4;
-			lcd.noCursor();
-			updatesForDownMotion();
-			showViewPage();
+			//keyTypePressed = 3;
+			//lcd.noCursor();
+			//updatesForDownMotion();
+			//showViewPage();
+			processImmdOpKeyC("gcd");
+			keyTypePressed = 1;
 			break;
 		case '<': //left
-			keyTypePressed = 7;
-			updatesForLeftMotion();
+			if ((vm.userInputPos > 0) && (vm.userInputPos < STRING_SIZE - 1)) {
+				//user is editing the entry line
+				keyTypePressed = 7;
+				updatesForLeftMotion();
+			}
+			else {
+				//user is not editing the entry line
+				//reuse for a function
+				processImmdOpKeyC("lcm");
+				keyTypePressed = 1;
+			}
 			break;
 		case '>': //right
-			keyTypePressed = 8;
+			keyTypePressed = 7;
 			updatesForRightMotion();
 			break;
 		default:

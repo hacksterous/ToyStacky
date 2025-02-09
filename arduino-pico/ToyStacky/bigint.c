@@ -487,12 +487,12 @@ size_t bigint_max_stringlen(const bigint_t *x) {
 	return x->length * 10 + x->negative;
 }
 
-bool bigint_tostring(const bigint_t *x, char *str) {
+bool bigint_tostring(const bigint_t *x, char *str, int negate) {
 	if (x->length == -1) {
 		*str = '\0';
 		return false;
 	}
-	if (x->negative) {
+	if (x->negative ^ negate) {
 		*str++ = '-';
 	}
 
@@ -502,7 +502,7 @@ bool bigint_tostring(const bigint_t *x, char *str) {
 
 void bigint_print(bigint_t *x) {
 	char str[bigint_max_stringlen(x) + 1];
-	if (bigint_tostring(x, str))
+	if (bigint_tostring(x, str, 0))
 		puts(str);
 	else
 		puts("\n");
@@ -664,12 +664,11 @@ void bigint_rem(const bigint_t *x, const bigint_t *y, bigint_t *res) {
 	res->negative = x->negative;
 }
 
-void bigint_neg(const bigint_t *x, bigint_t *res) {
+void bigint_negative(const bigint_t *x, bigint_t *res) {
 	bigint_create(x->length, x->data, x->negative ^ 1, res);
 }
 
-//FIXME
-long long binpow(long long a, long long b) {
+long long powll(long long a, long long b) {
     long long res = 1;
     while (b > 0) {
         if (b & 1)
@@ -729,7 +728,7 @@ void bigint_from_uint32(bigint_t *x, const uint32_t n) {
 	bigint_create(1, u, false, x);
 }
 
-void bigint_from_int(bigint_t *x, const int n) {
+void bigint_from_int(bigint_t *x, const long int n) {
 	uint32_t u[1];
 	if (n < 0) {
 		u[0] = -n;
@@ -740,41 +739,47 @@ void bigint_from_int(bigint_t *x, const int n) {
 	}
 }
 
-void bigint_to_hex(const bigint_t *x, char *hex_str) {
+void bigint_to_hex(const bigint_t *x, char *hexstr) {
     int i, j = 0;
-    char temp_str[260]; // Temporary string to hold the hex digits
+    //char tempstr[BIGINT_STRING_SIZE]; // Temporary string to hold the hex digits
+	char tempstr[bigint_max_stringlen(x) + 1];
     int start = 0; // Flag to handle leading zeros
 
-    // Add "h" prefix to the output string
-    strcpy(hex_str, "h");
-
+    // Add "x" prefix to the output string
+    strcpy(hexstr, "x");
+	//printf("=== bigint_to_hex: before start, tempstr = %s and bigint x = ", tempstr);
+	//bigint_print(x);
+	//printf("=== bigint_to_hex: before start, len bigint x = %d\n", x->length);
     // Convert each uint32_t in the data array to hex
-    for (i = 128; i >= 0; i--) {
+    for (i = x->length - 1; i >= 0; i--) {
         if (x->data[i] == 0 && !start) {
             continue; // Skip leading zeros
         }
         start = 1;
-		sprintf(temp_str + j, "%08x", (unsigned int)x->data[i]);
+		sprintf(tempstr + j, "%08x", (unsigned int)x->data[i]);
+		//printf("i = %d j = %d tempstr = %s\n", i, j, tempstr);
         j += 8;
     }
 
+	//printf("=== bigint_to_hex: before leading 0 deletion, tempstr = %s\n", tempstr);
     // If the number is zero, it will become 0x0
     if (!start) {
-        strcpy(temp_str, "0");
+        strcpy(tempstr, "0");
     }
 
-	//printf("=== bigint_to_hex: before leading 0 deletion, temp_str = %s\n", temp_str);
 	//remove leading zeros
 	i = 0;
-	while (temp_str[i] == '0') i++;
+	while (tempstr[i] == '0') i++;
 
-    // add after "h"
-    strcat(hex_str, temp_str + i);
+    // add after "x"
+	if (x->negative) strcat(hexstr, "-");
+    strcat(hexstr, tempstr + i);
+	//printf("=== bigint_to_hex: after leading 0 deletion, 'x' addition, tempstr = %s\n", hexstr);
 }
 
-bool bigint_from_hex(const char *hex_str, bigint_t *res) {
-    size_t len = strlen(hex_str);
-    if (len < 2 || hex_str[0] != 'h') {
+bool bigint_from_hex(bigint_t *res, char *hexstr){
+    size_t len = strlen(hexstr);
+    if (len < 2 || hexstr[0] != 'x') {
         return false; // Invalid hex string
     }
 
@@ -783,17 +788,23 @@ bool bigint_from_hex(const char *hex_str, bigint_t *res) {
     res->negative = 0;
     memset(res->data, 0, sizeof(res->data));
 
-    size_t hex_len = len - 1; // Length of the hex digits
-    size_t num_digits = (hex_len + 7) / 8; // Number of uint32_t required
+    size_t hexlen = len - 1; // Length of the hex digits
+    size_t num_digits = (hexlen + 7) / 8; // Number of uint32_t required
 
-    for (size_t i = 0; i < hex_len; i++) {
-        char c = hex_str[hex_len - i]; // Get the hex digit from the end
+    for (size_t i = 0; i < hexlen; i++) {
         uint32_t value;
-        if (isdigit(c)) {
+        char c = hexstr[hexlen - i]; // Get the hex digit from the end
+		if (c == '-' && i == 0) {
+			res->negative = 1;
+			continue;
+		}
+        else if (isdigit(c)) {
             value = c - '0';
-        } else if (isxdigit(c)) {
+        }
+		else if (isxdigit(c)) {
             value = tolower(c) - 'a' + 10;
-        } else {
+        }
+		else {
             return false; // Invalid character in hex string
         }
         size_t pos = i / 8;
@@ -802,6 +813,26 @@ bool bigint_from_hex(const char *hex_str, bigint_t *res) {
 
     res->length = num_digits;
     return true;
+}
+
+void bigint_hex (const bigint_t *x, char* res) {
+	bigint_to_hex (x, res);
+}
+
+void bigint_dec (const bigint_t *x, char* res) {
+}
+
+void bigint_bin (const bigint_t *x, char* res) {
+}
+
+void bigint_oct (const bigint_t *x, char* res) {
+}
+
+void bigint_neg (const bigint_t *x, char* res) {
+	bigint_tostring(x, res, 1);
+}
+
+void bigint_lcm (const bigint_t *a, const bigint_t *b, bigint_t *lcm) {
 }
 
 void bigint_gcd (const bigint_t *a, const bigint_t *b, bigint_t *gcd, bigint_t *x) {
@@ -855,11 +886,6 @@ void bigint_gcd (const bigint_t *a, const bigint_t *b, bigint_t *gcd, bigint_t *
 		//oldr, r = r, oldr - q*r
 		//x, s = s, x - q*s
 		//y, t = t, y - q*t
-
-		//Equiv. for cpp
-        //tie(x, x1) = make_tuple(x1, x - q * x1);
-        //tie(y, y1) = make_tuple(y1, y - q * y1);
-        //tie(a1, b1) = make_tuple(b1, a1 - q * b1);
 
 		bigint_div(&oldr, &r, &q);
 
@@ -942,5 +968,11 @@ void bigint_mod_exp(const bigint_t *base, const bigint_t *exp, const bigint_t *m
         bigint_mul(&base_mod, &base_mod, &temp);
         bigint_rem(&temp, mod, &base_mod);
     }
-
 }
+
+void bigint_pow(const bigint_t *x, const bigint_t *y, bigint_t *res){
+	bigint_t one;
+	bigint_from_int(&one, 1);
+	bigint_mod_exp(x, y, &one, res); //reuse mod exp with mod = 1
+}
+

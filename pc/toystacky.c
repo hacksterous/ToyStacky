@@ -13,7 +13,7 @@ License: GNU GPL v3
 #include <math.h>
 #include <errno.h>
 #include "linenoise.h"
-#include "bigint.h"
+#include "../arduino-pico/ToyStacky/bigint.h"
 
 #define DESKTOP_PC
 #define MAX_MATVECSTR_LEN 4900 //enough for one 12x12 matrix of long double complex
@@ -34,8 +34,10 @@ License: GNU GPL v3
 #define VSHORT_STRING_SIZE 25
 //#define DOUBLE_EPS 1.5e-200
 //#define DOUBLEFN_EPS 1.5e-16 //for return values of functions
-#define DOUBLE_EPS __LDBL_MIN__
-#define DOUBLEFN_EPS __LDBL_MIN__
+//#define DOUBLE_EPS __LDBL_MIN__
+//#define DOUBLEFN_EPS __LDBL_MIN__
+#define DOUBLE_EPS __LDBL_EPSILON__
+#define DOUBLEFN_EPS __LDBL_EPSILON__
 
 #define COMSTARTTOKENC '('
 #define VECSTARTTOKENC '['
@@ -194,7 +196,10 @@ typedef struct {
 
 #include "../arduino-pico/ToyStacky/TS-core-math.h"
 typedef long double (*RealFunctionPtr)(ComplexDouble);
-typedef void (*BigIntVoidFunctionPtr)(const bigint_t*, const bigint_t*, bigint_t*);
+typedef void (*BigIntVoid1ParamFunctionPtr)(const bigint_t*, char*);
+
+typedef void (*BigIntVoid2ParamFunctionPtr)(const bigint_t*, const bigint_t*, bigint_t*);
+
 typedef int (*BigIntIntFunctionPtr)(const bigint_t*, const bigint_t*);
 typedef ComplexDouble (*ComplexFunctionPtr1Param)(ComplexDouble);
 typedef ComplexDouble (*ComplexFunctionPtr2Param)(ComplexDouble, ComplexDouble);
@@ -208,30 +213,39 @@ const char* matrixfnname[] = {
 						};
 const int NUMMATRIXPARAMFN = 7;
 const char* mathfn1paramname[] = {
-						"sin", "cos", "tan", "cot", "sinh", "cosh", "tanh", "coth", 
-						"asin", "acos", "atan", "acot", "asinh", "acosh", "atanh", "acoth",
-						"exp", "log10", "log", "log2", "sqrt", "cbrt", "conj", 
+						"sin", "cos", "tan", "cot", 
+						"rect",
+						"asin", "acos", "atan", "acot", 
+						"polar", 
+						"sinh", "cosh", "tanh", "coth", 
+						"asinh", "acosh", "atanh", "acoth", 
+						"exp", "log10", "log", "log2", "sqrt", "cbrt", "conj",
+						"torad", "todeg", "recip", "neg",						
 						"abs", "arg", "re", "im"}; //the 1 param functions
 
-const int NUMMATH1PARAMFN = 23;
+const int NUMMATH1PARAMFN = 29;
 const int NUMREAL1PARAMFN = 4;
-const int NUMMATH1PARAMTRIGFN = 8;
-const int NUMMATH1PARAMTRIGANTIFN = 16;
+const int NUMMATH1PARAMTRIGFN = 5;
+const int NUMMATH1PARAMTRIGANTIFN = 10;
 
 //these 23 return ComplexDouble
-ComplexFunctionPtr1Param mathfn1param[] = {	csine, 
-											ccosine, 
-											ctangent, 
-											ccotangent, 
-											csinehyp, 
-											ccosinehyp, 
+ComplexFunctionPtr1Param mathfn1param[] = {	csine,
+											ccosine,
+											ctangent,
+											ccotangent,
+											rect,
+
+											carcsine,
+											carccosine,
+											carctangent,
+											carccotangent,
+											polar,
+
+											csinehyp,
+											ccosinehyp,
 											ctangenthyp,
 											ccotangenthyp,
 
-											carcsine, 
-											carccosine, 
-											carctangent,
-											carccotangent,
 											carcsinehyp, 
 											carccosinehyp, 
 											carctangenthyp,
@@ -240,21 +254,30 @@ ComplexFunctionPtr1Param mathfn1param[] = {	csine,
 											cexpo, clogarithm10, 
 											cln, clog2, 
 											csqroot, cbroot, 
-											conjugate};
+											conjugate,
+
+											ctorad,
+											ctodeg,
+											crecip,
+											cneg};
 
 //the 1 param functions that have real result
 RealFunctionPtr realfn1param[] = {abso, cargu, crealpart, cimagpart};
-//                                         bigint_pow -- to be implemented
-BigIntVoidFunctionPtr bigfnvoid2param[] = {NULL, bigint_max, bigint_min, bigint_add, bigint_sub, bigint_mul, bigint_div, bigint_rem};
+
+BigIntVoid1ParamFunctionPtr bigfnvoid1param[] = {bigint_hex, bigint_dec, bigint_bin, bigint_oct, bigint_neg};
+BigIntVoid2ParamFunctionPtr bigfnvoid2param[] = {bigint_pow, bigint_max, bigint_min, bigint_add, bigint_sub, bigint_mul, bigint_div, bigint_rem};
 
 BigIntIntFunctionPtr bigfnint2param[] = {bigint_gt, bigint_lt, bigint_gte, bigint_lte, bigint_eq, bigint_neq};
 
+const char* bigfnvoid1paramname[] = {"hex", "dec", "bin", "oct", "neg"};
+const int NUMBIGINT1FNS = 5;
 const char* vecfn1paramname[] = {"sum", "sqsum", "var", "sd", "mean", "rsum"};
 const char* vecfn2paramname[] = {"dot"};
 const int NUMVECFNS = 6;
 const int NUMVEC2FNS = 1;
 
 const char* mathfnop2paramname[] = {
+						"logxy",
 						"atan2", "pow",
 						"max", "min",
 						ADDTOKEN, SUBTOKEN,
@@ -264,9 +287,11 @@ const char* mathfnop2paramname[] = {
 						LTETOKEN, EQTOKEN,
 						NEQTOKEN, PARTOKEN
 						}; //the 2 params functions
-const int  NUMMATH2PARAMFNOP = 16;
-const int NUMVOIDBIGINTFNMIN = 1;
-const int NUMVOIDBIGINTFNMAX = 8;
+const int  NUMMATH2PARAMFNOP = 17;
+const int NUMVOID2PARAMBIGINTFNMIN = 2;
+const int NUMVOID2PARAMBIGINTFNMAX = 9;
+
+const int ATAN2FNINDEX = 1;
 
 //ADDTOKEN, SUBTOKEN,
 //MULTOKEN, DIVTOKEN,
@@ -274,12 +299,9 @@ const int NUMVOIDBIGINTFNMAX = 8;
 //LTTOKEN, GTETOKEN,
 //LTETOKEN, EQTOKEN,
 //NEQTOKEN
-const int NUMMATHOPS = 11;
 
-ComplexFunctionPtr2Param mathfn2param[] = {carctangent2, cpower, cmax, cmin, cadd, csub,
+ComplexFunctionPtr2Param mathfn2param[] = {clogx, carctangent2, cpower, cmax, cmin, cadd, csub,
 									cmul, cdiv, cmod, cgt, clt, cgte, clte, ceq, cneq, cpar};
-
-
 
 ComplexDouble suminternal(ComplexDouble running, ComplexDouble next) { 
 	return cadd(running, next);
@@ -327,6 +349,10 @@ ComplexDouble call2ParamMathFunction(int fnindex, ComplexDouble input, ComplexDo
 	return mathfn2param[fnindex](input, second);
 }
 
+void call1ParamBigIntVoidFunction(int fnindex, bigint_t *x, char* res) {
+	bigfnvoid1param[fnindex](x, res);
+}
+
 void call2ParamBigIntVoidFunction(int fnindex, bigint_t *x, bigint_t *y, bigint_t *res) {
 	bigfnvoid2param[fnindex](x, y, res);
 }
@@ -336,9 +362,6 @@ int call2ParamBigIntIntFunction(int fnindex, bigint_t *x, bigint_t *y) {
 }
 
 void zstrncpy (char*dest, const char* src, int len) {
-	//fill with nulls and copy n chars
-	////memset(dest, 0, len + 1);
-	////strncpy(dest, src, len);
 	//copy n chars -- don't use strncpy
 	if (len) {
 		*dest = '\0'; 
@@ -371,6 +394,8 @@ typedef struct {
 	char matvecStrC[MAX_MATVECSTR_LEN];
 	char lastY[MAX_MATVECSTR_LEN];
 	char lastX[MAX_MATVECSTR_LEN];
+	int8_t lastXMeta;
+	int8_t lastYMeta;
 
 	bigint_t bigA;
 	bigint_t bigB;
@@ -383,6 +408,7 @@ typedef struct {
 	int altState;	
 	long double frequency;
 	bool modeDegrees;
+	bool modePolar;
 	bool partialVector;
 	bool partialMatrix;
 	bool partialComplex;
@@ -393,7 +419,7 @@ typedef struct {
 } Machine;
 static Machine vm;
 
-bool fn1ParamScalar(Machine* vm, const char* fnname, int fnindex, int isTrig);
+bool fn1ParamScalar(Machine* vm, const char* fnname, int fnindex, int isTrig, int bigInt1Param);
 
 #include "../arduino-pico/ToyStacky/TS-core-ledger.h"
 
@@ -536,6 +562,13 @@ uint8_t conditionalData(size_t execData) {
 	return (execData & 0x7);
 }
 
+int is1ParamBigIntFunction(const char* token) {
+	for (int i = 0; i < NUMBIGINT1FNS; i++) {
+		if (strcmp(bigfnvoid1paramname[i], token) == 0) return i;
+	}
+	return -1;
+}
+
 bool fnOrOpVec2Param(Machine* vm, const char* token, int fnindex, int8_t cmeta, int8_t meta, bool returnsVector);
 #include "../arduino-pico/ToyStacky/TS-core-fnOrOp2Param.h"
 #include "../arduino-pico/ToyStacky/TS-core-fnOrOpMat2Param.h"
@@ -622,6 +655,9 @@ void initMachine(Machine* vm) {
 	strcpy(vm->acc, "0");
 	strcpy(vm->bak, "0");
 	strcpy(vm->error, "No error.");
+	strcpy(vm->lastX, "0");
+	strcpy(vm->lastY, "0");
+
 	vm->frequency = 1;
 	vm->modeDegrees = false;
 	vm->partialVector = false;
@@ -638,7 +674,7 @@ void initMachine(Machine* vm) {
 #include "../arduino-pico/ToyStacky/TS-core-process.h"
 
 void printRegisters(Machine* vm) {
-	printf("\tERR = %s\n", (vm->error[0] != '\0')? vm->error: "\"\"");
+	printf("\tError: %s\n", (vm->error[0] != '\0')? vm->error: "\"\"");
 }
 
 void interpret(Machine* vm, char* sourceCode) {
@@ -663,6 +699,7 @@ void interpret(Machine* vm, char* sourceCode) {
 
 void showScreen(Machine* vm, char* line) {
 	printf("===================================\n");
+	printf("\tMode: %s %s\n", (vm->modeDegrees)? "Degrees": "Radian", (vm->modePolar)? "Polar": "Cartesian");
 	printStack(&vm->userStack, 0, true);
 	//printf("-----------------------------------\n");
 	printRegisters(vm);
@@ -689,6 +726,11 @@ int main(int argc, char **argv) {
 	char command[STRING_SIZE];
 	char* line;
 
+	printf("===================================\n");
+	printf("\tMode: %s %s\n", (vm.modeDegrees)? "Degrees": "Radian", (vm.modePolar)? "Polar": "Cartesian");
+	printStack(&vm.userStack, 0, true);
+	printRegisters(&vm);
+	printf("===================================\n");
 	/* Parse options, with --multiline we enable multi line editing. */
 	while(argc > 1) {
 		argc--;

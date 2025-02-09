@@ -14,6 +14,7 @@ bool fnOrOpVec1Param(Machine* vm, const char* token, int fnindex, bool isTrig, b
 
 	char* input = NULL;
 	char output[MAX_TOKEN_LEN];
+	int bigInt1Param = -1;
 	bool success;
 	if (returnsVector) {
 		//ToS is known to have a vector, no need to check for empty stack or non-vector item
@@ -29,7 +30,7 @@ bool fnOrOpVec1Param(Machine* vm, const char* token, int fnindex, bool isTrig, b
 			strcpy(vm->acc, output);
 			//function name is in token
 			//scalar, function argument is in vm->acc
-			success = fn1ParamScalar(vm, token, fnindex, isTrig);
+			success = fn1ParamScalar(vm, token, fnindex, isTrig, bigInt1Param); //FIXME: always passing -1
 			//fn1ParamScalar has the result in acc
 			FAILANDRETURNVAR(!success, vm->error, "%s bad arg.", fitstr(vm->coadiutor, token, 8))
 			//strcat(vm->matvecStrB, " ");
@@ -38,7 +39,7 @@ bool fnOrOpVec1Param(Machine* vm, const char* token, int fnindex, bool isTrig, b
 			//printf ("fnOrOpVec1Param: loop, vm->matvecStrB = %s\n", vm->matvecStrB);
 		}
 		strcat(vm->matvecStrB, "]");
-		pop(&vm->userStack, vm->lastX);
+		vm->lastXMeta = pop(&vm->userStack, vm->lastX);
 		push(&vm->userStack, vm->matvecStrB, METAVECTOR);
 	}
 	else { //returns a scalar
@@ -78,7 +79,7 @@ bool fnOrOpVec1Param(Machine* vm, const char* token, int fnindex, bool isTrig, b
 		//c.imag = cimagpart(crunning);
 		success = complexToString(crunning, vm->acc, vm->precision, vm->notationStr);
 		FAILANDRETURNVAR(!success, vm->error, "fn %s failed", fitstr(vm->coadiutor, token, 8))
-		pop(&vm->userStack, vm->lastX);
+		vm->lastXMeta = pop(&vm->userStack, vm->lastX);
 		push(&vm->userStack, vm->acc, METASCALAR);
 	}
 	return true;

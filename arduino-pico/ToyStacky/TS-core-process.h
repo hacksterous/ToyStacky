@@ -8,14 +8,12 @@ bool process(Machine* vm, char* token) {
 	//printf("process:------------------- token = %s\n", token);
 	//printf("process:------------------- UintStackPeek = %lu\n", execData);
 	if ((ifCondition && doingIf) || (!ifCondition && !doingIf) || (!conditional)) {
+		int is1ParamBigIntFn = is1ParamBigIntFunction(token);
 		int ismatfn = isMatFunction(token);
 		int is1pfn = is1ParamFunction(token);
 		int is2pfn = is2ParamFunction(token);
 		int isvecfn = isVec1ParamFunction(token);
 		int isTrig = is1ParamTrigFunction(token);
-		//keep top two stack entries in last registers
-		peek(&vm->userStack, vm->lastX);
-		peekn(&vm->userStack, vm->lastY, 1);
 		if (ismatfn != -1) {
 			Matrix m;
 			ComplexDouble c;
@@ -61,15 +59,68 @@ bool process(Machine* vm, char* token) {
 					break;
 			}
 		}
-		else if (is1pfn != -1) {
+		else if (is1pfn != -1 || is1ParamBigIntFn != -1) {
 			//printf("process:------------------- is1pfn = %d\n", is1pfn);
-			success = fn1Param(vm, token, is1pfn, isTrig);
+			success = fn1Param(vm, token, is1pfn, isTrig, is1ParamBigIntFn);
 		} else if (is2pfn != -1) {
 			//printf("process:------------------- is2pfn|op = %d\n", is2pfn);
 			//could call 2-parameter vector function
 			success = fnOrOp2Param(vm, token, is2pfn);
 		} else if (isvecfn != -1) {
 			success = fnOrOpVec1Param(vm, token, isvecfn, false, false); //not a trig fn., result is not vector
+		} else if (strcmp(token, "reim") == 0) {
+			//swap real and imaginary components
+			int8_t meta = peekbarrier(&vm->userStack, NULL);
+			long double temp;
+			//meaningless to put barrier on empty stack
+			FAILANDRETURN((meta == -1), vm->error, "stack empty.W", NULLFN)
+			FAILANDRETURN((meta != METASCALAR), vm->error, "only real here.", NULLFN)
+			pop(&vm->userStack, vm->matvecStrC);
+			ComplexDouble c;			
+			c.imag = 0;
+			if (isComplexNumber(vm->matvecStrC)) //complex
+				success = stringToComplex(vm->matvecStrC, &c);
+			else if (isRealNumber(vm->acc)) //real number
+				success = stringToDouble(vm->matvecStrC, &c.real);
+			FAILANDRETURNVAR(!success, vm->error, "%s bad arg.", fitstr(vm->coadiutor, token, 8))
+
+			if (vm->modePolar) {
+				if (vm->modeDegrees) c.imag *= 0.01745329251994329576923L;
+				if (!alm0double(c.imag)) {
+					temp = c.real * cosl(c.imag);
+					c.imag = c.real * sinl(c.imag);
+					c.real = temp;
+				}
+				//now, the number is in radians in cartesian mode
+			}
+
+			temp = c.imag;
+			c.imag = c.real;
+			c.real = temp;
+
+			if (vm->modePolar) {
+				//convert back to polar mode
+				if (!alm0double(c.real)) {
+					temp = abso(c);
+					c.imag = atan(c.imag/c.real);
+					c.real = temp;
+				} else {
+					c.imag = 1.570796326794896619231L;//pi/2
+					c.real = 0.0;
+				}
+			
+				//convert back to degrees since this was converted to radians 
+				if (vm->modeDegrees)
+					c = makeComplex(c.real, c.imag * 57.295779513082320876798L);
+			}
+			complexToString(c, vm->matvecStrC, vm->precision, vm->notationStr);
+			push(&vm->userStack, vm->matvecStrC, METASCALAR);
+		#ifdef DESKTOP_PC
+		} else if (strcmp(token, "coord") == 0) {
+			vm->modePolar ^= true;
+		} else if (strcmp(token, "angle") == 0) {
+			vm->modeDegrees ^= true;
+		#endif
 		} else if (strcmp(token, "bar") == 0) { //barrier or unbarrier
 			int8_t meta = peekbarrier(&vm->userStack, NULL);
 			//meaningless to put barrier on empty stack
@@ -154,6 +205,10 @@ bool process(Machine* vm, char* token) {
 			strcat(vm->matvecStrC, "]");
 			//printf("final vector %s\n", vm->matvecStrC);
 			push(&vm->userStack, vm->matvecStrC, METAVECTOR);
+		} else if (strcmp(token, "lastx") == 0) {
+			push(&vm->userStack, vm->lastX, vm->lastXMeta);
+		} else if (strcmp(token, "lasty") == 0) {
+			push(&vm->userStack, vm->lastY, vm->lastYMeta);
 		} else if (strcmp(token, "dot") == 0) {
 			int8_t cmeta = peek(&vm->userStack, NULL); //c
 			int8_t meta = peekn(&vm->userStack, NULL, 1);  //b

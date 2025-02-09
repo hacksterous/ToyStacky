@@ -2,6 +2,7 @@ bool fnOrOpVec2Param(Machine* vm, const char* token, int fnindex, int8_t cmeta, 
 	//this function can be called for evaluation a math function operating on a vector
 	//(returnsVector = true)
 	//these functions are:
+	//  "logxy",
 	//	"atan2", "pow",
 	//	"max", "min",
 	//	ADDTOKEN, SUBTOKEN,
@@ -98,8 +99,8 @@ bool fnOrOpVec2Param(Machine* vm, const char* token, int fnindex, int8_t cmeta, 
 			//printf ("fnOrOpVec2Param: loop, vm->matvecStrC = %s\n", vm->matvecStrC);
 		}
 		strcat(vm->matvecStrC, "]");
-		pop(&vm->userStack, vm->lastX);
-		pop(&vm->userStack, vm->lastY);
+		vm->lastXMeta = pop(&vm->userStack, vm->lastX);
+		vm->lastYMeta = pop(&vm->userStack, vm->lastY);
 		push(&vm->userStack, vm->matvecStrC, METAVECTOR);
 	} else {
 		//only the dot product operator returns a scalar
@@ -154,8 +155,8 @@ bool fnOrOpVec2Param(Machine* vm, const char* token, int fnindex, int8_t cmeta, 
 		if (fabsl(c.real) < DOUBLE_EPS) c.real = 0.0;
 		if (fabsl(c.imag) < DOUBLE_EPS) c.imag = 0.0;
 		success = complexToString(c, vm->acc, vm->precision, vm->notationStr) && success;
-		pop(&vm->userStack, vm->lastX);
-		pop(&vm->userStack, vm->lastY);
+		vm->lastXMeta = pop(&vm->userStack, vm->lastX);
+		vm->lastYMeta = pop(&vm->userStack, vm->lastY);
 		push(&vm->userStack, vm->acc, METASCALAR);
 	}
 

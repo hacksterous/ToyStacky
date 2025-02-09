@@ -8,7 +8,7 @@ void cleanUpModes (Machine* vm) {
 	}
 }
 
-void showModes (Machine* vm) {
+void showCmdPageDegAlt (Machine* vm) {
 	if (vm->viewPage != NORMAL_VIEW) return;
 	lcd.setCursor(0, 0);
 	switch(vm->cmdPage) {
@@ -25,7 +25,6 @@ void showModes (Machine* vm) {
 		default:
 			lcd.print(CMDPG_0); break;
 	}
-
 	lcd.setCursor(0, 1);
 
 	if (vm->altState == 0x1) {
@@ -36,7 +35,18 @@ void showModes (Machine* vm) {
 		lcd.print(" ");
 	}
 	lcd.setCursor(0, 2);
-	(vm->modeDegrees)? lcd.print(DEGREEIND): lcd.print(" ");
+	(vm->modeDegrees && vm->modePolar)?
+		lcd.write(DEGPOLARIND):
+	(vm->modePolar)?
+		lcd.write(POLARIND):
+	(vm->modeDegrees)?
+		lcd.print(DEGREEIND):
+	lcd.print(" ");
+}
+
+void showModes (Machine* vm) {
+	showCmdPageDegAlt(vm);
+
 	lcd.setCursor(0, 3);
 	lcd.print("  ");
 	lcd.setCursor(vm->cursorPos, 3);

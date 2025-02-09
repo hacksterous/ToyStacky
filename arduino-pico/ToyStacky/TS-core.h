@@ -4,6 +4,7 @@ License: GNU GPL v3
 */
 #ifndef __TS_CORE_H__
 #define __TS_CORE_H__
+#include <errno.h>
 
 #define MAX_MATVECSTR_LEN 4900 //enough for one 12x12 matrix of long double complex
 #define MAX_MATVECELEMENTS 150
@@ -29,16 +30,20 @@ License: GNU GPL v3
 #define SHORT_STRING_SIZE 51 //%.15g gives 24 * 2 + 3
 #define VSHORT_STRING_SIZE 25
 //#define DOUBLE_EPS __LDBL_MIN__
-#define DOUBLE_EPS 9e-16 
+//#define DOUBLE_EPS 9e-16
 //#define DOUBLEFN_EPS __LDBL_MIN__
-#define DOUBLEFN_EPS 9e-16 //for return values of functions
+//#define DOUBLEFN_EPS 9e-16 //for return values of functions
+#define DOUBLE_EPS __LDBL_EPSILON__
+#define DOUBLEFN_EPS __LDBL_EPSILON__
 
 //For LCD with Japanese char set: HD44780U A00
 #define UPIND 1
 #define DOWNIND 2
 #define ALTIND 3
 #define ALTLOCKIND 4
-#define TWOIND 7
+#define TWOIND 5
+#define POLARIND 6
+#define DEGPOLARIND 7
 #define DEGREEIND char(0xdf)
 #define RIGHTARROW char(0x7e)
 #define LEFTARROW  char(0x7f)
@@ -203,6 +208,9 @@ typedef struct {
 	char matvecStrC[MAX_MATVECSTR_LEN];
 	char lastY[MAX_MATVECSTR_LEN];
 	char lastX[MAX_MATVECSTR_LEN];
+	int8_t lastXMeta;
+	int8_t lastYMeta;
+
 	Matrix matrixA;
 	Matrix matrixB;
 	Matrix matrixC;
@@ -219,7 +227,7 @@ typedef struct {
 	int topEntryNum; //stack entry number shown at top row
 	int pointerRow; //entry pointed to by right pointing arrow
 
-	int quickViewPage; //in QUICK_VIEW mode
+	int quickViewPage;
 
 	/* for variable viewer */
 	//for displaying on screen, a variable/stack item is split
@@ -235,6 +243,7 @@ typedef struct {
 
 	/* for math operations */
 	bool modeDegrees;
+	bool modePolar;
 	long double frequency;
 
 	/* for user entry and display management */
@@ -284,6 +293,7 @@ void initMachine(Machine* vm);
 bool doubleToString(double value, char* buf, uint8_t precision, char* notationStr);
 void showUserEntryLine(int bsp);
 void showStackEntries(Machine* vm, int linecount);
+void showCmdPageDegAlt(Machine* vm);
 void showModes(Machine* vm);
 void showStackHP(Machine* vm, int linestart, int linecount);
 void initStacks(Machine* vm);

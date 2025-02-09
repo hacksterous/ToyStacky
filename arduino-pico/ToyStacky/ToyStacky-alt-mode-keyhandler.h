@@ -3,8 +3,8 @@ int altModeKeyhandler (char keyc) {
 	switch (keyc) {
 		case '\n':
 			keyTypePressed = 1;
-			Serial.print(keyc);
-			SerialPrint(1, "\r");
+			//Serial.print(keyc);
+			//SerialPrint(1, "\r");
 			processImmdOpKeyC("%"); //FIXME remainder op
 			break;
 		case '\b':
@@ -12,13 +12,21 @@ int altModeKeyhandler (char keyc) {
 			clearUserInput();
 			keyTypePressed = 7;
 			initStacks(&vm);
-			SerialPrint(3, "Got clearStack: vm.userInput = ", vm.userInput, "\r\n");
+			//SerialPrint(3, "Got clearStack: vm.userInput = ", vm.userInput, "\r\n");
 			showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
 			break;
 		//these are operators (in normal mode), result in ' ' + key + \n
 		case 'u':
-			//to degrees
-			processImmdOpKeyC("180 * 3.1415926535897932 /");
+			if (vm.modeDegrees)
+				//to radians
+				processImmdOpKeyC("torad");
+			else
+				//to degrees
+				processImmdOpKeyC("todeg");
+			keyTypePressed = 1;
+			break;
+		case 'P': //alt + pag
+			processImmdOpKeyC("reim");
 			keyTypePressed = 1;
 			break;
 		case 'a':
@@ -33,10 +41,9 @@ int altModeKeyhandler (char keyc) {
 			processImmdOpKeyC("sinh");
 			keyTypePressed = 1;
 			break;
-		case 'D':
-			//to radians
-			processImmdOpKeyC("3.1415926535897932 * 180 /");
+		case 'D': // D <-> R
 			keyTypePressed = 1;
+			vm.modeDegrees ^= true;
 			break;
 		case 'd':
 			//to decimal
@@ -50,10 +57,6 @@ int altModeKeyhandler (char keyc) {
 		case 'f':
 			processImmdOpKeyC("asinh");
 			keyTypePressed = 1;
-			break;
-		case 'P': // D <-> R
-			keyTypePressed = 1;
-			vm.modeDegrees ^= true;
 			break;
 		case '[':
 			processImmdOpKeyC("vec");
@@ -92,7 +95,7 @@ int altModeKeyhandler (char keyc) {
 			keyTypePressed = 1;
 			break;
 		case 'p': //2 input log
-			processImmdOpKeyC("log swp log swp /");
+			processImmdOpKeyC("logxy");
 			keyTypePressed = 1;
 			break;
 		case 's':
@@ -112,15 +115,15 @@ int altModeKeyhandler (char keyc) {
 			keyTypePressed = 1;
 			break;
 		case 'z': //log10 x
-			processImmdOpKeyC("10 log swp log swp /");
+			processImmdOpKeyC("log10");
 			keyTypePressed = 1;
 			break;
 		case 'n': //10^x
-			processImmdOpKeyC("10 swp pow");
+			processImmdOpKeyC("pow10");
 			keyTypePressed = 1;
 			break;
 		case 'T': //1/x
-			processImmdOpKeyC("1 swp /");
+			processImmdOpKeyC("recip");
 			keyTypePressed = 1;
 			break;
 		case 'l':
@@ -144,7 +147,10 @@ int altModeKeyhandler (char keyc) {
 			keyTypePressed = 1;
 			break;
 		case '2':
-			processImmdOpKeyC("coth");
+			if (vm.modePolar)
+				processImmdOpKeyC("rect"); //convert ToS to rect if in Polar mode
+			else
+				processImmdOpKeyC("polar"); //convert ToS to polar
 			keyTypePressed = 1;
 			break;
 		case '3':
@@ -156,12 +162,24 @@ int altModeKeyhandler (char keyc) {
 			keyTypePressed = 1;
 			break;
 		case '5':
-			processImmdOpKeyC("polar"); //switch to polar entry
+			vm.modePolar ^= true;
 			keyTypePressed = 1;
 			break;
 		case '6': //negate
-			processImmdOpKeyC("0 swp -");
-			keyTypePressed = 1;
+			if ((vm.userInputPos > 0) && (vm.userInputPos < STRING_SIZE - 1)) {
+				//user is editing the entry line
+				char temp[STRING_SIZE];
+				zstrncpy(temp, vm.userInput, vm.userInputPos++);
+				strcpy(vm.userInput, "-");
+				strcat(vm.userInput, temp);
+				keyTypePressed = 0;
+			}
+			else {
+				//user has pressed enter and is not currently editing the
+				//entry line
+				processImmdOpKeyC("neg");
+				keyTypePressed = 1;
+			}
 			break;
 		case '7':
 			processImmdOpKeyC("lasty");

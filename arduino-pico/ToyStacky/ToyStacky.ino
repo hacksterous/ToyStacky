@@ -89,7 +89,6 @@ void showViewPage(){
 		case ENTRY_VIEW: lcd.print('V');break;
 		case VARLIST_VIEW: lcd.print('L');break;
 		case STATUS_VIEW: lcd.print(SIGMAIND);break;
-		case QUICK_VIEW: lcd.print('Q');break;
 		case EDIT_VIEW: lcd.print(ALPHAIND);break;
 		default: lcd.print(' ');break; //NORMAL_VIEW
 	}
@@ -167,21 +166,8 @@ void cleanUpStackView(){
 	lcd.print(' ');
 }
 
-void quickViewMotion(bool right) {
-
-
-}
-
 void updatesForLeftMotion() {
 	int len = strlen(vm.userInput);
-	if (vm.viewPage == QUICK_VIEW) {
-		//user is not editing the line
-		//vm.userInput[0] == '\0' and vm.userInputPos == 0
-		vm.viewPage = QUICK_VIEW;
-		quickViewMotion(false); //left
-		return;
-	}
-
 	memset(vm.userDisplay, 0, SHORT_STRING_SIZE);
 	if ((!vm.userInputLeftOflow && !vm.userInputRightOflow) ||
 		(!vm.userInputLeftOflow && vm.userInputRightOflow)) {
@@ -245,13 +231,31 @@ void updatesForLeftMotion() {
 	lcd.setCursor(vm.cursorPos, 3); //col, row
 }
 
+void showEntryView() {
+	int8_t meta;
+	vm.viewPage = ENTRY_VIEW;
+	//display the entry
+	meta = peekn(&vm.userStack, NULL, vm.topEntryNum - vm.pointerRow);
+	if (meta != -1) {
+		peekn(&vm.userStack, vm.matvecStrC, vm.topEntryNum - vm.pointerRow);
+	} else {
+		strcpy(vm.matvecStrC, "SOFTWARE BUG!!");
+	}
+	lcd.clear();
+	//stack item display routine for vectors, matrices and complex doubles
+	//only 19 columns - leave leftmost col for up/dn indication
+	formatVariable(&vm, vm.matvecStrC, DISPLAY_LINESIZE - 1);
+	showVariable(&vm);
+	showViewPage();
+}
+
 void updatesForRightMotion(){
 	int len = strlen(vm.userInput);
-	if (vm.viewPage == QUICK_VIEW) {
+	if (vm.viewPage == NORMAL_VIEW && vm.userInputPos == 0) {
 		//user is not editing the line
-		//vm.userInput[0] == '\0' and vm.userInputPos == 0
-		vm.viewPage = QUICK_VIEW;
-		quickViewMotion(true); //right
+		//quickview mode
+		vm.quickViewPage = 1;
+		showEntryView();
 		return;
 	}
 
@@ -416,6 +420,26 @@ void setup() {
 	  B11110,
 	};
 
+	byte degPolarIndicator[8] = {
+	  B11100,
+	  B10100,
+	  B11100,
+	  B00001,
+	  B00010,
+	  B00100,
+	  B01111,
+	};
+
+	byte polarIndicator[8] = {
+	  B00000,
+	  B00000,
+	  B00000,
+	  B00001,
+	  B00010,
+	  B00100,
+	  B01111,
+	};
+
 	char version[20];
 	// initialize digital pin LED_BUILTIN as an output.
 	lcd.createChar(UPIND, upIndicator);
@@ -423,6 +447,8 @@ void setup() {
 	lcd.createChar(ALTIND, altIndicator);
 	lcd.createChar(ALTLOCKIND, altLockIndicator);
 	lcd.createChar(TWOIND, twoIndicator);
+	lcd.createChar(DEGPOLARIND, degPolarIndicator);
+	lcd.createChar(POLARIND, polarIndicator);
 	lcd.begin(DISPLAY_LINESIZE, DISPLAY_LINECOUNT); //20 cols, 4 rows
 	lcd.noCursor();
 	lcd.setCursor(1, 0);
@@ -472,6 +498,7 @@ void goBackToNormalMode() {
 	vm.viewPage = NORMAL_VIEW;
 	vm.topEntryNum = DISPLAY_LINECOUNT - 1;
 	vm.pointerRow = DISPLAY_LINECOUNT - 1;
+	vm.quickViewPage = 0;
 	lcd.clear();
 	showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
 	showModes(&vm);
@@ -481,17 +508,28 @@ void loop() {
 	char keyc = customKeypad.getKey();
 
 	if (keyc) {
+		if (vm.error[0] != '\0' || errno != 0) { //errors
+			//already have an error -- clear it on any keypress
+			//show the stack and return to wait for the next keypress
+			strcpy(vm.error, "");
+			showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
+			return;
+		}
 		if (vm.viewPage == NORMAL_VIEW) {
 			if (keyc == 'P' && (vm.altState == 0x0)) { //command page
 				if (vm.cmdPage < (MAX_CMD_PAGES - 1)) vm.cmdPage++;
 				else vm.cmdPage = 0;
 				keyTypePressed = 5;
+				if (vm.userInput[0] == '\0')
+					showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
 				showModes(&vm);
 			} else if (keyc == 'A') { //alt function
-				keyTypePressed = 6;
 				if (vm.altState == 0) vm.altState = 1;
 				else if (vm.altState == 1) vm.altState = 3;
 				else vm.altState = 0; //none -> alt -> alt lock -> none
+				keyTypePressed = 6;
+				if (vm.userInput[0] == '\0')
+					showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
 				showModes(&vm);
 			} else {
 				keyTypePressed = 0;
@@ -543,12 +581,12 @@ void loop() {
 						break;
 				}
 				if (vm.altState == 1) vm.altState = 0;
-				//showModes only when left/right keys are not pressed
+				//showModes only when up/down/left/right keys are not pressed
 				//(in NORMAL_VIEW mode)
 				//this is because while editing, current line can scroll and
 				//occupy all 20 columns and showModes function clears
 				//the leftmost 2 columns of lowest row
-				if (keyTypePressed != 7 && keyTypePressed != 8) showModes(&vm);
+				if (keyTypePressed != 3 && keyTypePressed != 7) showModes(&vm);
 			}
 			if ((vm.userInput[0] != '\0') && (keyTypePressed == 0)) {
 				//user is editing the bottom row
@@ -558,30 +596,6 @@ void loop() {
 			}
 			if (keyTypePressed != 0 && keyTypePressed != 2) //immd key and not backspace
 				vm.partialComplex = false; //any pending ')' has already been added by tokenizer
-		} else if (vm.viewPage == QUICK_VIEW) { //quick view mode for top of stack
-			switch (keyc) {
-				case '\n':
-				case '\b':
-					vm.viewPage = NORMAL_VIEW;
-					showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
-					showModes(&vm);
-					break;
-				case '<': //add code to navigate
-					break;
-				case '>': //add code to navigate
-					break;
-				default:
-					vm.viewPage = NORMAL_VIEW;
-					showModes(&vm);
-					normalModeKeyhandler(keyc);
-					if ((vm.userInput[0] != '\0') && (keyTypePressed == 0)) {
-						//user is editing the bottom row
-						showStackHP(&vm, 0, DISPLAY_LINECOUNT - 2);
-						eraseUserEntryLine();
-						showUserEntryLine(0);
-					}
-					break;
-			}
 		} else if (vm.viewPage == STACK_VIEW) { //stack view mode
 			switch (keyc) {
 				case 'u': //up
@@ -595,30 +609,11 @@ void loop() {
 				case '\b':
 					//going back to normal view clear variables
 					//used in stack view
+					stackViewShowUpDownIndicators(DISPLAY_LINECOUNT - 1);
 					goBackToNormalMode();
-					//vm.viewPage = NORMAL_VIEW;
-					//vm.topEntryNum = DISPLAY_LINECOUNT - 1;
-					//vm.pointerRow = DISPLAY_LINECOUNT - 1;
-					//lcd.clear();
-					//showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
-					//showModes(&vm);
 					break;
 				case '\n':
-					int8_t meta;
-					vm.viewPage = ENTRY_VIEW;
-					//display the entry
-					meta = peekn(&vm.userStack, NULL, vm.topEntryNum - vm.pointerRow);
-					if (meta != -1) {
-						peekn(&vm.userStack, vm.matvecStrC, vm.topEntryNum - vm.pointerRow);
-					} else {
-						strcpy(vm.matvecStrC, "SOFTWARE BUG!!");
-					}
-					lcd.clear();
-					//stack item display routine for vectors, matrices and complex doubles
-					//only 19 columns - leave leftmost col for up/dn indication
-					formatVariable(&vm, vm.matvecStrC, DISPLAY_LINESIZE - 1);
-					showVariable(&vm);
-					showViewPage();
+					showEntryView();
 					break;
 				default:
 					break;
@@ -638,6 +633,13 @@ void loop() {
 				case '\b':
 					//going back to stack view clear variables
 					//used in entry view
+					if (vm.quickViewPage == 1) {
+						//if we came here from NORMAL_VIEW mode, then go back there
+						//else go back to STACK_VIEW mode
+						stackViewShowUpDownIndicators(DISPLAY_LINECOUNT - 1);
+						goBackToNormalMode();
+						break;
+					}
 					vm.topVarFragNum = 0;
 					vm.varFragCount = 0;
 					vm.varLength = 0;
@@ -649,6 +651,7 @@ void loop() {
 					showStackHP(&vm, vm.topEntryNum - DISPLAY_LINECOUNT + 1, vm.topEntryNum);
 					lcd.setCursor(1, vm.pointerRow); //col, row
 					lcd.print(RIGHTARROW);
+					stackViewShowUpDownIndicators(DISPLAY_LINECOUNT - 1);
 					break;
 				case '\n':
 					int8_t meta;
@@ -672,14 +675,14 @@ void loop() {
 					showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
 					showModes(&vm);
 					#else
+					//this is actually used -- copy the entry into user
+					//edit line and place cursor at end
 					showStackHP(&vm, 0, DISPLAY_LINECOUNT - 2);
 					clearUserInput();
 					zstrncpy(vm.userInput, vm.matvecStrC, STRING_SIZE - 1);
 					vm.userInputPos = strlen(vm.userInput);
-					if (vm.userInputPos < DISPLAY_LINESIZE - 1)
-						vm.cursorPos = vm.userInputPos;
-					else
-						vm.cursorPos = DISPLAY_LINESIZE - 1;
+					vm.cursorPos = DISPLAY_LINESIZE - 1;
+					showCmdPageDegAlt(&vm);
 					showUserEntryLine(0);
 					#endif
 					break;

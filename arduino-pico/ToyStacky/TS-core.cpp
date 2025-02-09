@@ -59,7 +59,6 @@ const char* __TS_GLOBAL_ERRORCODE[]= { "undef arg",
 		doingIf = execData & 0x1;										\
 	}
 
-
 const char* DEBUGMETA[5] = {
 	"METASCALAR"
 	"METAVECTOR",
@@ -167,7 +166,7 @@ char* fitstr(char*dest, const char* src, int32_t len) {
 	return dest;
 }
 
-bool fn1ParamScalar(Machine* vm, const char* fnname, int fnindex, int isTrig);
+bool fn1ParamScalar(Machine* vm, const char* fnname, int fnindex, int isTrig, int bigInt1Param);
 #include "TS-core-ledger.h"
 #include "TS-core-stack.h"
 #include "TS-core-math.h"
@@ -304,18 +303,19 @@ void showUserEntryLine(int bsp){
 	} else {
 		int colPos = DISPLAY_LINESIZE - len - 1;
 		if (bsp) {
-			lcd.setCursor(colPos - 1, 3);
+			lcd.setCursor(colPos - 1, DISPLAY_LINECOUNT - 1);
 			lcd.print(' ');
 		}
-		lcd.setCursor(colPos, 3); //col, row
+		lcd.setCursor(colPos, DISPLAY_LINECOUNT - 1); //col, row
 		zstrncpy(vm.userDisplay, vm.userInput, len);
 	}
 	lcd.print(vm.userDisplay);
-	lcd.setCursor(vm.cursorPos, 3); //col, row
+	lcd.setCursor(vm.cursorPos, DISPLAY_LINECOUNT - 1); //col, row
 }
 
 typedef long double (*RealFunctionPtr)(ComplexDouble);
-typedef void (*BigIntVoidFunctionPtr)(const bigint_t*, const bigint_t*, bigint_t*);
+typedef void (*BigIntVoid1ParamFunctionPtr)(const bigint_t*, char*);
+typedef void (*BigIntVoid2ParamFunctionPtr)(const bigint_t*, const bigint_t*, bigint_t*);
 typedef int (*BigIntIntFunctionPtr)(const bigint_t*, const bigint_t*);
 typedef ComplexDouble (*ComplexFunctionPtr1Param)(ComplexDouble);
 typedef ComplexDouble (*ComplexFunctionPtr2Param)(ComplexDouble, ComplexDouble);
@@ -329,53 +329,70 @@ const char* matrixfnname[] = {
 						};
 const int NUMMATRIXPARAMFN = 7;
 const char* mathfn1paramname[] = {
-						"sin", "cos", "tan", "cot", "sinh", "cosh", "tanh", "coth", 
-						"asin", "acos", "atan", "acot", "asinh", "acosh", "atanh", "acoth",
-						"exp", "log10", "log", "log2", "sqrt", "cbrt", "conj", 
+						"sin", "cos", "tan", "cot", 
+						"rect",
+						"asin", "acos", "atan", "acot", 
+						"polar",
+						"sinh", "cosh", "tanh", "coth", 
+						"asinh", "acosh", "atanh", "acoth", 
+						"exp", "log10", "log", "log2", "sqrt", "cbrt", "conj",
+						"torad", "todeg", "recip", "neg",
 						"abs", "arg", "re", "im"}; //the 1 param functions
 
-const int NUMMATH1PARAMFN = 23;
+const int NUMMATH1PARAMFN = 29;
 const int NUMREAL1PARAMFN = 4;
-const int NUMMATH1PARAMTRIGFN = 8;
-const int NUMMATH1PARAMTRIGANTIFN = 16;
+const int NUMMATH1PARAMTRIGFN = 5;
+const int NUMMATH1PARAMTRIGANTIFN = 10;
 
-//these 23 return ComplexDouble
+//these return ComplexDouble
 ComplexFunctionPtr1Param mathfn1param[] = {	csine, 
 											ccosine, 
 											ctangent, 
 											ccotangent, 
-											csinehyp, 
-											ccosinehyp, 
-											ctangenthyp,
-											ccotangenthyp,
+											rect,
 
 											carcsine, 
 											carccosine, 
 											carctangent,
 											carccotangent,
+											polar, 
+
+											csinehyp, 
+											ccosinehyp, 
+											ctangenthyp,
+											ccotangenthyp,
+
 											carcsinehyp, 
 											carccosinehyp, 
 											carctangenthyp,
 											carccotangenthyp,
 
-											cexpo, clogarithm10, 
-											cln, clog2, 
-											csqroot, cbroot, 
-											conjugate};
+											cexpo, clogarithm10,
+											cln, clog2,
+											csqroot, cbroot,
+											conjugate,
+
+											ctorad,
+											ctodeg,
+											crecip,
+											cneg};
 
 //the 1 param functions that have real result
 RealFunctionPtr realfn1param[] = {abso, cargu, crealpart, cimagpart};
-//                                         bigint_pow -- to be implemented
-BigIntVoidFunctionPtr bigfnvoid2param[] = {NULL, bigint_max, bigint_min, bigint_add, bigint_sub, bigint_mul, bigint_div, bigint_rem};
 
+BigIntVoid1ParamFunctionPtr bigfnvoid1param[] = {bigint_hex, bigint_dec, bigint_bin, bigint_oct, bigint_neg};
+BigIntVoid2ParamFunctionPtr bigfnvoid2param[] = {bigint_pow, bigint_max, bigint_min, bigint_add, bigint_sub, bigint_mul, bigint_div, bigint_rem};
 BigIntIntFunctionPtr bigfnint2param[] = {bigint_gt, bigint_lt, bigint_gte, bigint_lte, bigint_eq, bigint_neq};
 
+const char* bigfnvoid1paramname[] = {"hex", "dec", "bin", "oct", "neg"};
+const int NUMBIGINT1FNS = 4;
 const char* vecfn1paramname[] = {"sum", "sqsum", "var", "sd", "mean", "rsum"};
 const char* vecfn2paramname[] = {"dot"};
 const int NUMVECFNS = 6;
 const int NUMVEC2FNS = 1;
 
 const char* mathfnop2paramname[] = {
+						"logxy",
 						"atan2", "pow",
 						"max", "min",
 						ADDTOKEN, SUBTOKEN,
@@ -385,9 +402,11 @@ const char* mathfnop2paramname[] = {
 						LTETOKEN, EQTOKEN,
 						NEQTOKEN, PARTOKEN
 						}; //the 2 params functions
-const int  NUMMATH2PARAMFNOP = 16;
-const int NUMVOIDBIGINTFNMIN = 1;
-const int NUMVOIDBIGINTFNMAX = 8;
+const int  NUMMATH2PARAMFNOP = 17;
+const int NUMVOID2PARAMBIGINTFNMIN = 2;
+const int NUMVOID2PARAMBIGINTFNMAX = 9;
+
+const int ATAN2FNINDEX = 1;
 
 //ADDTOKEN, SUBTOKEN,
 //MULTOKEN, DIVTOKEN,
@@ -395,12 +414,9 @@ const int NUMVOIDBIGINTFNMAX = 8;
 //LTTOKEN, GTETOKEN,
 //LTETOKEN, EQTOKEN,
 //NEQTOKEN
-const int NUMMATHOPS = 11;
 
-ComplexFunctionPtr2Param mathfn2param[] = {carctangent2, cpower, cmax, cmin, cadd, csub,
+ComplexFunctionPtr2Param mathfn2param[] = {clogx, carctangent2, cpower, cmax, cmin, cadd, csub,
 									cmul, cdiv, cmod, cgt, clt, cgte, clte, ceq, cneq, cpar};
-
-
 
 ComplexDouble suminternal(ComplexDouble running, ComplexDouble next) { 
 	return cadd(running, next);
@@ -448,6 +464,10 @@ ComplexDouble call2ParamMathFunction(int fnindex, ComplexDouble input, ComplexDo
 	return mathfn2param[fnindex](input, second);
 }
 
+void call1ParamBigIntVoidFunction(int fnindex, bigint_t *x, char* res) {
+	bigfnvoid1param[fnindex](x, res);
+}
+
 void call2ParamBigIntVoidFunction(int fnindex, bigint_t *x, bigint_t *y, bigint_t *res) {
 	bigfnvoid2param[fnindex](x, y, res);
 }
@@ -462,6 +482,13 @@ int call2ParamBigIntIntFunction(int fnindex, bigint_t *x, bigint_t *y) {
 uint8_t conditionalData(int32_t execData) {
 	//data being currently entered is a conditional if/else
 	return (execData & 0x7);
+}
+
+int is1ParamBigIntFunction(const char* token) {
+	for (int i = 0; i < NUMBIGINT1FNS; i++) {
+		if (strcmp(bigfnvoid1paramname[i], token) == 0) return i;
+	}
+	return -1;
 }
 
 #include "TS-core-fnOrOpVec2Param.h"
@@ -589,8 +616,9 @@ void initMachine(Machine* vm) {
 	//after a pop, last will have the previous ToS
 	strcpy(vm->acc, "0");
 	strcpy(vm->bak, "0");
-	strcpy(vm->coadiutor, "0");
 	strcpy(vm->error, "");
+	strcpy(vm->lastX, "0");
+	strcpy(vm->lastY, "0");
 	vm->userInputPos = 0;
 	vm->cmdPage = 0;
 	vm->altState = 0;
@@ -598,6 +626,7 @@ void initMachine(Machine* vm) {
 	vm->topEntryNum = DISPLAY_LINECOUNT - 1;
 	vm->pointerRow = DISPLAY_LINECOUNT - 1;
 	vm->modeDegrees = false;
+	vm->modePolar = false;
 	vm->userInputLeftOflow = false;
 	vm->userInputRightOflow = false;
 	vm->cursorPos = DISPLAY_LINESIZE - 1; //between 0 and 19, both inclusive
@@ -609,6 +638,7 @@ void initMachine(Machine* vm) {
 	vm->partialMatrix = false;
 	vm->partialComplex = false;
 	vm->precision = 15;
+	vm->quickViewPage = 0;
 	strcpy(vm->notationStr, "Lg");
 }
 

@@ -61,6 +61,14 @@ ComplexDouble conjugate(ComplexDouble c) {
 	return makeComplex(c.real, -c.imag);
 }
 
+ComplexDouble polar(ComplexDouble c) {
+	return makeComplex(abso(c), atanl(c.imag/c.real));
+}
+
+ComplexDouble rect(ComplexDouble c) {
+	return makeComplex(c.real*cosl(c.imag), c.real*sinl(c.imag));
+}
+
 ComplexDouble cadd(ComplexDouble value, ComplexDouble second) {
 	return makeComplex(value.real + second.real, value.imag + second.imag);
 }
@@ -178,7 +186,7 @@ ComplexDouble cln(ComplexDouble c) {
 		if (!alm0double(im)) {
 			imdre = (im/re);
 			r += logl(imdre*imdre + 1)/2;
-			j += atan(imdre);
+			j += atanl(imdre);
 		} 
 	} else if (!alm0double(im)) {
 		r = logl(im);
@@ -195,14 +203,14 @@ ComplexDouble cln(ComplexDouble c) {
 
 ComplexDouble cexpo(ComplexDouble c) {
 	if (alm0double(c.imag)) {
-		return makeComplex(exp(c.real), 0);
+		return makeComplex(expl(c.real), 0);
 	}
 	long double r = c.real;
 	long double j = c.imag;
 	long double rexp = expl(r);
-	r = rexp * cos(j);
+	r = rexp * cosl(j);
 	if (!alm0double(c.imag))
-		j = rexp * sin(j);
+		j = rexp * sinl(j);
 	else
 		j = 0;
 	return makeComplex (r, j);
@@ -227,6 +235,7 @@ ComplexDouble cpowerd(ComplexDouble c, long double d) {
 }
 
 ComplexDouble csqroot(ComplexDouble c) {
+	printf("csqroot: got c.real = %Lg c.imag = %Lg\n", c.real, c.imag);
 	return cpowerd(c, 0.5);
 }
 
@@ -269,17 +278,15 @@ ComplexDouble ccotangenthyp(ComplexDouble c) {
 }
 
 ComplexDouble csine(ComplexDouble c) {
-	if (alm0double(c.imag)) return makeComplex(sin(c.real), 0);
+	if (alm0double(c.imag)) return makeComplex(sinl(c.real), 0);
 	ComplexDouble jc = cmul (makeComplex(0.0, 1.0), c);
 	return cdiv(csub(cexpo(jc), cexpo(cneg(jc))), makeComplex(0.0, 2.0));
-	//return (makeComplex(sin(c.real) * cosh(c.imag), cos(c.real) * sinh(c.imag)));
 }
 
 ComplexDouble ccosine(ComplexDouble c) {
-	if (alm0double(c.imag)) return makeComplex(cos(c.real), 0);
+	if (alm0double(c.imag)) return makeComplex(cosl(c.real), 0);
 	ComplexDouble jc = cmul (makeComplex(0.0, 1.0), c);
 	return cdivd(cadd(cexpo(jc), cexpo(cneg(jc))), 2.0);
-	//return (makeComplex(cos(c.real) * cosh(c.imag), -sin(c.real) * sinh(c.imag)));
 }
 
 ComplexDouble ctangent(ComplexDouble c) {
@@ -302,7 +309,7 @@ ComplexDouble ccotangent(ComplexDouble c) {
 
 ComplexDouble carcsine(ComplexDouble c) {
 	if (alm0double(c.imag)){
-		return makeComplex(asin(c.real), 0.0);
+		return makeComplex(asinl(c.real), 0.0);
 	}
 	ComplexDouble j = makeComplex(0.0, 1.0);
 	ComplexDouble c1_m_zz = csub(makeComplex(1.0, 0.0), cmul(c, c));
@@ -324,7 +331,7 @@ ComplexDouble carcsineSimple(ComplexDouble c) {
 	//end function
 
 	if (alm0double(c.imag)){
-		return makeComplex(asin(c.real), 0.0);
+		return makeComplex(asinl(c.real), 0.0);
 	}
 	ComplexDouble j = makeComplex(0.0, 1.0);
 	ComplexDouble x = csub(csqroot(csub(makeComplex(1.0, 0.0), cmul(c, c))), cmul (j, c));
@@ -334,7 +341,7 @@ ComplexDouble carcsineSimple(ComplexDouble c) {
 
 ComplexDouble carccosine(ComplexDouble c) {
 	if (alm0double(c.imag)){
-		return makeComplex(acos(c.real), 0.0);
+		return makeComplex(acosl(c.real), 0.0);
 	}
 	ComplexDouble j = makeComplex(0.0, 1.0);
 	ComplexDouble c1_m_zz = csub(makeComplex(1.0, 0.0), cmul(c, c));
@@ -350,7 +357,7 @@ ComplexDouble carccosine(ComplexDouble c) {
 
 ComplexDouble carctangent(ComplexDouble c) {
 	if (alm0double(c.imag)){
-		return makeComplex(atan(c.real), 0.0);
+		return makeComplex(atanl(c.real), 0.0);
 	}
 	ComplexDouble j = makeComplex(0.0, 1.0);
 	ComplexDouble jx2 = makeComplex(0.0, 2.0);
@@ -365,12 +372,12 @@ ComplexDouble carctangent(ComplexDouble c) {
 
 ComplexDouble carccotangent(ComplexDouble c) {
 	if (alm0double(c.imag)){
-		long double at = atan(c.real);
+		long double at = atanl(c.real);
 		if (alm0double(at)) {
 			errno = 10007;
 			return makeComplex(0.0, 0.0);
 		}
-		return makeComplex(atan(c.real), 0.0);
+		return makeComplex(atanl(c.real), 0.0);
 	}
 	ComplexDouble j = makeComplex(0.0, 1.0);
 	ComplexDouble jx2 = makeComplex(0.0, 2.0);
@@ -425,6 +432,24 @@ ComplexDouble carccotangenthyp(ComplexDouble c) {
 
 ComplexDouble ccbrt(ComplexDouble x){
 	return cpowerd(x, (1.0/3.0));
+}
+
+ComplexDouble ctorad(ComplexDouble x){
+	//pi/180 = 0.017453292519943295769237L
+	return cmul(x, makeComplex(0.017453292519943295769237L, 0.0));
+}
+
+ComplexDouble ctodeg(ComplexDouble x){
+	//180/pi = 57.295779513082320876798L
+	return cmul(x, makeComplex(57.295779513082320876798L, 0.0));
+}
+
+ComplexDouble crecip(ComplexDouble x){
+	return cdiv(makeComplex(1, 0), x);
+}
+
+ComplexDouble clogx(ComplexDouble y, ComplexDouble x){
+	return cdiv(cln(y), cln(x));
 }
 
 ComplexDouble clog2(ComplexDouble x){

@@ -10,6 +10,7 @@ bool fnOrOpMat1Param(Machine* vm, const char* token, int fnindex, bool isTrig) {
 
 	bool success;
 	Matrix m;
+	int bigInt1Param = -1;
 
 	//ToS is known to have a vector, no need to check for empty stack or non-vector item
 	peek(&vm->userStack, vm->matvecStrA);
@@ -21,7 +22,7 @@ bool fnOrOpMat1Param(Machine* vm, const char* token, int fnindex, bool isTrig) {
 			complexToString(m.numbers[i][j], vm->acc, vm->precision, vm->notationStr);
 			//function name is in token
 			//scalar, function argument is in vm->acc
-			success = fn1ParamScalar(vm, token, fnindex, isTrig);
+			success = fn1ParamScalar(vm, token, fnindex, isTrig, bigInt1Param); //FIXME: always passing -1
 			//fn1ParamScalar has the result in acc
 			FAILANDRETURNVAR(!success, vm->error, "%s bad arg.", fitstr(vm->coadiutor, token, 8))
 			strcat(vm->matvecStrB, vm->acc);
@@ -32,7 +33,7 @@ bool fnOrOpMat1Param(Machine* vm, const char* token, int fnindex, bool isTrig) {
 		if (i != m.rows - 1) strcat(vm->matvecStrB, " [");
 	}
 	strcat(vm->matvecStrB, "}");
-	pop(&vm->userStack, vm->lastX);
+	vm->lastXMeta = pop(&vm->userStack, vm->lastX);
 	push(&vm->userStack, vm->matvecStrB, METAVECTOR);
 	return true;
 
