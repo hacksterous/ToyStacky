@@ -512,8 +512,6 @@ void loop() {
 			//already have an error -- clear it on any keypress
 			//show the stack and return to wait for the next keypress
 			strcpy(vm.error, "");
-			showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
-			return;
 		}
 		if (vm.viewPage == NORMAL_VIEW) {
 			if (keyc == 'P' && (vm.altState == 0x0)) { //command page

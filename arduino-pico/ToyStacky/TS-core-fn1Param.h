@@ -12,22 +12,32 @@ bool fn1ParamScalar(Machine* vm, const char* fnname, int fnindex, int isTrig, in
 
 		if (acc[0] == 'x')
 			success = bigint_from_hex(&vm->bigC, acc);
+		else if (acc[0] == 'b')
+			success = bigint_from_bin(&vm->bigC, acc);
 		else
 			success = bigint_from_str(&vm->bigC, acc);
 
 		//printf ("fn1ParamScalar: bigInt1Param != -1 called with bigInt1Param = %d, (after \" removal) acc = %s and extracted bigC = ", 
 		//	bigInt1Param, acc);
-		bigint_print(&vm->bigC);
+		//bigint_print(&vm->bigC);
 		if (!success) return false; //let fn1Param generate 'bad arg' error
 		call1ParamBigIntVoidFunction(bigInt1Param, &vm->bigC, vm->acc);
 		//printf ("fn1ParamScalar: returned from  call1ParamBigIntVoidFunction success = %d and res = %s first char of res = %c\n", success, vm->acc, vm->acc[0]);
+		if (vm->acc[0] == '\0') return false; //error can happen for bigint_bin if result is longer than 100
 		if (((vm->acc[0] != '-') && !isdigit(vm->acc[0])) || 
 			(((strlen(vm->acc) > 15) && (vm->acc[0] == '-')) || ((strlen(vm->acc) > 14) && (vm->acc[0] != '-'))))
-			//if not a decimal number -- 14 digits of decimal numbers can be handled as non-bigint integers 
+			//add quotes for a non-decimal number
+			//for a decimal number -- 14 digits of decimal numbers can be handled as non-bigint integers 
 			//add quotes
 			success = addDblQuotes(vm->acc) && success;
 		if (!success) return false;
 		return true;
+	}
+	else if (hasDblQuotes(vm->acc)) {
+		//math functions for bigints
+		acc = removeDblQuotes(vm->acc);
+		strcpy(vm->acc, acc);
+		//printf ("fn1ParamScalar: fallthrough with acc = %s\n", vm->acc);
 	}
 	
 	c.imag = 0.0;
@@ -58,6 +68,7 @@ bool fn1ParamScalar(Machine* vm, const char* fnname, int fnindex, int isTrig, in
 			//convert input to radians for trig fns
 			//but not if it has been converted before
 			c = makeComplex(c.real * 0.01745329251994329576923L, c.imag * 0.01745329251994329576923L);
+		printf("fn1ParamScalar: calling fn %s fnindex = %d with args real = %Lg imag = %Lg\n", fnname, fnindex, c.real, c.imag);
 		c = call1ParamMathFunction(fnindex, c);
 		//output of the inv trig function is always in radians in cartesian mode
 		if (vm->modeDegrees && isTrig == 2 && vm->modePolar)
@@ -69,6 +80,7 @@ bool fn1ParamScalar(Machine* vm, const char* fnname, int fnindex, int isTrig, in
 			//in cartesian (rect) mode, both re and im are converted
 			c = makeComplex(c.real * 57.295779513082320876798L, c.imag * 57.295779513082320876798L);
 	} else if (fnindex < NUMMATH1PARAMFN + NUMREAL1PARAMFN) {
+		//real function outputs "abs", "arg", "re", "im"
 		c.real = call1ParamRealFunction(fnindex - NUMMATH1PARAMFN, c);
 		c.imag = 0.0;
 	}
@@ -83,7 +95,7 @@ bool fn1ParamScalar(Machine* vm, const char* fnname, int fnindex, int isTrig, in
 	if (fabs(temp) != 0)
 		if (fabs(c.imag/c.real) < DOUBLEFN_EPS) c.imag = 0.0;
 
-	printf("fn1ParamScalar: returned from fn call with result real = %Lg imag = %Lg\n", c.real, c.imag);
+	//printf("fn1ParamScalar: returned from fn call with result real = %Lg imag = %Lg\n", c.real, c.imag);
 	if (vm->modePolar) {
 		//convert back to polar mode
 		if (!alm0double(c.real)) {
@@ -99,7 +111,6 @@ bool fn1ParamScalar(Machine* vm, const char* fnname, int fnindex, int isTrig, in
 		if (vm->modeDegrees)
 			c = makeComplex(c.real, c.imag * 57.295779513082320876798L);
 	}
-
 	success = complexToString(c, vm->acc, vm->precision, vm->notationStr);
 	return success;
 }
@@ -113,7 +124,7 @@ bool fn1Param(Machine* vm, const char* token, int fnindex, int isTrig, int bigIn
 		peek(&vm->userStack, vm->acc);
 		//scalar, function argument is in vm->acc
 		success = fn1ParamScalar(vm, token, fnindex, isTrig, bigInt1Param);
-		FAILANDRETURNVAR(!success, vm->error, "%s bad arg.a1", fitstr(vm->coadiutor, token, 8))
+		FAILANDRETURNVAR(!success, vm->error, "%s bad arg.2", fitstr(vm->coadiutor, token, 8))
 		//fn1ParamScalar has the result in acc
 		vm->lastXMeta = pop(&vm->userStack, vm->lastX);
 		push(&vm->userStack, vm->acc, METASCALAR);

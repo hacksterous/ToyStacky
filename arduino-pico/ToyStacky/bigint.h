@@ -70,8 +70,9 @@ void bigint_from_int(bigint_t *x, const long int n);
 void bigint_from_uint32(bigint_t *x, const uint32_t n);
 
 // Convert to/from hex
-void bigint_to_hex(const bigint_t *x, char *hex_str);
-bool bigint_from_hex(bigint_t *res, char *hex_str);
+void bigint_to_hex(const bigint_t *x, char *hexstr);
+bool bigint_from_hex(bigint_t *res, char *hexstr);
+bool bigint_from_bin(bigint_t *res, char *binstr);
 
 void bigint_pow(const bigint_t *x, const bigint_t *y, bigint_t *res);
 /* Modular arithmetic. */

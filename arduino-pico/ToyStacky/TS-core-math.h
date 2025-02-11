@@ -308,12 +308,10 @@ ComplexDouble ccotangent(ComplexDouble c) {
 }
 
 ComplexDouble carcsine(ComplexDouble c) {
-	if (alm0double(c.imag)){
-		return makeComplex(asinl(c.real), 0.0);
-	}
 	ComplexDouble j = makeComplex(0.0, 1.0);
 	ComplexDouble c1_m_zz = csub(makeComplex(1.0, 0.0), cmul(c, c));
 	ComplexDouble csqrt_c1_m_zz = csqroot(cabso(c1_m_zz));
+	printf("carcsine: csqrt_c1_m_zz = %Lg + %Lg(i)\n", c.real, c.imag);
 	long double rarg_c1_m_zz = cargu(c1_m_zz);
 	ComplexDouble cterm1 = cmul(j, c);
 	ComplexDouble cexp_arg_1_m_zz_i_d_2 = cexpo(makeComplex(0.0, rarg_c1_m_zz/2));
@@ -330,9 +328,6 @@ ComplexDouble carcsineSimple(ComplexDouble c) {
 	//	return j * x.log()
 	//end function
 
-	if (alm0double(c.imag)){
-		return makeComplex(asinl(c.real), 0.0);
-	}
 	ComplexDouble j = makeComplex(0.0, 1.0);
 	ComplexDouble x = csub(csqroot(csub(makeComplex(1.0, 0.0), cmul(c, c))), cmul (j, c));
 	return cmul(j, cln(x));
@@ -340,9 +335,6 @@ ComplexDouble carcsineSimple(ComplexDouble c) {
 }
 
 ComplexDouble carccosine(ComplexDouble c) {
-	if (alm0double(c.imag)){
-		return makeComplex(acosl(c.real), 0.0);
-	}
 	ComplexDouble j = makeComplex(0.0, 1.0);
 	ComplexDouble c1_m_zz = csub(makeComplex(1.0, 0.0), cmul(c, c));
 	ComplexDouble csqrt_c1_m_zz = csqroot(cabso(c1_m_zz));
@@ -356,9 +348,6 @@ ComplexDouble carccosine(ComplexDouble c) {
 }
 
 ComplexDouble carctangent(ComplexDouble c) {
-	if (alm0double(c.imag)){
-		return makeComplex(atanl(c.real), 0.0);
-	}
 	ComplexDouble j = makeComplex(0.0, 1.0);
 	ComplexDouble jx2 = makeComplex(0.0, 2.0);
 	ComplexDouble jpc = cadd(j, c);
@@ -371,20 +360,12 @@ ComplexDouble carctangent(ComplexDouble c) {
 }
 
 ComplexDouble carccotangent(ComplexDouble c) {
-	if (alm0double(c.imag)){
-		long double at = atanl(c.real);
-		if (alm0double(at)) {
-			errno = 10007;
-			return makeComplex(0.0, 0.0);
-		}
-		return makeComplex(atanl(c.real), 0.0);
-	}
 	ComplexDouble j = makeComplex(0.0, 1.0);
 	ComplexDouble jx2 = makeComplex(0.0, 2.0);
 	ComplexDouble cpj = cadd(c, j);
 	ComplexDouble cmj = csub(c, j);
 	if (alm0(cpj) || alm0(cmj)) {
-		errno = 10006;
+		errno = 10007;
 		return makeComplex(0.0, 0.0);
 	}
 	return cdiv(cln(cdiv(cpj, cmj)), jx2);

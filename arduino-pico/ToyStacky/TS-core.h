@@ -29,12 +29,13 @@ License: GNU GPL v3
 #define STRING_SIZE 101
 #define SHORT_STRING_SIZE 51 //%.15g gives 24 * 2 + 3
 #define VSHORT_STRING_SIZE 25
+
 //#define DOUBLE_EPS __LDBL_MIN__
-//#define DOUBLE_EPS 9e-16
+#define DOUBLE_EPS 9e-16
 //#define DOUBLEFN_EPS __LDBL_MIN__
-//#define DOUBLEFN_EPS 9e-16 //for return values of functions
-#define DOUBLE_EPS __LDBL_EPSILON__
-#define DOUBLEFN_EPS __LDBL_EPSILON__
+#define DOUBLEFN_EPS 9e-16 //for return values of functions
+//#define DOUBLE_EPS __LDBL_EPSILON__
+//#define DOUBLEFN_EPS __LDBL_EPSILON__
 
 //For LCD with Japanese char set: HD44780U A00
 #define UPIND 1

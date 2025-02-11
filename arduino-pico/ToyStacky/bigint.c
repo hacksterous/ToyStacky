@@ -669,14 +669,14 @@ void bigint_negative(const bigint_t *x, bigint_t *res) {
 }
 
 long long powll(long long a, long long b) {
-    long long res = 1;
-    while (b > 0) {
-        if (b & 1)
-            res = res * a;
-        a = a * a;
-        b >>= 1;
-    }
-    return res;
+	long long res = 1;
+	while (b > 0) {
+		if (b & 1)
+			res = res * a;
+		a = a * a;
+		b >>= 1;
+	}
+	return res;
 }
 
 int bigint_cmp(const bigint_t *x, const bigint_t *y) {
@@ -740,79 +740,123 @@ void bigint_from_int(bigint_t *x, const long int n) {
 }
 
 void bigint_to_hex(const bigint_t *x, char *hexstr) {
-    int i, j = 0;
-    //char tempstr[BIGINT_STRING_SIZE]; // Temporary string to hold the hex digits
+	int i, j = 0;
 	char tempstr[bigint_max_stringlen(x) + 1];
-    int start = 0; // Flag to handle leading zeros
+	int start = 0; // Flag to handle leading zeros
 
-    // Add "x" prefix to the output string
-    strcpy(hexstr, "x");
-	//printf("=== bigint_to_hex: before start, tempstr = %s and bigint x = ", tempstr);
-	//bigint_print(x);
-	//printf("=== bigint_to_hex: before start, len bigint x = %d\n", x->length);
-    // Convert each uint32_t in the data array to hex
-    for (i = x->length - 1; i >= 0; i--) {
-        if (x->data[i] == 0 && !start) {
-            continue; // Skip leading zeros
-        }
-        start = 1;
+	// Add "x" prefix to the output string
+	strcpy(hexstr, "x");
+	// Convert each uint32_t in the data array to hex
+	for (i = x->length - 1; i >= 0; i--) {
+		if (x->data[i] == 0 && !start) {
+			continue; // Skip leading zeros
+		}
+		start = 1;
 		sprintf(tempstr + j, "%08x", (unsigned int)x->data[i]);
 		//printf("i = %d j = %d tempstr = %s\n", i, j, tempstr);
-        j += 8;
-    }
+		j += 8;
+	}
 
-	//printf("=== bigint_to_hex: before leading 0 deletion, tempstr = %s\n", tempstr);
-    // If the number is zero, it will become 0x0
-    if (!start) {
-        strcpy(tempstr, "0");
-    }
+	// If the number is zero, it will become 0x0
+	if (!start) {
+		strcpy(tempstr, "0");
+	}
 
 	//remove leading zeros
 	i = 0;
 	while (tempstr[i] == '0') i++;
 
-    // add after "x"
+	// add after "x"
 	if (x->negative) strcat(hexstr, "-");
-    strcat(hexstr, tempstr + i);
-	//printf("=== bigint_to_hex: after leading 0 deletion, 'x' addition, tempstr = %s\n", hexstr);
+	strcat(hexstr, tempstr + i);
 }
 
 bool bigint_from_hex(bigint_t *res, char *hexstr){
-    size_t len = strlen(hexstr);
-    if (len < 2 || hexstr[0] != 'x') {
-        return false; // Invalid hex string
-    }
+	size_t len = strlen(hexstr);
+	if (len < 2 || hexstr[0] != 'x') {
+		return false; // Invalid hex string
+	}
 
-    // Initialize bigint
-    res->length = 0;
-    res->negative = 0;
-    memset(res->data, 0, sizeof(res->data));
+	// Initialize bigint
+	res->length = 0;
+	res->negative = 0;
+	memset(res->data, 0, sizeof(res->data));
 
-    size_t hexlen = len - 1; // Length of the hex digits
-    size_t num_digits = (hexlen + 7) / 8; // Number of uint32_t required
+	size_t hexlen = len - 1; // Length of the hex digits
+	size_t num_digits = (hexlen + 7) / 8; // Number of uint32_t required
 
-    for (size_t i = 0; i < hexlen; i++) {
-        uint32_t value;
-        char c = hexstr[hexlen - i]; // Get the hex digit from the end
-		if (c == '-' && i == 0) {
+	for (size_t i = 0; i < hexlen; i++) {
+		uint32_t value;
+		char c = hexstr[hexlen - i]; // Get the hex digit from the end
+		if (c == '-' && i == (hexlen - 1)) {
 			res->negative = 1;
 			continue;
 		}
-        else if (isdigit(c)) {
-            value = c - '0';
-        }
+		else if (isdigit(c)) {
+			value = c - '0';
+		}
 		else if (isxdigit(c)) {
-            value = tolower(c) - 'a' + 10;
-        }
+			value = tolower(c) - 'a' + 10;
+		}
 		else {
-            return false; // Invalid character in hex string
-        }
-        size_t pos = i / 8;
-        res->data[pos] |= value << (4 * (i % 8));
-    }
+			return false; // Invalid character in hex string
+		}
+		size_t pos = i / 8;
+		res->data[pos] |= value << (4 * (i % 8));
+	}
 
-    res->length = num_digits;
-    return true;
+	res->length = num_digits;
+	return true;
+}
+
+// Function to convert a 4-bit binary string to a single hex digit
+char bin_to_hexit(const char *binstr) {
+	int value = 0;
+	for (int i = 0; i < 4; i++) {
+		value <<= 1;
+		if (binstr[i] == '1') {
+			value += 1;
+		}
+	}
+	if (value < 10) {
+		return '0' + value;
+	} else {
+		return 'a' + (value - 10);
+	}
+}
+
+// Function to convert a binary string to a hexadecimal string
+void bin_to_hex(char *binstr, char *hexstr) {
+    int len = strlen(binstr);
+    int hexlen = (len + 3) / 4; // Calculate length of hex string
+    hexstr[hexlen] = '\0'; // Null-terminate the hex string
+
+    // Pad the binary string with leading zeros if necessary
+    char paddedbinstr[hexlen * 4 + 1];
+    int padding = hexlen * 4 - len;
+    for (int i = 0; i < padding; i++) {
+        paddedbinstr[i] = '0';
+    }
+    strcpy(paddedbinstr + padding, binstr);
+
+    // Convert each 4-bit group to a hex digit
+    for (int i = 0; i < hexlen; i++) {
+        hexstr[i] = bin_to_hexit(paddedbinstr + 4 * i);
+    }
+}
+
+bool bigint_from_bin(bigint_t *res, char *binstr){
+	if (binstr[0] != 'b') return false;
+	char hexstr[BIGINT_STRING_SIZE];
+	hexstr[0] = 'x';
+	if (binstr[1] == '-') {
+		bin_to_hex(&binstr[2], &hexstr[2]);
+		hexstr[1] = '-';
+	}
+	else bin_to_hex(&binstr[1], &hexstr[1]);
+	printf("bigint_from_bin: hexstr = %s\n", hexstr);
+	bigint_from_hex(res, hexstr);
+	return true;
 }
 
 void bigint_hex (const bigint_t *x, char* res) {
@@ -820,9 +864,58 @@ void bigint_hex (const bigint_t *x, char* res) {
 }
 
 void bigint_dec (const bigint_t *x, char* res) {
+	bigint_tostring(x, res, 0);
+}
+
+void h2bsprintf(char* buf, char hexdigit) {
+	//convert a nibble from hex to bin
+	switch (hexdigit) {
+		case '0': strcpy(buf, "0000"); break;
+		case '1': strcpy(buf, "0001"); break;
+		case '2': strcpy(buf, "0010"); break;
+		case '3': strcpy(buf, "0011"); break;
+		case '4': strcpy(buf, "0100"); break;
+		case '5': strcpy(buf, "0101"); break;
+		case '6': strcpy(buf, "0110"); break;
+		case '7': strcpy(buf, "0111"); break;
+		case '8': strcpy(buf, "1000"); break;
+		case '9': strcpy(buf, "1001"); break;
+		case 'a': strcpy(buf, "1010"); break;
+		case 'b': strcpy(buf, "1011"); break;
+		case 'c': strcpy(buf, "1100"); break;
+		case 'd': strcpy(buf, "1101"); break;
+		case 'e': strcpy(buf, "1110"); break;
+		case 'f': strcpy(buf, "1111"); break;
+		default: strcpy(buf, "0000"); break; // Invalid hex digit
+	}
 }
 
 void bigint_bin (const bigint_t *x, char* res) {
+	char tempstr[BIGINT_STRING_SIZE];
+	bigint_to_hex (x, res);
+	int i;
+	int j = 0;
+	int len = strlen(res);
+	if (len > 25) {
+		*res = '\0';
+		return;
+	}
+	printf("bigint_bin: after conv to hex, res = %s\n", res);
+	for (i = 1; i < len; i++) {
+		//skip the first 'x'
+		if (res[i] == '-') {
+			strcpy(tempstr, "-");
+			j++;
+			continue;
+		}
+		h2bsprintf(tempstr + j, res[i]);
+		j += 4;
+	}
+	//remove leading zeros
+	i = 0;
+	while (tempstr[i] == '0') i++;
+	strcpy(res, "b");
+	strcat(res, tempstr + i);
 }
 
 void bigint_oct (const bigint_t *x, char* res) {
@@ -935,39 +1028,39 @@ void bigint_mod_inv(const bigint_t *base, const bigint_t *mod, bigint_t *res) {
 }
 
 void bigint_mod_exp(const bigint_t *base, const bigint_t *exp, const bigint_t *mod, bigint_t *res) {
-    bigint_t exp_copy, base_mod;
-    bigint_t two, temp;
+	bigint_t exp_copy, base_mod;
+	bigint_t two, temp;
 
-    // Initialize bigints
+	// Initialize bigints
 	bigint_from_int(res, 1);
 	bigint_from_int(&base_mod, 0);
 	bigint_from_int(&exp_copy, 0);
 	bigint_from_int(&two, 0);
 	bigint_from_int(&temp, 0);
 
-    // base_mod = base % mod
-    bigint_rem(base, mod, &base_mod);
+	// base_mod = base % mod
+	bigint_rem(base, mod, &base_mod);
 
-    // exp_copy = exp
+	// exp_copy = exp
 	bigint_copy(&exp_copy, exp);
 
-    // two = 2
+	// two = 2
 	bigint_from_int(&two, 2);
 
-    while (!bigint_is_zero(&exp_copy)) {
-        // If exp_copy is odd
-        if (exp_copy.data[0] & 1) {
-            // res = (res * base_mod) % mod
-            bigint_mul(res, &base_mod, &temp);
-            bigint_rem(&temp, mod, res);
-        }
-        // exp_copy = exp_copy / 2
-        bigint_div(&exp_copy, &two, &exp_copy);
+	while (!bigint_is_zero(&exp_copy)) {
+		// If exp_copy is odd
+		if (exp_copy.data[0] & 1) {
+			// res = (res * base_mod) % mod
+			bigint_mul(res, &base_mod, &temp);
+			bigint_rem(&temp, mod, res);
+		}
+		// exp_copy = exp_copy / 2
+		bigint_div(&exp_copy, &two, &exp_copy);
 
-        // base_mod = (base_mod * base_mod) % mod
-        bigint_mul(&base_mod, &base_mod, &temp);
-        bigint_rem(&temp, mod, &base_mod);
-    }
+		// base_mod = (base_mod * base_mod) % mod
+		bigint_mul(&base_mod, &base_mod, &temp);
+		bigint_rem(&temp, mod, &base_mod);
+	}
 }
 
 void bigint_pow(const bigint_t *x, const bigint_t *y, bigint_t *res){

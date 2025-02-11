@@ -385,7 +385,7 @@ BigIntVoid2ParamFunctionPtr bigfnvoid2param[] = {bigint_pow, bigint_max, bigint_
 BigIntIntFunctionPtr bigfnint2param[] = {bigint_gt, bigint_lt, bigint_gte, bigint_lte, bigint_eq, bigint_neq};
 
 const char* bigfnvoid1paramname[] = {"hex", "dec", "bin", "oct", "neg"};
-const int NUMBIGINT1FNS = 4;
+const int NUMBIGINT1FNS = 5;
 const char* vecfn1paramname[] = {"sum", "sqsum", "var", "sd", "mean", "rsum"};
 const char* vecfn2paramname[] = {"dot"};
 const int NUMVECFNS = 6;

@@ -19,11 +19,15 @@ bool fnOrOp2Param(Machine* vm, const char* token, int fnindex) {
 		char* bak = removeDblQuotes(vm->bak);
 		if (coadiutor[0] == 'x')
 			success = bigint_from_hex(&vm->bigC, coadiutor);
+		else if (coadiutor[0] == 'b')
+			success = bigint_from_bin(&vm->bigC, coadiutor);
 		else
 			success = bigint_from_str(&vm->bigC, coadiutor);
 
 		if (bak[0] == 'x')
 			success = bigint_from_hex(&vm->bigB, bak) && success;
+		else if (bak[0] == 'b')
+			success = bigint_from_bin(&vm->bigB, bak) && success;
 		else
 			success = bigint_from_str(&vm->bigB, bak) && success;
 
@@ -34,7 +38,8 @@ bool fnOrOp2Param(Machine* vm, const char* token, int fnindex) {
 			success = bigint_tostring (&vm->bigA, vm->acc, 0);
 			if (((vm->acc[0] != '-') && !isdigit(vm->acc[0])) ||
 				(((strlen(vm->acc) > 15) && (vm->acc[0] == '-')) || ((strlen(vm->acc) > 14) && (vm->acc[0] != '-'))))
-				//if not a decimal number -- 14 digits of decimal numbers can be handled as non-bigint integers 
+				//add quotes for a non-decimal number
+				//for a decimal number -- 14 digits of decimal numbers can be handled as non-bigint integers 
 				//add quotes
 				success = addDblQuotes(vm->acc) && success;
 			FAILANDRETURN(!success, vm->error, "bigint fail", NULLFN)

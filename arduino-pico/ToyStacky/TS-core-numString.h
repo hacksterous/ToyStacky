@@ -236,7 +236,7 @@ bool doubleToString(long double value, char* buf, uint8_t precision, char* notat
 	itoa(precision, &fmt[2]);
 	strcat(fmt, notationStr);
 	sprintf(buf, fmt, value);
-	printf("doubleToString: result in buf = %s\n", buf);
+	//printf("doubleToString: result in buf = %s\n", buf);
 	if (strcmp(lcase(buf), "inf") == 0 || strcmp(lcase(buf), "-inf") == 0) return false;
 	if (strcmp(lcase(buf), "nan") == 0 || strcmp(lcase(buf), "-nan") == 0) return false;
 
