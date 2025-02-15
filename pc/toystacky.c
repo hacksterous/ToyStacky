@@ -32,12 +32,13 @@ License: GNU GPL v3
 #define BIGINT_SIZE 30 //holds a number as big as described in a decimal-coded 128 char long string
 #define SHORT_STRING_SIZE 51 //%.15g gives 24 * 2 + 3
 #define VSHORT_STRING_SIZE 25
-//#define DOUBLE_EPS 1.5e-200
-//#define DOUBLEFN_EPS 1.5e-16 //for return values of functions
 //#define DOUBLE_EPS __LDBL_MIN__
 //#define DOUBLEFN_EPS __LDBL_MIN__
-#define DOUBLE_EPS __LDBL_EPSILON__
-#define DOUBLEFN_EPS __LDBL_EPSILON__
+//#define DOUBLE_EPS __LDBL_EPSILON__
+//#define DOUBLEFN_EPS __LDBL_EPSILON__
+#define DOUBLE_EPS 1e-15
+#define DOUBLEFN_EPS 1e-15 //for return values of functions
+#define NRPOLYSOLV_EPS 1e-8
 
 #define COMSTARTTOKENC '('
 #define VECSTARTTOKENC '['
@@ -72,7 +73,7 @@ License: GNU GPL v3
 #define DPOPTOKEN "@@"
 
 void (*NULLFN)(void) = NULL;
-const long double __TS_PI__ = 3.141592653589793;
+const long double __TS_PI__ = 3.14159265358979323846L;
 #define MKCPLX(a,...) makeComplex(a, (0, ##__VA_ARGS__))
 
 #define FAILANDRETURN(failcondition,dest,src,fnptr)	\
@@ -195,6 +196,9 @@ typedef struct {
 } UintStack;
 
 #include "../arduino-pico/ToyStacky/TS-core-math.h"
+#include "../arduino-pico/ToyStacky/TS-core-numString.h"
+#include "../arduino-pico/ToyStacky/TS-core-llist.h"
+
 typedef long double (*RealFunctionPtr)(ComplexDouble);
 typedef void (*BigIntVoid1ParamFunctionPtr)(const bigint_t*, char*);
 
@@ -521,7 +525,6 @@ void printStack(Strack* s, int count, bool firstLast) {
 	}
 }
 
-#include "../arduino-pico/ToyStacky/TS-core-numString.h"
 #define UTF8
 #ifdef UTF8
 #include "utf8.h"

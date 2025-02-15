@@ -17,8 +17,8 @@ License: GNU GPL v3
 
 #define CORE0_TO_CORE1_START 0x11
 #define CORE1_TO_CORE0_DONE 0x33
-const char* __TS_PI_STR__ = "3.141592653589793";
-const char* __TS_E_STR__ = "2.718281828459045";
+const char* __TS_PI_STR__ = "3.14159265358979323846";
+const char* __TS_E_STR__  = "2.71828182845904523536";
 
 uint32_t core1msg;
 const byte ROWS = 12;
@@ -531,28 +531,33 @@ void loop() {
 				showModes(&vm);
 			} else {
 				keyTypePressed = 0;
-				if (keyc == '[') {
-					if (vm.partialVector){ //doing vector
-						keyc = ']';
-						vm.partialVector = false;
-					} else {
-						vm.partialVector = true;
+				if (vm.altState == 0) {
+					if (keyc == '[') {
+						if (vm.partialVector){ //doing vector
+							keyc = ']';
+							vm.partialVector = false;
+						} 
+						else {
+							vm.partialVector = true;
+						}
 					}
-				}
-				else if (keyc == '{') {
-					if (vm.partialMatrix){ //doing matrix
-						keyc = '}';
-						vm.partialMatrix = false;
-					} else {
-						vm.partialMatrix = true;
+					else if (keyc == '{') {
+						if (vm.partialMatrix){ //doing matrix
+							keyc = '}';
+							vm.partialMatrix = false;
+						} 
+						else {
+							vm.partialMatrix = true;
+						}
 					}
-				}
-				else if (keyc == '(') {
-					if (vm.partialComplex){ //doing complex
-						keyc = ')';
-						vm.partialComplex = false;
-					} else {
-						vm.partialComplex = true;
+					else if (keyc == '(') {
+						if (vm.partialComplex){ //doing complex
+							keyc = ')';
+							vm.partialComplex = false;
+						} 
+						else {
+							vm.partialComplex = true;
+						}
 					}
 				}
 				switch ((vm.cmdPage << 0x1) + (vm.altState & 0x1)) {

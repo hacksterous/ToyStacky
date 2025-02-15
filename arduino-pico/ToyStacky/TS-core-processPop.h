@@ -30,12 +30,12 @@ bool popIntoVariable (Machine* vm, char* var) {
 			success = stringToDouble(vm->bak, &c.real);
 			FAILANDRETURN(!success, vm->error, "can't be complex", NULLFN)
 			if (rlc == 'c'){
-				c.imag = -1/(2 * 3.141592653589793L * vm->frequency * c.real);
+				c.imag = -1/(2 * __TS_PI__ * vm->frequency * c.real);
 				c.real = 0;
 				createVariable(&vm->ledger, var, VARIABLE_TYPE_COMPLEX, c, "");
 			} 
 			else if (rlc == 'l') {
-				c.imag = 2 * 3.141592653589793L * vm->frequency * c.real;
+				c.imag = 2 * __TS_PI__ * vm->frequency * c.real;
 				c.real = 0;
 				createVariable(&vm->ledger, var, VARIABLE_TYPE_COMPLEX, c, "");
 			}
@@ -101,19 +101,18 @@ bool processPop(Machine* vm, char* token) {
 			//vector or matrix
 			popIntoVariable (vm, accliteral);
 		}
-	} else if (strcmp(token, "@!") == 0) {
-		//clear stack
-		initStacks(vm);
 	} else if (strcmp(token, "@@") == 0) {
-		meta = peek(&vm->userStack, vm->acc); //this is the destination variable name
+		meta = peek(&vm->userStack, vm->acc);
 		if (meta == METASCALAR) {
 			bool success = stringToDouble(vm->acc, &dbl);
 			FAILANDRETURN(!success, vm->error, "need real", NULLFN)
 			int howMany = (int) dbl;
+			FAILANDRETURN((howMany < 0), vm->error, "need +ve", NULLFN)
 			//pop the variable count already in vm->acc
 			pop(&vm->userStack, NULL);
 			//printf("processPop: B: acc = %s, dbl = %g\n", acc, dbl);
-			if (howMany >= 0) popNItems(vm, howMany);
+			if (howMany > 0) popNItems(vm, howMany);
+			else if (howMany == 0) initStacks(vm);
 		}
 		else pop(&vm->userStack, NULL);
 	}

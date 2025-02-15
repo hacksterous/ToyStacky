@@ -5,7 +5,7 @@ int altModeKeyhandler (char keyc) {
 			keyTypePressed = 1;
 			//Serial.print(keyc);
 			//SerialPrint(1, "\r");
-			processImmdOpKeyC("%"); //FIXME remainder op
+			processImmdOpKeyC("solv"); //solve op
 			break;
 		case '\b':
 			//clear whatever was being typed in and clear stack

@@ -9,13 +9,15 @@ long double abso (ComplexDouble value) {
 
 bool alm0(ComplexDouble value) {
 	//limit of long double precision
-	if (fabsl(value.real) < DOUBLE_EPS && fabsl(value.imag) < DOUBLE_EPS) return true;
+	//if (fabsl(value.real) < DOUBLE_EPS && fabsl(value.imag) < DOUBLE_EPS) return true;
+	if (value.real != 0 && value.imag != 0) return true;	
 	else return false;
 }
 
 bool alm0double(long double value) {
 	//limit of long double precision
 	if (fabsl(value) < DOUBLE_EPS) return true;
+	//if (value != 0) return true;
 	else return false;
 }
 
@@ -30,7 +32,7 @@ ComplexDouble cabso (ComplexDouble value) {
 long double cargu (ComplexDouble value) {
 	if (alm0double(value.real)) {
 		if (alm0double(value.real)) {
-			errno = 10000;
+			errno = 10001;
 			return 0; //undef arg
 		}
 		return ((value.imag < 0)? -1.570796326794896619L: 1.570796326794896619L);
@@ -40,9 +42,9 @@ long double cargu (ComplexDouble value) {
 	if (value.real >= 0 && value.imag >= 0)
 		return princ; //1st quadrant ok
 	else if (value.real < 0 && value.imag >= 0)
-		return princ + 3.14159265358979323846L; //2nd quadrant ok
+		return princ + __TS_PI__;//3.14159265358979323846L; //2nd quadrant ok
 	else if (value.real < 0 && value.imag < 0)
-		return princ - 3.14159265358979323846L;//3rd quadrant ok
+		return princ - __TS_PI__;//3.14159265358979323846L;//3rd quadrant ok
 	else if (value.real >= 0 && value.imag < 0)
 		return princ; //4th quadrant ok
 	else
@@ -194,7 +196,7 @@ ComplexDouble cln(ComplexDouble c) {
 	} else {
 		r = 0;
 		j = 0;
-		errno = 10001;
+		errno = 10002;
 	}
 	if (j > __TS_PI__)
 		j -= __TS_PI__ * 2;
@@ -261,7 +263,7 @@ ComplexDouble ccosinehyp(ComplexDouble c) {
 ComplexDouble ctangenthyp(ComplexDouble c) {
 	ComplexDouble d = ccosinehyp(c);
 	if (alm0(d)) {
-		errno = 10002;
+		errno = 10003;
 		return makeComplex(0.0, 0.0);
 	}
 	return cdiv(csinehyp(c), d);
@@ -270,7 +272,7 @@ ComplexDouble ctangenthyp(ComplexDouble c) {
 ComplexDouble ccotangenthyp(ComplexDouble c) {
 	ComplexDouble d = csinehyp(c);
 	if (alm0(d)) {
-		errno = 10003;
+		errno = 10004;
 		return makeComplex(0.0, 0.0);
 	}
 	return cdiv(ccosinehyp(c), d);
@@ -292,7 +294,7 @@ ComplexDouble ccosine(ComplexDouble c) {
 ComplexDouble ctangent(ComplexDouble c) {
 	ComplexDouble d = ccosine(c);
 	if (alm0(d)) {
-		errno = 10004;
+		errno = 10005;
 		return makeComplex(0.0, 0.0);
 	}
 	return cdiv(csine(c), d);
@@ -301,7 +303,7 @@ ComplexDouble ctangent(ComplexDouble c) {
 ComplexDouble ccotangent(ComplexDouble c) {
 	ComplexDouble d = csine(c);
 	if (alm0(d)) {
-		errno = 10005;
+		errno = 10006;
 		return makeComplex(0.0, 0.0);
 	}
 	return cdiv(ccosine(c), d);
@@ -353,7 +355,7 @@ ComplexDouble carctangent(ComplexDouble c) {
 	ComplexDouble jpc = cadd(j, c);
 	ComplexDouble jmc = csub(j, c);
 	if (alm0(jpc) || alm0(jmc)) {
-		errno = 10006;
+		errno = 10007;
 		return makeComplex(0.0, 0.0);
 	}
 	return cdiv(cln(cdiv(jmc, jpc)), jx2);
@@ -365,7 +367,7 @@ ComplexDouble carccotangent(ComplexDouble c) {
 	ComplexDouble cpj = cadd(c, j);
 	ComplexDouble cmj = csub(c, j);
 	if (alm0(cpj) || alm0(cmj)) {
-		errno = 10007;
+		errno = 10008;
 		return makeComplex(0.0, 0.0);
 	}
 	return cdiv(cln(cdiv(cpj, cmj)), jx2);
@@ -395,7 +397,7 @@ ComplexDouble carccosinehyp(ComplexDouble c) {
 
 ComplexDouble carctangenthyp(ComplexDouble c) {
 	if (alm0(csub(c, makeComplex(1.0, 0.0)))) {
-		errno = 10006;
+		errno = 10009;
 		return makeComplex(0.0, 0.0);
 	}
 	ComplexDouble x = cdiv(cadd(makeComplex(1.0, 0.0), c), csub(makeComplex(1.0, 0.0), c));
@@ -404,7 +406,7 @@ ComplexDouble carctangenthyp(ComplexDouble c) {
 
 ComplexDouble carccotangenthyp(ComplexDouble c) {
 	if (alm0(csub(c, makeComplex(1.0, 0.0)))) {
-		errno = 10006;
+		errno = 100010;
 		return makeComplex(0.0, 0.0);
 	}
 	ComplexDouble x = cdiv(cadd(c, makeComplex(1.0, 0.0)), csub(c, makeComplex(1.0, 0.0)));

@@ -149,12 +149,15 @@ bool stringToDouble(char* str, long double* dbl) {
 	}
 }
 
-bool stringToComplex(const char *input, ComplexDouble* c) {
+bool stringToComplex(char *input, ComplexDouble* c) {
 	//the input is guaranteed not to have to leading or trailing spaces
 	//(a, b) -> a + ib
 	//(b) -> ib
 	//SerialPrint(1, "stringToComplex: just entered input = %s", input);
-	if (input[0] != '(' ||  input[strlen(input)-1] != ')') return false;
+	if (input[0] != '(') {
+		c->imag = 0;
+		return stringToDouble(input, &c->real);
+	}
 	char str1[SHORT_STRING_SIZE];
 	char str2[SHORT_STRING_SIZE];
 	int failpoint = parseComplex(input, str1, str2);

@@ -14,10 +14,10 @@ bool process(Machine* vm, char* token) {
 		int is2pfn = is2ParamFunction(token);
 		int isvecfn = isVec1ParamFunction(token);
 		int isTrig = is1ParamTrigFunction(token);
+		int8_t meta = peek(&vm->userStack, vm->matvecStrC);
 		if (ismatfn != -1) {
 			Matrix m;
 			ComplexDouble c;
-			int8_t meta = peek(&vm->userStack, vm->matvecStrC);
 			FAILANDRETURN((meta == -1), vm->error, "stack empty.Y", NULLFN)
 			switch (ismatfn) {
 				case 0: //det
@@ -68,19 +68,124 @@ bool process(Machine* vm, char* token) {
 			success = fnOrOp2Param(vm, token, is2pfn);
 		} else if (isvecfn != -1) {
 			success = fnOrOpVec1Param(vm, token, isvecfn, false, false); //not a trig fn., result is not vector
+		} else if (strcmp(token, "solv") == 0) {
+			char* input = NULL;
+			char output[MAX_TOKEN_LEN];
+			FAILANDRETURN((meta != METAVECTOR), vm->error, "only vec for now.", NULLFN)
+			//ToS is in matvecStrC
+			input = vm->matvecStrC;
+			Cnode* head = NULL;
+			Cnode* result = NULL;
+			ComplexDouble c;
+			ComplexDouble clast;
+			int trycount = 1;
+			long double tryre = -100.5;
+			long double tryim = -100.5;
+			int polydegree = -1;
+			int rootcount = 0;
+			const int MAXTRIES = 200;
+
+			while (true) {
+				input = tokenize(input, output);
+				if (output[0] == ']') break;
+				if (output[0] == '[') continue;
+				strcpy(vm->acc, output);
+				clast = c;
+				success = stringToComplex(vm->acc, &c);
+				if (!success) {
+					while (head != NULL) {
+						head = deletenode(head);
+					}
+				}
+				FAILANDRETURN(!success, vm->error, "bad arg for solve.", NULLFN)
+				head = insertnode(head, c);
+				//printf("process: inserted %Lg, i%Lg to linked list\n", c.real, c.imag);
+				polydegree++;
+			}
+			if (polydegree <= 0) {
+				while (head != NULL) {
+					head = deletenode(head);
+				}
+			}
+			FAILANDRETURN(polydegree <= 0, vm->error, "bad poly.", NULLFN)
+		
+			else if (polydegree == 1) {
+				//root is -c
+				//pop ToS, push answer and return
+				//Ax + B = 0 => x = (-B)/A
+				strcpy(vm->coadiutor, "[");
+				success = complexToString(cdiv(cneg(c), clast), &vm->coadiutor[1], vm->precision, vm->notationStr);
+				while (head != NULL) {
+					head = deletenode(head);
+				}
+				strcat(vm->coadiutor, "]");
+				FAILANDRETURN(!success, vm->error, "solve bad result.", NULLFN)
+				pop(&vm->userStack, NULL);
+				push(&vm->userStack, vm->coadiutor, METAVECTOR);
+				return true;
+			}
+			while(1) {
+				errno = 0;
+				c = nrpolysolve(polydegree, head, makeComplex(tryre, tryim));
+				if (errno != 11001) {
+					//error is not from nrpolysolve
+					//printf("main: solution = %.14Lg + i * %.14Lg in try %d\n", c.real, c.imag, trycount);
+					bool foundnode = searchnode(result, c);
+					if (!foundnode) {
+						//printf("new root found\n");
+						rootcount++;
+						result = insertnode(result, c);
+					}
+					if (rootcount == polydegree) break;
+				}
+				//else printf("============SEEING ERRNO = %d\n", errno);
+				trycount++;
+				if (trycount > MAXTRIES) break;
+				//tryre += pow(-1, trycount) * tryre;
+				//tryim += pow(-1, trycount) * tryim;
+				tryre += 1;
+				tryim += 1;
+			}
+			if (errno == 11001) { //nrpolysolve result is bad
+				//printf("No solution could be found because of math error %d.\n", errno);
+				while (head != NULL) {
+					head = deletenode(head);
+				}
+				while (result != NULL) {
+					result = deletenode(result);
+				}
+				FAILANDRETURN(true, vm->error, "solve failed.1", NULLFN)
+			}
+			while (head != NULL) {
+				head = deletenode(head);
+			}
+			//if duplicate roots were found but could not be inserted, insert into result now
+			trycount = 0; //reuse
+			while (trycount < (polydegree - rootcount)) {
+				result = insertnode(result, c);
+				trycount++;
+			}
+			//printl(result);
+			success = catnode(result, vm->coadiutor, vm->precision, vm->notationStr);
+			while (result != NULL) {
+				result = deletenode(result);
+			}
+			FAILANDRETURN(!success, vm->error, "solve bad result.", NULLFN)
+			pop(&vm->userStack, NULL);
+			push(&vm->userStack, vm->coadiutor, METAVECTOR);
 		} else if (strcmp(token, "reim") == 0) {
 			//swap real and imaginary components
 			int8_t meta = peekbarrier(&vm->userStack, NULL);
 			long double temp;
 			//meaningless to put barrier on empty stack
 			FAILANDRETURN((meta == -1), vm->error, "stack empty.W", NULLFN)
-			FAILANDRETURN((meta != METASCALAR), vm->error, "only real here.", NULLFN)
+			FAILANDRETURN((meta != METASCALAR), vm->error, "only scalar.", NULLFN)
 			pop(&vm->userStack, vm->matvecStrC);
 			ComplexDouble c;			
 			c.imag = 0;
 			if (isComplexNumber(vm->matvecStrC)) //complex
 				success = stringToComplex(vm->matvecStrC, &c);
-			else if (isRealNumber(vm->acc)) //real number
+			else if (isRealNumber(vm->acc)) //real number -> make it (0 real)
 				success = stringToDouble(vm->matvecStrC, &c.real);
 			FAILANDRETURNVAR(!success, vm->error, "%s bad arg.", fitstr(vm->coadiutor, token, 8))
 
@@ -113,6 +218,7 @@ bool process(Machine* vm, char* token) {
 				if (vm->modeDegrees)
 					c = makeComplex(c.real, c.imag * 57.295779513082320876798L);
 			}
+
 			complexToString(c, vm->matvecStrC, vm->precision, vm->notationStr);
 			push(&vm->userStack, vm->matvecStrC, METASCALAR);
 		#ifdef DESKTOP_PC
@@ -177,6 +283,24 @@ bool process(Machine* vm, char* token) {
 		} else if (strcmp(token, "vec") == 0) {
 			int8_t meta = peek(&vm->userStack, NULL);
 			FAILANDRETURN((meta == -1), vm->error, "stack empty.Z", NULLFN)
+			FAILANDRETURN((meta != METAVECTOR && meta != METASCALAR), vm->error, "bad arg.Z", NULLFN)
+			if (meta == METAVECTOR) {
+				//To is a vector, unvectorize it
+				char* input = NULL;
+				char output[MAX_TOKEN_LEN];
+				pop(&vm->userStack, vm->matvecStrA);
+				input = vm->matvecStrA;
+				while (true) {
+					input = tokenize(input, output);
+					//printf ("process: loop, output = %s\n", output);
+					if (output[0] == ']') break;
+					if (output[0] == '[') continue;
+					strcpy(vm->acc, output);
+					push(&vm->userStack, vm->acc, METASCALAR);
+				}
+				return true;
+			}
+			//ToS is a scalar
 			int i = 0;
 			int j = 0;
 			do {

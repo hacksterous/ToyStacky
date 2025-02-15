@@ -26,7 +26,7 @@ License: GNU GPL v3
 #include "bigint.h"
 #include "TS-core.h"
 
-const char* __TS_GLOBAL_ERRORCODE[]= { "undef arg",
+const char* __TS_GLOBAL_ERRORCODE[] = { "undef arg",
 								"log undef",
 								"bad fn tanh",
 								"bad fn coth",
@@ -69,7 +69,7 @@ const char* DEBUGMETA[5] = {
 const long double __TS_PI__ = 3.14159265358979323846L;
 void (*NULLFN)(void) = NULL;
 
-ComplexDouble makeComplex(double re, long double im) {
+ComplexDouble makeComplex(long double re, long double im) {
 	ComplexDouble ret;
 	ret.real = re;
 	ret.imag = im;
@@ -171,6 +171,7 @@ bool fn1ParamScalar(Machine* vm, const char* fnname, int fnindex, int isTrig, in
 #include "TS-core-stack.h"
 #include "TS-core-math.h"
 #include "TS-core-numString.h"
+#include "TS-core-llist.h"
 
 void makeLDoubleStringFit(char*dest, char* src, int len) {
 	char expstr[10];

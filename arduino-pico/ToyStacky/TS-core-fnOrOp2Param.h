@@ -149,7 +149,7 @@ bool fnOrOp2Param(Machine* vm, const char* token, int fnindex) {
 		//convert back to polar mode
 		if (!alm0double(c.real)) {
 			long double temp = abso(c);
-			c.imag = atan(c.imag/c.real);
+			c.imag = atanl(c.imag/c.real);
 			c.real = temp;
 		} else {
 			c.imag = 1.570796326794896619231L;//pi/2

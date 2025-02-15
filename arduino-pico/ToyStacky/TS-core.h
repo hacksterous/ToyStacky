@@ -31,11 +31,12 @@ License: GNU GPL v3
 #define VSHORT_STRING_SIZE 25
 
 //#define DOUBLE_EPS __LDBL_MIN__
-#define DOUBLE_EPS 9e-16
+#define DOUBLE_EPS 1e-15
 //#define DOUBLEFN_EPS __LDBL_MIN__
-#define DOUBLEFN_EPS 9e-16 //for return values of functions
+#define DOUBLEFN_EPS 1e-15 //for return values of functions
 //#define DOUBLE_EPS __LDBL_EPSILON__
 //#define DOUBLEFN_EPS __LDBL_EPSILON__
+#define NRPOLYSOLV_EPS 1e-8
 
 //For LCD with Japanese char set: HD44780U A00
 #define UPIND 1
@@ -147,7 +148,7 @@ typedef struct {
 	long double imag;
 } ComplexDouble;
 
-ComplexDouble makeComplex(double re, long double im);
+ComplexDouble makeComplex(long double re, long double im);
 #define MKCPLX(a,...) makeComplex(a, (0, ##__VA_ARGS__))
 
 typedef struct Matrix{
@@ -291,7 +292,7 @@ int8_t peekn(Strack* s, char output[STRING_SIZE], int n);
 void SerialPrint(const int count, ...);
 void interpret(Machine* vm, char* sourceCode);
 void initMachine(Machine* vm);
-bool doubleToString(double value, char* buf, uint8_t precision, char* notationStr);
+bool doubleToString(long double value, char* buf, uint8_t precision, char* notationStr);
 void showUserEntryLine(int bsp);
 void showStackEntries(Machine* vm, int linecount);
 void showCmdPageDegAlt(Machine* vm);
