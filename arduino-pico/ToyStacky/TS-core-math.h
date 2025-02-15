@@ -10,14 +10,14 @@ long double abso (ComplexDouble value) {
 bool alm0(ComplexDouble value) {
 	//limit of long double precision
 	//if (fabsl(value.real) < DOUBLE_EPS && fabsl(value.imag) < DOUBLE_EPS) return true;
-	if (value.real != 0 && value.imag != 0) return true;	
+	if (value.real == 0 && value.imag == 0) return true;	
 	else return false;
 }
 
 bool alm0double(long double value) {
 	//limit of long double precision
-	if (fabsl(value) < DOUBLE_EPS) return true;
-	//if (value != 0) return true;
+	//if (fabsl(value) < DOUBLE_EPS) return true;
+	if (value == 0) return true;
 	else return false;
 }
 

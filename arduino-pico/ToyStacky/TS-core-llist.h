@@ -172,7 +172,7 @@ ComplexDouble nrpolysolve(unsigned int n, Cnode* poly, ComplexDouble trial) {
 	h = cdiv(fnll(n, poly, x), h);
 
 	int i = 0;
-	while (abso(h) > __LDBL_EPSILON__) {
+	while (abso(h) > DOUBLE_EPS) {
 		h = dfnll(n, poly, x);
 		h = cdiv(fnll(n, poly, x), h);
 		if (i > 5000) break;
@@ -182,7 +182,7 @@ ComplexDouble nrpolysolve(unsigned int n, Cnode* poly, ComplexDouble trial) {
 		i++;
 	}
  
-	if ((i > 5000) && (abso(h) > __LDBL_EPSILON__))
+	if ((i > 5000) && (abso(h) > DOUBLE_EPS))
 		errno = 11001;
 	//else 
 		//printf("one solution = %.14Lg + i * %.14Lg in iter %d h = %.14Lg\n", x.real, x.imag, i, abso(h));
