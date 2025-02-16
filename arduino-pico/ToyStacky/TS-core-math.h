@@ -9,15 +9,15 @@ long double abso (ComplexDouble value) {
 
 bool alm0(ComplexDouble value) {
 	//limit of long double precision
-	//if (fabsl(value.real) < DOUBLE_EPS && fabsl(value.imag) < DOUBLE_EPS) return true;
-	if (value.real == 0 && value.imag == 0) return true;	
+	if (fabsl(value.real) < DOUBLE_EPS && fabsl(value.imag) < DOUBLE_EPS) return true;
+	//if (value.real == 0 && value.imag == 0) return true;	
 	else return false;
 }
 
 bool alm0double(long double value) {
 	//limit of long double precision
-	//if (fabsl(value) < DOUBLE_EPS) return true;
-	if (value == 0) return true;
+	if (fabsl(value) < DOUBLE_EPS) return true;
+	//if (value == 0) return true;
 	else return false;
 }
 
@@ -237,7 +237,7 @@ ComplexDouble cpowerd(ComplexDouble c, long double d) {
 }
 
 ComplexDouble csqroot(ComplexDouble c) {
-	printf("csqroot: got c.real = %Lg c.imag = %Lg\n", c.real, c.imag);
+	//printf("csqroot: got c.real = %Lg c.imag = %Lg\n", c.real, c.imag);
 	return cpowerd(c, 0.5);
 }
 
@@ -350,6 +350,7 @@ ComplexDouble carccosine(ComplexDouble c) {
 }
 
 ComplexDouble carctangent(ComplexDouble c) {
+	if (alm0double(c.imag)) return makeComplex(atanl(c.real), 0);
 	ComplexDouble j = makeComplex(0.0, 1.0);
 	ComplexDouble jx2 = makeComplex(0.0, 2.0);
 	ComplexDouble jpc = cadd(j, c);
@@ -362,6 +363,7 @@ ComplexDouble carctangent(ComplexDouble c) {
 }
 
 ComplexDouble carccotangent(ComplexDouble c) {
+	if (alm0double(c.imag)) return makeComplex((1/atanl(c.real)), 0);
 	ComplexDouble j = makeComplex(0.0, 1.0);
 	ComplexDouble jx2 = makeComplex(0.0, 2.0);
 	ComplexDouble cpj = cadd(c, j);

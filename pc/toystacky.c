@@ -38,7 +38,7 @@ License: GNU GPL v3
 //#define DOUBLEFN_EPS __LDBL_EPSILON__
 #define DOUBLE_EPS 1e-15
 #define DOUBLEFN_EPS 1e-15 //for return values of functions
-#define NRPOLYSOLV_EPS 1e-8
+#define NRPOLYSOLV_EPS 1e-6
 
 #define COMSTARTTOKENC '('
 #define VECSTARTTOKENC '['

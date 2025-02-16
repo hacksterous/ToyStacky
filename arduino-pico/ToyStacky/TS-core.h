@@ -36,7 +36,7 @@ License: GNU GPL v3
 #define DOUBLEFN_EPS 1e-15 //for return values of functions
 //#define DOUBLE_EPS __LDBL_EPSILON__
 //#define DOUBLEFN_EPS __LDBL_EPSILON__
-#define NRPOLYSOLV_EPS 1e-8
+#define NRPOLYSOLV_EPS 1e-6
 
 //For LCD with Japanese char set: HD44780U A00
 #define UPIND 1

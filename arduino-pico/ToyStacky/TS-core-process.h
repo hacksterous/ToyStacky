@@ -166,7 +166,7 @@ bool process(Machine* vm, char* token) {
 				trycount++;
 			}
 			//printl(result);
-			success = catnode(result, vm->coadiutor, vm->precision, vm->notationStr);
+			success = catnode(result, vm->coadiutor, 7, vm->notationStr); //vm->precision is 14, we want 7 only
 			while (result != NULL) {
 				result = deletenode(result);
 			}

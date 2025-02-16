@@ -251,7 +251,8 @@ void showEntryView() {
 
 void updatesForRightMotion(){
 	int len = strlen(vm.userInput);
-	if (vm.viewPage == NORMAL_VIEW && vm.userInputPos == 0) {
+	//if (vm.viewPage == NORMAL_VIEW && vm.userInputPos == 0) {
+	if (vm.viewPage == NORMAL_VIEW && vm.userInput[0] == '\0') {
 		//user is not editing the line
 		//quickview mode
 		vm.quickViewPage = 1;

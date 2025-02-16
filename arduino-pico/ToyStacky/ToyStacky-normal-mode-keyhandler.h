@@ -166,7 +166,8 @@ int normalModeKeyhandler (char keyc) {
 			keyTypePressed = 1;
 			break;
 		case '<': //left
-			if ((vm.userInputPos > 0) && (vm.userInputPos < STRING_SIZE - 1)) {
+			//if ((vm.userInputPos > 0) && (vm.userInputPos < STRING_SIZE - 1)) {
+			if (vm.userInput[0] != '\0') {
 				//user is editing the entry line
 				keyTypePressed = 7;
 				updatesForLeftMotion();

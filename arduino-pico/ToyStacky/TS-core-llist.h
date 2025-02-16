@@ -175,19 +175,19 @@ ComplexDouble nrpolysolve(unsigned int n, Cnode* poly, ComplexDouble trial) {
 	while (abso(h) > DOUBLE_EPS) {
 		h = dfnll(n, poly, x);
 		h = cdiv(fnll(n, poly, x), h);
-		if (i > 5000) break;
+		if (i > 500) break;
 		// x(i+1) = x(i) - f(x) / f'(x)
 		x = csub(x,h);
 		//printf("iter solution = %Lg + i * %Lg in iter %d h = %Lg + i * %Lg\n", x.real, x.imag, i, h.real, h.imag);
 		i++;
 	}
  
-	if ((i > 5000) && (abso(h) > DOUBLE_EPS))
+	if ((i > 500) && (abso(h) > DOUBLE_EPS))
 		errno = 11001;
 	//else 
 		//printf("one solution = %.14Lg + i * %.14Lg in iter %d h = %.14Lg\n", x.real, x.imag, i, abso(h));
-	if (x.imag/x.real < NRPOLYSOLV_EPS) return makeComplex(x.real, 0);
-	else if (x.real/x.imag < NRPOLYSOLV_EPS) return makeComplex(0, x.imag);
+	if (fabsl(x.imag/x.real) < NRPOLYSOLV_EPS) return makeComplex(x.real, 0);
+	else if (fabsl(x.real/x.imag) < NRPOLYSOLV_EPS) return makeComplex(0, x.imag);
 	return x;
 }
 
