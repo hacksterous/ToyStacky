@@ -253,8 +253,9 @@ bool process(Machine* vm, char* token) {
 			ComplexDouble c;
 			int8_t cmeta = peek(&vm->userStack, vm->matvecStrC);
 			FAILANDRETURN((cmeta == -1), vm->error, "stack empty.B", NULLFN)
-			success = stringToComplex(vm->matvecStrC, &c);
+			success = isComplexNumber(vm->matvecStrC);
 			if (success) {
+				stringToComplex(vm->matvecStrC, &c);
 				//current ToS is a complex number, uncomplex it
 				doubleToString(c.real, vm->bak, vm->precision, vm->notationStr);
 				doubleToString(c.imag, vm->acc, vm->precision, vm->notationStr);
