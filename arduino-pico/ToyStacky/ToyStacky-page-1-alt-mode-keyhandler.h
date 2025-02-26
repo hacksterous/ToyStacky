@@ -28,11 +28,15 @@ int altPage1ModeKeyhandler (char keyc) {
 			keyTypePressed = 1;
 			break;
 		case 'd':
-			processImmdOpKeyC("mont");
+			processImmdOpKeyC("mod");
 			keyTypePressed = 1;
 			break;
 		case '[':
 			processImmdOpKeyC("vec");
+			keyTypePressed = 1;
+			break;
+		case '%':
+			processImmdOpKeyC("mont");
 			keyTypePressed = 1;
 			break;
 		case '{':
@@ -129,6 +133,10 @@ int altPage1ModeKeyhandler (char keyc) {
 			break;
 		case '0':
 			processImmdOpKeyC("rnd");
+			keyTypePressed = 1;
+			break;
+		case '-':
+			processImmdOpKeyC("rsum");
 			keyTypePressed = 1;
 			break;
 		case '.':

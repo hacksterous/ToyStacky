@@ -854,7 +854,7 @@ bool bigint_from_bin(bigint_t *res, char *binstr){
 		hexstr[1] = '-';
 	}
 	else bin_to_hex(&binstr[1], &hexstr[1]);
-	printf("bigint_from_bin: hexstr = %s\n", hexstr);
+	//printf("bigint_from_bin: hexstr = %s\n", hexstr);
 	bigint_from_hex(res, hexstr);
 	return true;
 }
@@ -900,7 +900,7 @@ void bigint_bin (const bigint_t *x, char* res) {
 		*res = '\0';
 		return;
 	}
-	printf("bigint_bin: after conv to hex, res = %s\n", res);
+	//printf("bigint_bin: after conv to hex, res = %s\n", res);
 	for (i = 1; i < len; i++) {
 		//skip the first 'x'
 		if (res[i] == '-') {
@@ -1064,8 +1064,12 @@ void bigint_mod_exp(const bigint_t *base, const bigint_t *exp, const bigint_t *m
 }
 
 void bigint_pow(const bigint_t *x, const bigint_t *y, bigint_t *res){
-	bigint_t one;
-	bigint_from_int(&one, 1);
-	bigint_mod_exp(x, y, &one, res); //reuse mod exp with mod = 1
+	//printf("bigint_pow: entered with big x = ");
+	bigint_print((bigint_t*) x);
+	//printf("bigint_pow: and big y = ");
+	bigint_print((bigint_t*) y);
+	bigint_t mod;
+	bigint_from_str(&mod, "18446744073709551616"); //2^64
+	bigint_mod_exp(x, y, &mod, res); //reuse mod exp with mod = 1
 }
 

@@ -162,7 +162,7 @@ int normalModeKeyhandler (char keyc) {
 			//lcd.noCursor();
 			//updatesForDownMotion();
 			//showViewPage();
-			processImmdOpKeyC("gcd");
+			processImmdOpKeyC("gl"); //gcd + lcm
 			keyTypePressed = 1;
 			break;
 		case '<': //left
@@ -175,7 +175,7 @@ int normalModeKeyhandler (char keyc) {
 			else {
 				//user is not editing the entry line
 				//reuse for a function
-				processImmdOpKeyC("lcm");
+				processImmdOpKeyC("fac");
 				keyTypePressed = 1;
 			}
 			break;

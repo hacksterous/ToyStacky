@@ -61,123 +61,56 @@ bool process(Machine* vm, char* token) {
 		}
 		else if (is1pfn != -1 || is1ParamBigIntFn != -1) {
 			//printf("process:------------------- is1pfn = %d\n", is1pfn);
-			success = fn1Param(vm, token, is1pfn, isTrig, is1ParamBigIntFn);
+			//exp is special
+			if (is1pfn == EXPFNINDEX) { //exp, can also compare token with "exp"
+				int8_t cmeta = peek(&vm->userStack, vm->matvecStrB);
+				FAILANDRETURN((cmeta == -1), vm->error, "stack empty.T", NULLFN)
+				if (vm->matvecStrB[0] != '"') //not a bigint, could be vec, mat, real or complex
+					success = fn1Param(vm, token, is1pfn, isTrig, is1ParamBigIntFn); //exp(x) function
+				else
+					//ToS is a bigint, try special exp function
+					success = fnOrOp2Param(vm, token, is1pfn);
+			}
+			else
+				success = fn1Param(vm, token, is1pfn, isTrig, is1ParamBigIntFn);
 		} else if (is2pfn != -1) {
 			//printf("process:------------------- is2pfn|op = %d\n", is2pfn);
 			//could call 2-parameter vector function
 			success = fnOrOp2Param(vm, token, is2pfn);
 		} else if (isvecfn != -1) {
+			FAILANDRETURN((meta == -1), vm->error, "stack empty.U", NULLFN)
+			FAILANDRETURN((meta != METAVECTOR), vm->error, "only vector.", NULLFN)
 			success = fnOrOpVec1Param(vm, token, isvecfn, false, false); //not a trig fn., result is not vector
+		#ifndef DESKTOP_PC
+		} else if (strcmp(token, "rnd") == 0) {
+			uint32_t rnd = truerandom();
+			success = doubleToString(rnd, vm->acc, vm->precision, vm->notationStr);
+			FAILANDRETURN(!success, vm->error, "Random failed.", NULLFN)
+			push(&vm->userStack, vm->acc, METASCALAR);
+		#endif
+		} else if (strcmp(token, "wid") == 0) {
+		} else if (strcmp(token, "mod") == 0) {
+			int8_t meta = peek(&vm->userStack, NULL);
+			//meaningless to put barrier on empty stack
+			FAILANDRETURN((meta == -1), vm->error, "stack empty.W", NULLFN)
+			FAILANDRETURN((meta != METASCALAR), vm->error, "only scalar.", NULLFN)
+			pop(&vm->userStack, vm->matvecStrC);
+			char* strC = removeDblQuotes(vm->matvecStrC);
+			if (strC[0] == 'x')
+				success = bigint_from_hex(&vm->bigC, strC);
+			else if (strC[0] == 'b')
+				success = bigint_from_bin(&vm->bigC, strC);
+			else
+				success = bigint_from_str(&vm->bigC, strC);
+			FAILANDRETURN(!success, vm->error, "bad mod val.", NULLFN)
+			vm->bigMod = vm->bigC;
+			return true;
 		} else if (strcmp(token, "solv") == 0) {
-			char* input = NULL;
-			char output[MAX_TOKEN_LEN];
-			FAILANDRETURN((meta != METAVECTOR), vm->error, "only vec for now.", NULLFN)
-			//ToS is in matvecStrC
-			input = vm->matvecStrC;
-			Cnode* head = NULL;
-			Cnode* result = NULL;
-			ComplexDouble c;
-			ComplexDouble clast;
-			int trycount = 1;
-			long double tryre = -100.5;
-			long double tryim = -100.5;
-			int polydegree = -1;
-			int rootcount = 0;
-			const int MAXTRIES = 200;
-
-			while (true) {
-				input = tokenize(input, output);
-				if (output[0] == ']') break;
-				if (output[0] == '[') continue;
-				strcpy(vm->acc, output);
-				clast = c;
-				success = stringToComplex(vm->acc, &c);
-				if (!success) {
-					while (head != NULL) {
-						head = deletenode(head);
-					}
-				}
-				FAILANDRETURN(!success, vm->error, "bad arg for solve.", NULLFN)
-				head = insertnode(head, c);
-				//printf("process: inserted %Lg, i%Lg to linked list\n", c.real, c.imag);
-				polydegree++;
-			}
-			if (polydegree <= 0) {
-				while (head != NULL) {
-					head = deletenode(head);
-				}
-			}
-			FAILANDRETURN(polydegree <= 0, vm->error, "bad poly.", NULLFN)
-		
-			else if (polydegree == 1) {
-				//root is -c
-				//pop ToS, push answer and return
-				//Ax + B = 0 => x = (-B)/A
-				strcpy(vm->coadiutor, "[");
-				success = complexToString(cdiv(cneg(c), clast), &vm->coadiutor[1], vm->precision, vm->notationStr);
-				while (head != NULL) {
-					head = deletenode(head);
-				}
-				strcat(vm->coadiutor, "]");
-				FAILANDRETURN(!success, vm->error, "solve bad result.", NULLFN)
-				pop(&vm->userStack, NULL);
-				push(&vm->userStack, vm->coadiutor, METAVECTOR);
-				return true;
-			}
-			while(1) {
-				errno = 0;
-				c = nrpolysolve(polydegree, head, makeComplex(tryre, tryim));
-				if (errno != 11001) {
-					//error is not from nrpolysolve
-					//printf("main: solution = %.14Lg + i * %.14Lg in try %d\n", c.real, c.imag, trycount);
-					bool foundnode = searchnode(result, c);
-					if (!foundnode) {
-						//printf("new root found\n");
-						rootcount++;
-						result = insertnode(result, c);
-					}
-					if (rootcount == polydegree) break;
-				}
-				//else printf("============SEEING ERRNO = %d\n", errno);
-				trycount++;
-				if (trycount > MAXTRIES) break;
-				//tryre += pow(-1, trycount) * tryre;
-				//tryim += pow(-1, trycount) * tryim;
-				tryre += 1;
-				tryim += 1;
-			}
-			if (errno == 11001) { //nrpolysolve result is bad
-				//printf("No solution could be found because of math error %d.\n", errno);
-				while (head != NULL) {
-					head = deletenode(head);
-				}
-				while (result != NULL) {
-					result = deletenode(result);
-				}
-				FAILANDRETURN(true, vm->error, "solve failed.1", NULLFN)
-			}
-			while (head != NULL) {
-				head = deletenode(head);
-			}
-			//if duplicate roots were found but could not be inserted, insert into result now
-			trycount = 0; //reuse
-			while (trycount < (polydegree - rootcount)) {
-				result = insertnode(result, c);
-				trycount++;
-			}
-			//printl(result);
-			success = catnode(result, vm->coadiutor, 7, vm->notationStr); //vm->precision is 14, we want 7 only
-			while (result != NULL) {
-				result = deletenode(result);
-			}
-			FAILANDRETURN(!success, vm->error, "solve bad result.", NULLFN)
-			pop(&vm->userStack, NULL);
-			push(&vm->userStack, vm->coadiutor, METAVECTOR);
+			success = polysolve(vm);
 		} else if (strcmp(token, "reim") == 0) {
 			//swap real and imaginary components
-			int8_t meta = peekbarrier(&vm->userStack, NULL);
+			int8_t meta = peek(&vm->userStack, NULL);
 			long double temp;
-			//meaningless to put barrier on empty stack
 			FAILANDRETURN((meta == -1), vm->error, "stack empty.W", NULLFN)
 			FAILANDRETURN((meta != METASCALAR), vm->error, "only scalar.", NULLFN)
 			pop(&vm->userStack, vm->matvecStrC);
@@ -187,7 +120,7 @@ bool process(Machine* vm, char* token) {
 				success = stringToComplex(vm->matvecStrC, &c);
 			else if (isRealNumber(vm->acc)) //real number -> make it (0 real)
 				success = stringToDouble(vm->matvecStrC, &c.real);
-			FAILANDRETURNVAR(!success, vm->error, "%s bad arg.", fitstr(vm->coadiutor, token, 8))
+			FAILANDRETURN(!success, vm->error, "bad arg for reim.", NULLFN)
 
 			if (vm->modePolar) {
 				if (vm->modeDegrees) c.imag *= 0.01745329251994329576923L;
@@ -222,6 +155,10 @@ bool process(Machine* vm, char* token) {
 			complexToString(c, vm->matvecStrC, vm->precision, vm->notationStr);
 			push(&vm->userStack, vm->matvecStrC, METASCALAR);
 		#ifdef DESKTOP_PC
+		} else if (strcmp(token, "pi") == 0) {
+			push(&vm->userStack, "3.141592653589793", METASCALAR);
+		} else if (strcmp(token, "e") == 0) {
+			push(&vm->userStack, "2.718281828459045", METASCALAR);
 		} else if (strcmp(token, "coord") == 0) {
 			vm->modePolar ^= true;
 		} else if (strcmp(token, "angle") == 0) {
@@ -346,7 +283,7 @@ bool process(Machine* vm, char* token) {
 			FAILANDRETURN((meta == METAMATRIXPARTIAL), vm->error, "bad matrix.2", NULLFN)
 			push(&vm->userStack, vm->matvecStrC, meta);
 			return true;
-		} else if (strcmp(token, "dupn") == 0) { //duplicates the nth item from ToS, ToS is 1
+		} else if (strcmp(token, "dupn") == 0) { //duplicates the nth item from ToS, ToS has index of 0
 			int8_t meta = peek(&vm->userStack, vm->matvecStrC);
 			long double d;
 			FAILANDRETURN((meta == -1), vm->error, "stack empty", NULLFN)

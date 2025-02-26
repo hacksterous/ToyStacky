@@ -96,8 +96,19 @@ ComplexDouble cdiv(ComplexDouble value, ComplexDouble second) {
 	long double denom = second.real * second.real + second.imag * second.imag;
 	if (alm0double(denom)) return makeComplex(0, 0);
 	ComplexDouble nom = cmul(value, conjugate(second));
-	return makeComplex(nom.real / denom, nom.imag / denom);
+	return makeComplex(nom.real/denom, nom.imag/denom);
 }
+
+ComplexDouble crem(ComplexDouble value, ComplexDouble second) {
+	if (alm0(second)) return makeComplex(0, 0);
+	ComplexDouble res;
+	res.real = fmodl(value.real, second.real);
+	res.imag = 0;
+	if (!alm0double(second.imag))
+		res.imag = fmodl(value.imag, second.imag);
+	return res;
+}
+
 
 ComplexDouble cdivd(ComplexDouble value, long double second) {
 	return makeComplex(value.real / second, value.imag / second);
@@ -313,7 +324,7 @@ ComplexDouble carcsine(ComplexDouble c) {
 	ComplexDouble j = makeComplex(0.0, 1.0);
 	ComplexDouble c1_m_zz = csub(makeComplex(1.0, 0.0), cmul(c, c));
 	ComplexDouble csqrt_c1_m_zz = csqroot(cabso(c1_m_zz));
-	printf("carcsine: csqrt_c1_m_zz = %Lg + %Lg(i)\n", c.real, c.imag);
+	//printf("carcsine: csqrt_c1_m_zz = %Lg + %Lg(i)\n", c.real, c.imag);
 	long double rarg_c1_m_zz = cargu(c1_m_zz);
 	ComplexDouble cterm1 = cmul(j, c);
 	ComplexDouble cexp_arg_1_m_zz_i_d_2 = cexpo(makeComplex(0.0, rarg_c1_m_zz/2));
@@ -419,12 +430,12 @@ ComplexDouble ccbrt(ComplexDouble x){
 	return cpowerd(x, (1.0/3.0));
 }
 
-ComplexDouble ctorad(ComplexDouble x){
+ComplexDouble crad(ComplexDouble x){
 	//pi/180 = 0.017453292519943295769237L
 	return cmul(x, makeComplex(0.017453292519943295769237L, 0.0));
 }
 
-ComplexDouble ctodeg(ComplexDouble x){
+ComplexDouble cdeg(ComplexDouble x){
 	//180/pi = 57.295779513082320876798L
 	return cmul(x, makeComplex(57.295779513082320876798L, 0.0));
 }

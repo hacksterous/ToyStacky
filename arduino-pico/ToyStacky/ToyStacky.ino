@@ -85,11 +85,11 @@ void eraseUserEntryLine() {
 void showViewPage(){
 	lcd.setCursor(0, 2);
 	switch (vm.viewPage) {
-		case STACK_VIEW: lcd.print('S');break;
-		case ENTRY_VIEW: lcd.print('V');break;
-		case VARLIST_VIEW: lcd.print('L');break;
+		case STACK_VIEW: lcd.print(STACKIND);break;
+		case ENTRY_VIEW: lcd.write(VARIND);break;
+		case VARLIST_VIEW: lcd.print(VARLISTIND);break;
 		case STATUS_VIEW: lcd.print(SIGMAIND);break;
-		case EDIT_VIEW: lcd.print(ALPHAIND);break;
+		case EDIT_VIEW:break; //showing alpha in cmd page location
 		default: lcd.print(' ');break; //NORMAL_VIEW
 	}
 }
@@ -251,7 +251,6 @@ void showEntryView() {
 
 void updatesForRightMotion(){
 	int len = strlen(vm.userInput);
-	//if (vm.viewPage == NORMAL_VIEW && vm.userInputPos == 0) {
 	if (vm.viewPage == NORMAL_VIEW && vm.userInput[0] == '\0') {
 		//user is not editing the line
 		//quickview mode
@@ -411,14 +410,14 @@ void setup() {
 	  B11100,
 	};
 
-	byte twoIndicator[8] = {
+	byte varIndicator[8] = {
 	  B00000,
-	  B11110,
-	  B00010,
-	  B00010,
-	  B11110,
-	  B10000,
-	  B11110,
+	  B10010,
+	  B10010,
+	  B10010,
+	  B10100,
+	  B11000,
+	  B00000,
 	};
 
 	byte degPolarIndicator[8] = {
@@ -447,7 +446,7 @@ void setup() {
 	lcd.createChar(DOWNIND, downIndicator);
 	lcd.createChar(ALTIND, altIndicator);
 	lcd.createChar(ALTLOCKIND, altLockIndicator);
-	lcd.createChar(TWOIND, twoIndicator);
+	lcd.createChar(VARIND, varIndicator);
 	lcd.createChar(DEGPOLARIND, degPolarIndicator);
 	lcd.createChar(POLARIND, polarIndicator);
 	lcd.begin(DISPLAY_LINESIZE, DISPLAY_LINECOUNT); //20 cols, 4 rows
@@ -513,10 +512,14 @@ void loop() {
 			//already have an error -- clear it on any keypress
 			//show the stack and return to wait for the next keypress
 			strcpy(vm.error, "");
+			if (keyc == '\b' || keyc == '\n') {
+				showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
+				return;
+			}
 		}
 		if (vm.viewPage == NORMAL_VIEW) {
 			if (keyc == 'P' && (vm.altState == 0x0)) { //command page
-				if (vm.cmdPage < (MAX_CMD_PAGES - 1)) vm.cmdPage++;
+				if (vm.cmdPage < MAX_CMD_PAGES) vm.cmdPage++;
 				else vm.cmdPage = 0;
 				keyTypePressed = 5;
 				if (vm.userInput[0] == '\0')
@@ -615,6 +618,9 @@ void loop() {
 					//used in stack view
 					stackViewShowUpDownIndicators(DISPLAY_LINECOUNT - 1);
 					goBackToNormalMode();
+					break;
+				case '>': //right
+					showEntryView();
 					break;
 				case '\n':
 					showEntryView();

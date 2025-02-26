@@ -226,6 +226,7 @@ char* lcase(char* token) {
 	return token;
 }
 bool doubleToString(long double value, char* buf, uint8_t precision, char* notationStr) {
+	//printf("doubleToString: called with value = %Lf\n", value);
 	if (value == INFINITY || value == -INFINITY) return false;
 	if (alm0double(value)) {
 		strcpy(buf, "0");
@@ -251,6 +252,7 @@ bool complexToString(ComplexDouble c, char* value, uint8_t precision, char* nota
 	char r[VSHORT_STRING_SIZE];
 	char i[VSHORT_STRING_SIZE];
 	bool goodnum = doubleToString(c.real, r, precision, notationStr);
+	//printf("complexToString: returned from doubleToString real string = %s\n", r);
 	if (!goodnum) return false;
 	goodnum = doubleToString(c.imag, i, precision, notationStr);
 	if (!goodnum) return false;

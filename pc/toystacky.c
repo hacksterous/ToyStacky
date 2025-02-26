@@ -195,6 +195,51 @@ typedef struct {
 	int top;
 } UintStack;
 
+typedef struct {
+	char PROGMEM[PROGMEM_SIZE];
+	Ledger ledger;
+	Strack userStack; //the user stack
+	UintStack execStack; //the execution stack to keep track of conditionals, loops and calls
+	char bak[STRING_SIZE];//bakilliary register
+	char acc[STRING_SIZE];//the accumulator
+	char error[SHORT_STRING_SIZE];//error notification
+	char coadiutor[STRING_SIZE]; //coadiutor = helper
+	char dummy[STRING_SIZE];
+	char matvecStrA[MAX_MATVECSTR_LEN]; 
+	char matvecStrB[MAX_MATVECSTR_LEN];
+	char matvecStrC[MAX_MATVECSTR_LEN];
+	char lastY[MAX_MATVECSTR_LEN];
+	char lastX[MAX_MATVECSTR_LEN];
+	int8_t lastXMeta;
+	int8_t lastYMeta;
+
+	bigint_t bigA;
+	bigint_t bigB;
+	bigint_t bigC;
+	Matrix matrixA;
+	Matrix matrixB;
+	Matrix matrixC;
+
+	bigint_t bigMod;
+	uint8_t width;
+
+	int cmdPage;	
+	int altState;	
+	long double frequency;
+	bool modeDegrees;
+	bool modePolar;
+	bool partialVector;
+	bool partialMatrix;
+	bool partialComplex;
+
+	uint8_t precision;
+	char notationStr[3];
+
+} Machine;
+static Machine vm;
+
+#include "../arduino-pico/ToyStacky/TS-core-tokenize.h"
+#include "../arduino-pico/ToyStacky/TS-core-stack.h"
 #include "../arduino-pico/ToyStacky/TS-core-math.h"
 #include "../arduino-pico/ToyStacky/TS-core-numString.h"
 #include "../arduino-pico/ToyStacky/TS-core-llist.h"
@@ -224,9 +269,9 @@ const char* mathfn1paramname[] = {
 						"sinh", "cosh", "tanh", "coth", 
 						"asinh", "acosh", "atanh", "acoth", 
 						"exp", "log10", "log", "log2", "sqrt", "cbrt", "conj",
-						"torad", "todeg", "recip", "neg",						
+						"rad", "deg", "recip", "neg",						
 						"abs", "arg", "re", "im"}; //the 1 param functions
-
+const int EXPFNINDEX = 18;
 const int NUMMATH1PARAMFN = 29;
 const int NUMREAL1PARAMFN = 4;
 const int NUMMATH1PARAMTRIGFN = 5;
@@ -260,8 +305,8 @@ ComplexFunctionPtr1Param mathfn1param[] = {	csine,
 											csqroot, cbroot, 
 											conjugate,
 
-											ctorad,
-											ctodeg,
+											crad,
+											cdeg,
 											crecip,
 											cneg};
 
@@ -289,10 +334,12 @@ const char* mathfnop2paramname[] = {
 						MODTOKEN, GTTOKEN,
 						LTTOKEN, GTETOKEN,
 						LTETOKEN, EQTOKEN,
-						NEQTOKEN, PARTOKEN
+						NEQTOKEN, PARTOKEN,
+						"rem"
 						}; //the 2 params functions
-const int  NUMMATH2PARAMFNOP = 17;
-const int NUMVOID2PARAMBIGINTFNMIN = 2;
+const int POWFNINDEX = 2; 
+const int  NUMMATH2PARAMFNOP = 18; 
+const int NUMVOID2PARAMBIGINTFNMIN = 2; //bigint fns start from pow
 const int NUMVOID2PARAMBIGINTFNMAX = 9;
 
 const int ATAN2FNINDEX = 1;
@@ -305,9 +352,9 @@ const int ATAN2FNINDEX = 1;
 //NEQTOKEN
 
 ComplexFunctionPtr2Param mathfn2param[] = {clogx, carctangent2, cpower, cmax, cmin, cadd, csub,
-									cmul, cdiv, cmod, cgt, clt, cgte, clte, ceq, cneq, cpar};
+									cmul, cdiv, cmod, cgt, clt, cgte, clte, ceq, cneq, cpar, crem};
 
-ComplexDouble suminternal(ComplexDouble running, ComplexDouble next) { 
+ComplexDouble suminternal(ComplexDouble running, ComplexDouble next) {
 	return cadd(running, next);
 }
 ComplexDouble sum(ComplexDouble summed, ComplexDouble sqsummed, ComplexDouble rsummed, int n) { 
@@ -383,46 +430,6 @@ char* fitstr(char*dest, const char* src, size_t len) {
 	return dest;
 }
 
-typedef struct {
-	char PROGMEM[PROGMEM_SIZE];
-	Ledger ledger;
-	Strack userStack; //the user stack
-	UintStack execStack; //the execution stack to keep track of conditionals, loops and calls
-	char bak[STRING_SIZE];//bakilliary register
-	char acc[STRING_SIZE];//the accumulator
-	char error[SHORT_STRING_SIZE];//error notification
-	char coadiutor[STRING_SIZE]; //coadiutor = helper
-	char dummy[STRING_SIZE];
-	char matvecStrA[MAX_MATVECSTR_LEN]; 
-	char matvecStrB[MAX_MATVECSTR_LEN];
-	char matvecStrC[MAX_MATVECSTR_LEN];
-	char lastY[MAX_MATVECSTR_LEN];
-	char lastX[MAX_MATVECSTR_LEN];
-	int8_t lastXMeta;
-	int8_t lastYMeta;
-
-	bigint_t bigA;
-	bigint_t bigB;
-	bigint_t bigC;
-	Matrix matrixA;
-	Matrix matrixB;
-	Matrix matrixC;
-
-	int cmdPage;	
-	int altState;	
-	long double frequency;
-	bool modeDegrees;
-	bool modePolar;
-	bool partialVector;
-	bool partialMatrix;
-	bool partialComplex;
-
-	uint8_t precision;
-	char notationStr[3];
-
-} Machine;
-static Machine vm;
-
 bool fn1ParamScalar(Machine* vm, const char* fnname, int fnindex, int isTrig, int bigInt1Param);
 
 #include "../arduino-pico/ToyStacky/TS-core-ledger.h"
@@ -476,8 +483,6 @@ void printMemory(Ledger* ledger) {
 		putchar('\n');
 	}
 }
-
-#include "../arduino-pico/ToyStacky/TS-core-stack.h"
 
 void printStack(Strack* s, int count, bool firstLast) {
 	if (stackIsEmpty(s)) return;
@@ -557,7 +562,6 @@ char *hints(const char *buf, int *color, int *bold) {
 	return NULL;
 }
 
-#include "../arduino-pico/ToyStacky/TS-core-tokenize.h"
 #include "../arduino-pico/ToyStacky/yasML.h"
 
 uint8_t conditionalData(size_t execData) {
@@ -670,6 +674,8 @@ void initMachine(Machine* vm) {
 	vm->altState = 0;
 	vm->precision = 15;
 	strcpy(vm->notationStr, "Lg");
+	vm->bigMod.length = -1;
+	vm->width = 64; //max = 18446744073709551616	
 }
 
 #include "../arduino-pico/ToyStacky/TS-core-processPop.h"

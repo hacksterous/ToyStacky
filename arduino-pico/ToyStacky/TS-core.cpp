@@ -78,7 +78,7 @@ ComplexDouble makeComplex(long double re, long double im) {
 
 Machine vm;
 
-#define __DEBUG_TOYSTACKY__
+#undef __DEBUG_TOYSTACKY__
 #ifdef __DEBUG_TOYSTACKY__
 void SerialPrint(const int count, ...) {
 	char *str;
@@ -98,15 +98,21 @@ void SerialPrint(const int count, ...) {}
 //two at a time (first and second, then third and fourth, and so on). 
 //If the two bits matched, no output was generated. 
 //If the bits differed, the value of the first bit was output. 
-uint32_t rnd_whitened(void){
+uint32_t truerandom(void){
     int k, random=0;
     int random_bit1, random_bit2;
     volatile uint32_t *rnd_reg=(uint32_t *)(ROSC_BASE + ROSC_RANDOMBIT_OFFSET);
     
     for(k = 0; k < 32; k++){
         while(1) {
+			sleep_us(10);
             random_bit1 = 0x00000001 & (*rnd_reg);
+			sleep_us(10);
+			sleep_us(10 + (0x00000007 & (*rnd_reg)));
+			sleep_us(10);
             random_bit2 = 0x00000001 & (*rnd_reg);
+			sleep_us(10);
+			sleep_us(10 + (0x00000007 & (*rnd_reg)));
             if(random_bit1 != random_bit2) break;
         }
 		random = random << 1;        
@@ -167,11 +173,13 @@ char* fitstr(char*dest, const char* src, int32_t len) {
 }
 
 bool fn1ParamScalar(Machine* vm, const char* fnname, int fnindex, int isTrig, int bigInt1Param);
+#include "TS-core-tokenize.h"
 #include "TS-core-ledger.h"
 #include "TS-core-stack.h"
 #include "TS-core-math.h"
 #include "TS-core-numString.h"
 #include "TS-core-llist.h"
+#include "yasML.h"
 
 void makeLDoubleStringFit(char*dest, char* src, int len) {
 	char expstr[10];
@@ -235,6 +243,8 @@ void makeComplexStringFit(char*dest, char* src, int len, int8_t barrier) {
 
 	if (slen <= NUMBER_LINESIZE - barrier) {
 		strcpy(dest, src);
+		char barrierind[] = {BARRIERIND, '\0'};
+		if (barrier) strcat(dest, barrierind);
 		return;
 	}
 
@@ -339,7 +349,7 @@ const char* mathfn1paramname[] = {
 						"exp", "log10", "log", "log2", "sqrt", "cbrt", "conj",
 						"torad", "todeg", "recip", "neg",
 						"abs", "arg", "re", "im"}; //the 1 param functions
-
+const int EXPFNINDEX = 18;
 const int NUMMATH1PARAMFN = 29;
 const int NUMREAL1PARAMFN = 4;
 const int NUMMATH1PARAMTRIGFN = 5;
@@ -373,8 +383,8 @@ ComplexFunctionPtr1Param mathfn1param[] = {	csine,
 											csqroot, cbroot,
 											conjugate,
 
-											ctorad,
-											ctodeg,
+											crad,
+											cdeg,
 											crecip,
 											cneg};
 
@@ -401,10 +411,12 @@ const char* mathfnop2paramname[] = {
 						MODTOKEN, GTTOKEN,
 						LTTOKEN, GTETOKEN,
 						LTETOKEN, EQTOKEN,
-						NEQTOKEN, PARTOKEN
+						NEQTOKEN, PARTOKEN,
+						"rem"
 						}; //the 2 params functions
-const int  NUMMATH2PARAMFNOP = 17;
-const int NUMVOID2PARAMBIGINTFNMIN = 2;
+const int POWFNINDEX = 2; 
+const int NUMMATH2PARAMFNOP = 18;
+const int NUMVOID2PARAMBIGINTFNMIN = 2; //bigint fns start from pow
 const int NUMVOID2PARAMBIGINTFNMAX = 9;
 
 const int ATAN2FNINDEX = 1;
@@ -417,7 +429,7 @@ const int ATAN2FNINDEX = 1;
 //NEQTOKEN
 
 ComplexFunctionPtr2Param mathfn2param[] = {clogx, carctangent2, cpower, cmax, cmin, cadd, csub,
-									cmul, cdiv, cmod, cgt, clt, cgte, clte, ceq, cneq, cpar};
+									cmul, cdiv, cmod, cgt, clt, cgte, clte, ceq, cneq, cpar, crem};
 
 ComplexDouble suminternal(ComplexDouble running, ComplexDouble next) { 
 	return cadd(running, next);
@@ -476,9 +488,6 @@ void call2ParamBigIntVoidFunction(int fnindex, bigint_t *x, bigint_t *y, bigint_
 int call2ParamBigIntIntFunction(int fnindex, bigint_t *x, bigint_t *y) {
 	return bigfnint2param[fnindex](x, y);
 }
-
-#include "TS-core-tokenize.h"
-#include "yasML.h"
 
 uint8_t conditionalData(int32_t execData) {
 	//data being currently entered is a conditional if/else
@@ -541,15 +550,7 @@ int isVec1ParamFunction(const char* token) {
 bool processPrint(Machine* vm, char* token) {
 	//SerialPrint(1, "------------------- PRINT - called with token = %s", token);
 	
-	if (strcmp(token, "va") == 0) {
-		//FIXME
-	} else if (strcmp(token, "b") == 0) {
-		//SerialPrint(1, "------------------- PRINT - found ?bak");
-		//SerialPrint(3, "bak = ", vm->bak, "\r\n");
-	} else if (strcmp(token, "a") == 0) {
-		//SerialPrint(1, "------------------- PRINT - found ?acc");
-		//SerialPrint(3, "acc = ", vm->acc, "\r\n");
-	} else if (token[0] == '"' && token[strlen(token)-1] == '"') {
+	if (token[0] == '"' && token[strlen(token)-1] == '"') {
 		//immediate string
 		//token = removeDblQuotes(token);
 		//SerialPrint(2, token, "\r\n");
@@ -641,5 +642,7 @@ void initMachine(Machine* vm) {
 	vm->precision = 15;
 	vm->quickViewPage = 0;
 	strcpy(vm->notationStr, "Lg");
+	vm->bigMod.length = -1;	
+	vm->width = 64; //max = 18446744073709551616
 }
 

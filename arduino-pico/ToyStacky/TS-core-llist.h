@@ -191,3 +191,113 @@ ComplexDouble nrpolysolve(unsigned int n, Cnode* poly, ComplexDouble trial) {
 	return x;
 }
 
+bool polysolve(Machine* vm) {
+	bool success = true;
+	int8_t meta = peek(&vm->userStack, vm->matvecStrC);
+	char* input = NULL;
+	char output[MAX_TOKEN_LEN];
+	FAILANDRETURN((meta != METAVECTOR), vm->error, "only vec for now.", NULLFN)
+	//ToS is in matvecStrC
+	input = vm->matvecStrC;
+	Cnode* head = NULL;
+	Cnode* result = NULL;
+	ComplexDouble c;
+	ComplexDouble clast;
+	int trycount = 1;
+	long double tryre = -100.5;
+	long double tryim = -100.5;
+	int polydegree = -1;
+	int rootcount = 0;
+	const int MAXTRIES = 200;
+
+	while (true) {
+		input = tokenize(input, output);
+		if (output[0] == ']') break;
+		if (output[0] == '[') continue;
+		strcpy(vm->acc, output);
+		clast = c;
+		success = stringToComplex(vm->acc, &c);
+		if (!success) {
+			while (head != NULL) {
+				head = deletenode(head);
+			}
+		}
+		FAILANDRETURN(!success, vm->error, "bad arg for solve.", NULLFN)
+		head = insertnode(head, c);
+		//printf("process: inserted %Lg, i%Lg to linked list\n", c.real, c.imag);
+		polydegree++;
+	}
+	if (polydegree <= 0) {
+		while (head != NULL) {
+			head = deletenode(head);
+		}
+	}
+	FAILANDRETURN(polydegree <= 0, vm->error, "bad poly.", NULLFN)
+	
+	else if (polydegree == 1) {
+		//root is -c
+		//pop ToS, push answer and return
+		//Ax + B = 0 => x = (-B)/A
+		strcpy(vm->coadiutor, "[");
+		success = complexToString(cdiv(cneg(c), clast), &vm->coadiutor[1], vm->precision, vm->notationStr);
+		while (head != NULL) {
+			head = deletenode(head);
+		}
+		strcat(vm->coadiutor, "]");
+		FAILANDRETURN(!success, vm->error, "solve bad result.", NULLFN)
+		pop(&vm->userStack, NULL);
+		push(&vm->userStack, vm->coadiutor, METAVECTOR);
+		return true;
+	}
+	while(1) {
+		errno = 0;
+		c = nrpolysolve(polydegree, head, makeComplex(tryre, tryim));
+		if (errno != 11001) {
+			//error is not from nrpolysolve
+			//printf("main: solution = %.14Lg + i * %.14Lg in try %d\n", c.real, c.imag, trycount);
+			bool foundnode = searchnode(result, c);
+			if (!foundnode) {
+				//printf("new root found\n");
+				rootcount++;
+				result = insertnode(result, c);
+			}
+			if (rootcount == polydegree) break;
+		}
+		//else printf("============SEEING ERRNO = %d\n", errno);
+		trycount++;
+		if (trycount > MAXTRIES) break;
+		//tryre += pow(-1, trycount) * tryre;
+		//tryim += pow(-1, trycount) * tryim;
+		tryre += 1;
+		tryim += 1;
+	}
+	if (errno == 11001) { //nrpolysolve result is bad
+		//printf("No solution could be found because of math error %d.\n", errno);
+		while (head != NULL) {
+			head = deletenode(head);
+		}
+		while (result != NULL) {
+			result = deletenode(result);
+		}
+		FAILANDRETURN(true, vm->error, "solve failed.1", NULLFN)
+	}
+	while (head != NULL) {
+		head = deletenode(head);
+	}
+	//if duplicate roots were found but could not be inserted, insert into result now
+	trycount = 0; //reuse
+	while (trycount < (polydegree - rootcount)) {
+		result = insertnode(result, c);
+		trycount++;
+	}
+	//printl(result);
+	success = catnode(result, vm->coadiutor, 8, vm->notationStr); //vm->precision is 14
+	while (result != NULL) {
+		result = deletenode(result);
+	}
+	FAILANDRETURN(!success, vm->error, "solve bad result.", NULLFN)
+	pop(&vm->userStack, NULL);
+	push(&vm->userStack, vm->coadiutor, METAVECTOR);
+
+	return success;
+}

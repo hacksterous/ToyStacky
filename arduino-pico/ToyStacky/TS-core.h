@@ -9,7 +9,7 @@ License: GNU GPL v3
 #define MAX_MATVECSTR_LEN 4900 //enough for one 12x12 matrix of long double complex
 #define MAX_MATVECELEMENTS 150
 #define MAX_MATLEN 12
-#define MAX_CMD_PAGES 5
+#define MAX_CMD_PAGES 3
 #define MAX_TOKEN_LEN 129
 #define PICO_DOUBLE_PROPAGATE_NANS 1
 #define DISPLAY_STATUS_WIDTH 2
@@ -43,19 +43,25 @@ License: GNU GPL v3
 #define DOWNIND 2
 #define ALTIND 3
 #define ALTLOCKIND 4
-#define TWOIND 5
+//#define TWOIND 5
+#define VARIND 5
 #define POLARIND 6
 #define DEGPOLARIND 7
 #define DEGREEIND char(0xdf)
 #define RIGHTARROW char(0x7e)
 #define LEFTARROW  char(0x7f)
-#define OFLOWIND char(0xeb)
+#define OFLOWIND char(0xeb) 
+#define STACKIND char(0xd0)
+//#define VARIND char(0xda)
+#define VARLISTIND char(0xed)
 #define SIGMAIND char(0xe5)
 #define ALPHAIND char(0xe0)
 #define BARRIERIND char(0xa2)
 
 #define CMDPG_0 char(0xdb)
 #define CMDPG_1 char(0xd5)
+#define CMDPG_ALPHA char(0xe0) //alpha
+#define CMDPG_PROG char(0xf7) //pi
 #define CMDPG_3 char(0xd6)
 #define CMDPG_4 char(0xd1)
 
@@ -216,6 +222,9 @@ typedef struct {
 	Matrix matrixA;
 	Matrix matrixB;
 	Matrix matrixC;
+
+	bigint_t bigMod;
+	uint8_t width;
 
 	/* for stack inspection control */
 	//view page - 

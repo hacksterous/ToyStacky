@@ -68,7 +68,7 @@ bool fn1ParamScalar(Machine* vm, const char* fnname, int fnindex, int isTrig, in
 			//convert input to radians for trig fns
 			//but not if it has been converted before
 			c = makeComplex(c.real * 0.01745329251994329576923L, c.imag * 0.01745329251994329576923L);
-		printf("fn1ParamScalar: calling fn %s fnindex = %d with args real = %Lg imag = %Lg\n", fnname, fnindex, c.real, c.imag);
+		//printf("fn1ParamScalar: calling fn %s fnindex = %d with args real = %Lg imag = %Lg\n", fnname, fnindex, c.real, c.imag);
 		c = call1ParamMathFunction(fnindex, c);
 		//output of the inv trig function is always in radians in cartesian mode
 		if (vm->modeDegrees && isTrig == 2 && vm->modePolar)

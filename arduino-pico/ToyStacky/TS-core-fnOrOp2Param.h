@@ -13,6 +13,7 @@ bool fnOrOp2Param(Machine* vm, const char* token, int fnindex) {
 	ComplexDouble c, d;
 	success = false;
 
+	//printf ("fnOrOp2Param: called with fn index = %d\n", fnindex);
 	if (hasDblQuotes(vm->coadiutor) || hasDblQuotes(vm->bak)) {
 		//bigint
 		char* coadiutor = removeDblQuotes(vm->coadiutor);
@@ -31,17 +32,35 @@ bool fnOrOp2Param(Machine* vm, const char* token, int fnindex) {
 		else
 			success = bigint_from_str(&vm->bigB, bak) && success;
 
+		//printf("fnOrOp2Param: got bigint, bigB = ");
+		bigint_print(&vm->bigB);
+		//printf("fnOrOp2Param: got bigint, bigC = ");
+		bigint_print(&vm->bigC);
+
 		FAILANDRETURN(!success, vm->error, "bad operand X2", NULLFN)
-		if (fnindex >= NUMVOID2PARAMBIGINTFNMIN && fnindex <= NUMVOID2PARAMBIGINTFNMAX) { //void bigint functions -- pow through mod
+		if (fnindex == EXPFNINDEX) {
+			if (vm->bigMod.length == -1) {
+				//modulus is not set, use 2^64
+				bigint_pow(&vm->bigB, &vm->bigC, &vm->bigA);
+				success = bigint_tostring(&vm->bigA, vm->acc, 0);
+			}
+			else {
+				bigint_mod_exp(&vm->bigB, &vm->bigC, &vm->bigMod, &vm->bigA);
+				success = bigint_tostring(&vm->bigA, vm->acc, 0);
+			}
+			success = addDblQuotes(vm->acc) && success;
+			FAILANDRETURN(!success, vm->error, "bigint fail.0", NULLFN)
+		}
+		else if (fnindex >= NUMVOID2PARAMBIGINTFNMIN && fnindex <= NUMVOID2PARAMBIGINTFNMAX) { //void bigint functions -- pow through mod
 			call2ParamBigIntVoidFunction(fnindex - 2, &vm->bigB, &(vm->bigC), &vm->bigA);
 			FAILANDRETURN(((&vm->bigA)->length == -1), vm->error, "bigint div by 0", NULLFN)
 			success = bigint_tostring (&vm->bigA, vm->acc, 0);
-			if (((vm->acc[0] != '-') && !isdigit(vm->acc[0])) ||
-				(((strlen(vm->acc) > 15) && (vm->acc[0] == '-')) || ((strlen(vm->acc) > 14) && (vm->acc[0] != '-'))))
-				//add quotes for a non-decimal number
-				//for a decimal number -- 14 digits of decimal numbers can be handled as non-bigint integers 
-				//add quotes
-				success = addDblQuotes(vm->acc) && success;
+			//if (((vm->acc[0] != '-') && !isdigit(vm->acc[0])) ||
+			//	(((strlen(vm->acc) > 15) && (vm->acc[0] == '-')) || ((strlen(vm->acc) > 14) && (vm->acc[0] != '-'))))
+			//	//add quotes for a non-decimal number
+			//	//for a decimal number -- 14 digits of decimal numbers can be handled as non-bigint integers 
+			//	//add quotes
+			success = addDblQuotes(vm->acc) && success;
 			FAILANDRETURN(!success, vm->error, "bigint fail", NULLFN)
 		} else if (fnindex > NUMVOID2PARAMBIGINTFNMAX) { //compare bigint functions, return int
 			vm->acc[0] = '0' +  call2ParamBigIntIntFunction(fnindex - 9, &vm->bigC, &vm->bigB);
@@ -54,6 +73,7 @@ bool fnOrOp2Param(Machine* vm, const char* token, int fnindex) {
 		return true;
 	}
 
+	//printf("fnOrOp2Param.1: called with fnindex = %d\n", fnindex);
 	c.imag = 0.0;
 	if (isComplexNumber(vm->coadiutor)) { //complex
 		success = stringToComplex(vm->coadiutor, &c);
@@ -79,7 +99,9 @@ bool fnOrOp2Param(Machine* vm, const char* token, int fnindex) {
 			if (rlc == 'c'){
 				c.imag = -1/(2 * 3.141592653589793L * vm->frequency * c.real);
 				c.real = 0;
+				//printf("fnOrOp2Param: rlc = %c freq = %Lg\n", rlc, vm->frequency);
 			} else if (rlc == 'l') {
+				//printf("fnOrOp2Param: rlc = %c freq = %Lg\n", rlc, vm->frequency);
 				c.imag = 2 * 3.141592653589793L * vm->frequency * c.real;
 				c.real = 0;
 			} //else keep value of c.real
@@ -115,9 +137,11 @@ bool fnOrOp2Param(Machine* vm, const char* token, int fnindex) {
 		if (rlc) {
 			if (rlc == 'c'){
 				d.imag = -1/(2 * 3.141592653589793L * vm->frequency * d.real);
+				//printf("fnOrOp2Param: rlc = %c freq = %Lg\n", rlc, vm->frequency);
 				d.real = 0;
 			} else if (rlc == 'l') {
 				d.imag = 2 * 3.141592653589793L * vm->frequency * d.real;
+				//printf("fnOrOp2Param: rlc = %c freq = %Lg\n", rlc, vm->frequency);
 				d.real = 0;
 			} //else keep value of d.real
 			//printf("fnOrOp2Param: isRealNumber: bak (RLC) -- vm->frequency = %lf returned real = %lf imag = %lf ", vm->frequency, d.real, d.imag);
@@ -128,9 +152,9 @@ bool fnOrOp2Param(Machine* vm, const char* token, int fnindex) {
 	}
 	FAILANDRETURN(!success, vm->error, "bad operand.B2", NULLFN)
 	//call 2-parameter function
-	//printf("fnOrOp2Param: calling call2ParamMathFunction c real = %lf d real = %lf\n", c.real, d.real);
+	//printf("fnOrOp2Param: calling call2ParamMathFunction c real = %Lf d real = %Lf\n", c.real, d.real);
 	c = call2ParamMathFunction(fnindex, d, c);
-	//printf("fnOrOp2Param: returned from call2ParamMathFunction c.real = %lf\n", c.real);
+	//printf("fnOrOp2Param: returned from call2ParamMathFunction c.real = %Lf, c.imag = %Lf\n", c.real, c.imag);
 	FAILANDRETURNVAR((c.real == INFINITY || c.imag == INFINITY || c.real == -INFINITY || c.imag == -INFINITY), 
 		vm->error, "'%s' inf!", fitstr(vm->coadiutor, token, 8))
 	
@@ -140,10 +164,11 @@ bool fnOrOp2Param(Machine* vm, const char* token, int fnindex) {
 
 	//take relative values of real and imag parts
 	long double temp = c.real;
-	if (fabs(c.imag) != 0)
-		if (fabs(c.real/c.imag) < DOUBLEFN_EPS) c.real = 0.0;
-	if (fabs(temp) != 0)
-		if (fabs(c.imag/c.real) < DOUBLEFN_EPS) c.imag = 0.0;
+
+	if (!alm0double(c.imag))
+		if (alm0double(c.real/c.imag)) c.real = 0.0;
+	if (!alm0double(temp))
+		if (alm0double(c.imag/c.real)) c.imag = 0.0;
 	
 	if (vm->modePolar) {
 		//convert back to polar mode

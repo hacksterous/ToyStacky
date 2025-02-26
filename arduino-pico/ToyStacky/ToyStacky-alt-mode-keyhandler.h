@@ -5,7 +5,7 @@ int altModeKeyhandler (char keyc) {
 			keyTypePressed = 1;
 			//Serial.print(keyc);
 			//SerialPrint(1, "\r");
-			processImmdOpKeyC("solv"); //solve op
+			processImmdOpKeyC("rem"); //remainder op
 			break;
 		case '\b':
 			//clear whatever was being typed in and clear stack
@@ -19,10 +19,10 @@ int altModeKeyhandler (char keyc) {
 		case 'u':
 			if (vm.modeDegrees)
 				//to radians
-				processImmdOpKeyC("torad");
+				processImmdOpKeyC("rad");
 			else
 				//to degrees
-				processImmdOpKeyC("todeg");
+				processImmdOpKeyC("deg");
 			keyTypePressed = 1;
 			break;
 		case 'P': //alt + pag
@@ -210,7 +210,7 @@ int altModeKeyhandler (char keyc) {
 			keyTypePressed = 1;
 			break;
 		case '.':
-			processImmdOpKeyC("fac");
+			processImmdOpKeyC("solv");
 			keyTypePressed = 1;
 			break;
 		case '/':
