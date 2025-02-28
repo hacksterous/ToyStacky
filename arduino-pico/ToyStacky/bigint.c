@@ -817,6 +817,7 @@ char bin_to_hexit(const char *binstr) {
 		if (binstr[i] == '1') {
 			value += 1;
 		}
+		else if (binstr[i] != '0') return 0; //error
 	}
 	if (value < 10) {
 		return '0' + value;
@@ -826,7 +827,7 @@ char bin_to_hexit(const char *binstr) {
 }
 
 // Function to convert a binary string to a hexadecimal string
-void bin_to_hex(char *binstr, char *hexstr) {
+bool bin_to_hex(char *binstr, char *hexstr) {
     int len = strlen(binstr);
     int hexlen = (len + 3) / 4; // Calculate length of hex string
     hexstr[hexlen] = '\0'; // Null-terminate the hex string
@@ -842,18 +843,30 @@ void bin_to_hex(char *binstr, char *hexstr) {
     // Convert each 4-bit group to a hex digit
     for (int i = 0; i < hexlen; i++) {
         hexstr[i] = bin_to_hexit(paddedbinstr + 4 * i);
+		if (hexstr[i] == 0) {
+			//error
+			return false;
+		}
     }
+	return true;
 }
 
 bool bigint_from_bin(bigint_t *res, char *binstr){
 	if (binstr[0] != 'b') return false;
 	char hexstr[BIGINT_STRING_SIZE];
 	hexstr[0] = 'x';
+	bool success;
 	if (binstr[1] == '-') {
-		bin_to_hex(&binstr[2], &hexstr[2]);
+		success = bin_to_hex(&binstr[2], &hexstr[2]);
 		hexstr[1] = '-';
 	}
-	else bin_to_hex(&binstr[1], &hexstr[1]);
+	else {
+		success = bin_to_hex(&binstr[1], &hexstr[1]);
+	}
+	if (!success) {
+		hexstr[0] = '\0';
+		return false;
+	}
 	//printf("bigint_from_bin: hexstr = %s\n", hexstr);
 	bigint_from_hex(res, hexstr);
 	return true;
@@ -1065,9 +1078,9 @@ void bigint_mod_exp(const bigint_t *base, const bigint_t *exp, const bigint_t *m
 
 void bigint_pow(const bigint_t *x, const bigint_t *y, bigint_t *res){
 	//printf("bigint_pow: entered with big x = ");
-	bigint_print((bigint_t*) x);
+	//bigint_print((bigint_t*) x);
 	//printf("bigint_pow: and big y = ");
-	bigint_print((bigint_t*) y);
+	//bigint_print((bigint_t*) y);
 	bigint_t mod;
 	bigint_from_str(&mod, "18446744073709551616"); //2^64
 	bigint_mod_exp(x, y, &mod, res); //reuse mod exp with mod = 1

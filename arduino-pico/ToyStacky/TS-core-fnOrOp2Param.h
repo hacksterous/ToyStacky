@@ -55,12 +55,12 @@ bool fnOrOp2Param(Machine* vm, const char* token, int fnindex) {
 			call2ParamBigIntVoidFunction(fnindex - 2, &vm->bigB, &(vm->bigC), &vm->bigA);
 			FAILANDRETURN(((&vm->bigA)->length == -1), vm->error, "bigint div by 0", NULLFN)
 			success = bigint_tostring (&vm->bigA, vm->acc, 0);
-			//if (((vm->acc[0] != '-') && !isdigit(vm->acc[0])) ||
-			//	(((strlen(vm->acc) > 15) && (vm->acc[0] == '-')) || ((strlen(vm->acc) > 14) && (vm->acc[0] != '-'))))
+			if (((vm->acc[0] != '-') && !isdigit(vm->acc[0])) ||
+				(((strlen(vm->acc) > 15) && (vm->acc[0] == '-')) || ((strlen(vm->acc) > 14) && (vm->acc[0] != '-'))))
 			//	//add quotes for a non-decimal number
 			//	//for a decimal number -- 14 digits of decimal numbers can be handled as non-bigint integers 
 			//	//add quotes
-			success = addDblQuotes(vm->acc) && success;
+				success = addDblQuotes(vm->acc) && success;
 			FAILANDRETURN(!success, vm->error, "bigint fail", NULLFN)
 		} else if (fnindex > NUMVOID2PARAMBIGINTFNMAX) { //compare bigint functions, return int
 			vm->acc[0] = '0' +  call2ParamBigIntIntFunction(fnindex - 9, &vm->bigC, &vm->bigB);

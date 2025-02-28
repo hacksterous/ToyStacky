@@ -230,19 +230,23 @@ ComplexDouble cexpo(ComplexDouble c) {
 }
 
 ComplexDouble cpower(ComplexDouble c, ComplexDouble d) {
-	if (alm0double(c.imag) && alm0double(d.imag) && (d.real >= 1.0))
-		return makeComplex(pow(c.real, d.real), 0.0);
-	if (alm0double(c.imag) && alm0double(d.imag) && (d.real == 0.0))
+	long double i;
+	//modfl returns fractional part
+	if (alm0double(c.imag) && alm0double(d.imag) && alm0double(modfl(d.real, &i)))
+		return makeComplex(powl(c.real, d.real), 0.0);
+	if (alm0double(c.imag) && alm0double(d.imag) && alm0double(d.real))
 		return makeComplex (1.0, 0.0);
 	return (cexpo(cmul(cln(c), d))); 
 }
 
 ComplexDouble cpowerd(ComplexDouble c, long double d) {
+	long double i;
 	if (alm0double(c.real) && alm0double(c.imag))
 		return makeComplex(0.0, 0.0);
-	if (alm0double(c.imag) && (d >= 1.0))
-		return makeComplex(pow(c.real, d), 0.0);
-	if (alm0double(c.imag) && (d == 0.0))
+	//modfl returns fractional part
+	if (alm0double(c.imag) && alm0double(modfl(d, &i)))
+		return makeComplex(powl(c.real, d), 0.0);
+	if (alm0double(c.imag) && alm0double(d))
 		return makeComplex (1.0, 0.0);
 	return (cexpo(cmul(cln(c), makeComplex(d, 0.0))));
 }

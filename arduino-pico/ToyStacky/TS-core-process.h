@@ -89,9 +89,18 @@ bool process(Machine* vm, char* token) {
 			push(&vm->userStack, vm->acc, METASCALAR);
 		#endif
 		} else if (strcmp(token, "wid") == 0) {
+			long double temp;
+			int8_t meta = peek(&vm->userStack, NULL);
+			FAILANDRETURN((meta == -1), vm->error, "stack empty.W", NULLFN)
+			FAILANDRETURN((meta != METASCALAR), vm->error, "only scalar.", NULLFN)
+			pop(&vm->userStack, vm->matvecStrC);
+			success = stringToDouble(vm->matvecStrC, &temp);
+			FAILANDRETURN(!success, vm->error, "bad width.", NULLFN)
+			FAILANDRETURN(temp > 255, vm->error, "width > 255.", NULLFN)
+			FAILANDRETURN(temp < 0, vm->error, "width < 0.", NULLFN)
+			vm->width = (uint8_t) temp;
 		} else if (strcmp(token, "mod") == 0) {
 			int8_t meta = peek(&vm->userStack, NULL);
-			//meaningless to put barrier on empty stack
 			FAILANDRETURN((meta == -1), vm->error, "stack empty.W", NULLFN)
 			FAILANDRETURN((meta != METASCALAR), vm->error, "only scalar.", NULLFN)
 			pop(&vm->userStack, vm->matvecStrC);

@@ -23,7 +23,7 @@ bool fn1ParamScalar(Machine* vm, const char* fnname, int fnindex, int isTrig, in
 		if (!success) return false; //let fn1Param generate 'bad arg' error
 		call1ParamBigIntVoidFunction(bigInt1Param, &vm->bigC, vm->acc);
 		//printf ("fn1ParamScalar: returned from  call1ParamBigIntVoidFunction success = %d and res = %s first char of res = %c\n", success, vm->acc, vm->acc[0]);
-		if (vm->acc[0] == '\0') return false; //error can happen for bigint_bin if result is longer than 100
+		if (vm->acc[0] == '\0') return false; //error can happen for bigint_bin if result is longer than 100 or has bad chars
 		if (((vm->acc[0] != '-') && !isdigit(vm->acc[0])) || 
 			(((strlen(vm->acc) > 15) && (vm->acc[0] == '-')) || ((strlen(vm->acc) > 14) && (vm->acc[0] != '-'))))
 			//add quotes for a non-decimal number
