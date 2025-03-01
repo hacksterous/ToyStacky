@@ -184,9 +184,9 @@ bool process(Machine* vm, char* token) {
 				push(&vm->userStack, vm->matvecStrC, (meta | 0x8)); //set the barrier bit
 			//printf("process: pushed meta = %d\n", (meta | 0x8));
 		} else if (strcmp(token, "swp") == 0) {
-			int8_t cmeta = pop(&vm->userStack, vm->matvecStrC);
+			int8_t cmeta = popbarrier(&vm->userStack, vm->matvecStrC);
 			FAILANDRETURN((cmeta == -1), vm->error, "stack empty.B0", NULLFN)
-			int8_t meta = pop(&vm->userStack, vm->matvecStrB);
+			int8_t meta = popbarrier(&vm->userStack, vm->matvecStrB);
 			if (meta == -1) push(&vm->userStack, vm->matvecStrC, cmeta); //restore on error
 			FAILANDRETURN((meta == -1), vm->error, "stack empty.B", NULLFN)
 			push(&vm->userStack, vm->matvecStrC, cmeta);
