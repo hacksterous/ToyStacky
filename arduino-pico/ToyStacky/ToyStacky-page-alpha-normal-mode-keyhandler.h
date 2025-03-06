@@ -1,3 +1,4 @@
+//Page 2 is the alpha mode
 /*
 	{'u','a','b','c'},
 	{'D','d','e','f'},
@@ -15,7 +16,6 @@
 	{'0','.','/','\n'}
 
 */
-
 char simpleRemap (char keyc) {
 	char retKeyC;
 	switch (keyc) {
@@ -42,15 +42,12 @@ char simpleRemap (char keyc) {
 	}
 	return retKeyC;
 }
-
-int normalPageAlphaModeKeyhandler (char keyc) {
+int normalPage2ModeKeyhandler (char keyc) {
 	int keyTypePressed;
-	keyTypePressed = 0;
-	if (((keyc != ' ') || (vm.userInputPos > 0)) && (vm.userInputPos < STRING_SIZE - 1)) {
-		vm.userInput[vm.userInputPos++] = simpleRemap(keyc);
-		if (vm.cursorPos < DISPLAY_LINESIZE - 1)
-			vm.cursorPos++;
+	switch (keyc) {
+		default:
+			keyTypePressed = normalModeKeyhandler(keyc);
+			break;
 	}
-
 	return keyTypePressed;
 }

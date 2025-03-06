@@ -232,6 +232,10 @@ typedef struct {
 	bool partialMatrix;
 	bool partialComplex;
 
+	long double locationLat;
+	long double locationLong;
+	long double locationTimeZone;
+
 	uint8_t precision;
 	char notationStr[3];
 
@@ -563,6 +567,7 @@ char *hints(const char *buf, int *color, int *bold) {
 }
 
 #include "../arduino-pico/ToyStacky/yasML.h"
+#include "../arduino-pico/ToyStacky/day.h"
 
 uint8_t conditionalData(size_t execData) {
 	//data being currently entered is a conditional if/else
@@ -676,6 +681,16 @@ void initMachine(Machine* vm) {
 	strcpy(vm->notationStr, "Lg");
 	vm->bigMod.length = -1;
 	vm->width = 64; //max = 18446744073709551616	
+
+	vm->locationLat = 12.9716;
+	vm->locationLong = 77.5946;
+	//vm->locationLat = 22.5726;
+	//vm->locationLong = 88.3639;
+	vm->locationTimeZone = 5.5;
+	//zhr=5.5, latt=22.5726, longt=88.3639): Kolkata
+	//zhr=5.5, latt=12.9716, longt=77.5946): Bangalore
+
+
 }
 
 #include "../arduino-pico/ToyStacky/TS-core-processPop.h"

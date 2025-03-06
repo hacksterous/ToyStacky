@@ -164,6 +164,7 @@ int altModeKeyhandler (char keyc) {
 		case '5':
 			vm.modePolar ^= true;
 			keyTypePressed = 1;
+			writeVariables(VARWRITEID_POL);
 			break;
 		case '6': //negate
 			if ((vm.userInputPos > 0) && (vm.userInputPos < STRING_SIZE - 1)) {

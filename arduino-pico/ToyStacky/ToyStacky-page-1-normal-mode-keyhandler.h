@@ -1,3 +1,4 @@
+//Page 1 is the Advanced Trig mode
 /*
 	{'u','a','b','c'},
 	{'D','d','e','f'},

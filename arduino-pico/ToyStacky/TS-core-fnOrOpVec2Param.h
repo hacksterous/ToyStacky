@@ -86,7 +86,7 @@ bool fnOrOpVec2Param(Machine* vm, const char* token, int fnindex, int8_t cmeta, 
 				pop(&vm->userStack, NULL);
 			}
 			FAILANDRETURNVAR(!success, vm->error, "%s bad arg.", fitstr(vm->coadiutor, token, 8))
-			
+
 			//fnOrOp2Param has pushed the result onto the stack and 
 			//popped out the two scalar items pushed earlier in (X)
 			pop(&vm->userStack, vm->acc); 

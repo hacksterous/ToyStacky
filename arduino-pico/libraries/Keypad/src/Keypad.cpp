@@ -41,7 +41,7 @@ Keypad::Keypad(char *userKeymap, byte *row, byte *col, byte numRows, byte numCol
 	begin(userKeymap);
 
 	setDebounceTime(20);
-	setHoldTime(150);
+	setHoldTime(100);
 	keypadEventListener = 0;
 
 	startTime = 0;

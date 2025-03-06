@@ -232,7 +232,7 @@ bool process(Machine* vm, char* token) {
 			FAILANDRETURN((meta == -1), vm->error, "stack empty.Z", NULLFN)
 			FAILANDRETURN((meta != METAVECTOR && meta != METASCALAR), vm->error, "bad arg.Z", NULLFN)
 			if (meta == METAVECTOR) {
-				//To is a vector, unvectorize it
+				//ToS is a vector, unvectorize it
 				char* input = NULL;
 				char output[MAX_TOKEN_LEN];
 				pop(&vm->userStack, vm->matvecStrA);
@@ -276,6 +276,50 @@ bool process(Machine* vm, char* token) {
 			strcat(vm->matvecStrC, "]");
 			//printf("final vector %s\n", vm->matvecStrC);
 			push(&vm->userStack, vm->matvecStrC, METAVECTOR);
+		} else if (strcmp(token, "day") == 0) {
+			int dd = 0;
+			int mm = 0;
+			int yyyy = 0;
+			int8_t meta = peek(&vm->userStack, NULL);
+			FAILANDRETURN((meta == -1), vm->error, "stack empty.Z", NULLFN)
+			FAILANDRETURN((meta != METAVECTOR), vm->error, "bad arg.V", NULLFN)
+			if (meta == METAVECTOR) {
+				//ToS is a vector, has dd, mm, yyyy
+				char* input = NULL;
+				char output[MAX_TOKEN_LEN];
+				pop(&vm->userStack, vm->matvecStrA);
+				input = vm->matvecStrA;
+				int count = 0;
+				ComplexDouble c;
+				while (true) {
+					input = tokenize(input, output);
+					printf ("process: day loop - output = %s count = %d\n", output, count);
+					if (output[0] == ']' || count == 3) break;
+					if (output[0] == '[') continue;
+					if (stringToComplex(output, &c)){
+						if (count == 0) dd = (int) c.real;
+						else if (count == 1) mm = (int) c.real;
+						else if (count == 2) yyyy = (int) c.real;
+					}
+					else FAILANDRETURN(true, vm->error, "bad arg.V2", NULLFN)
+					count++;
+				}
+			}
+			Suntimes times;
+			long double srise = sun (vm->locationLat, vm->locationLong, vm->locationTimeZone, dd, mm, yyyy, &times);
+			tithiday (dd, mm, yyyy, srise, vm->locationTimeZone, vm->matvecStrA);
+			printf("Tithi = %s\n", vm->matvecStrA);
+			strcat(vm->matvecStrA, " ");
+			vaaraday (dd, mm, yyyy, vm->locationTimeZone, vm->acc);
+			strcat(vm->matvecStrA, vm->acc);
+			strcat(vm->matvecStrA, "day ");
+			sprintf(vm->matvecStrB, "Sunrise:%d:%s%d:%s%d Sunset:%d:%s%d:%s%d Duration:%d:%s%d:%s%d", 
+				times.sriseh, (times.srisem < 10)? "0":"", times.srisem, (times.srises < 10)? "0": "", times.srises, 
+				times.sseth, (times.ssetm < 10)? "0":"", times.ssetm, (times.ssets < 10)? "0": "", times.ssets, 
+				times.dlh, (times.dlm < 10)? "0": "", times.dlm, (times.dls < 10)? "0": "", times.dls);
+			strcat(vm->matvecStrA, vm->matvecStrB);
+			addDblQuotes(vm->matvecStrA);
+			push(&vm->userStack, vm->matvecStrA, METABARRIER);
 		} else if (strcmp(token, "lastx") == 0) {
 			push(&vm->userStack, vm->lastX, vm->lastXMeta);
 		} else if (strcmp(token, "lasty") == 0) {

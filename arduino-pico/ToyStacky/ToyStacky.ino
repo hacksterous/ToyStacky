@@ -8,6 +8,7 @@ License: GNU GPL v3
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+#include "LittleFS.h"
 #include <LiquidCrystal.h>
 #include <Keypad.h>
 #include <pico/multicore.h>
@@ -53,6 +54,93 @@ Keypad customKeypad = Keypad( makeKeymap(numKeys), rowPins, colPins, ROWS, COLS)
 int keyTypePressed = -1;
 	
 void printRegisters(Machine* vm) {
+}
+
+bool writeOneVariable(const char* filename, void* ptr, size_t size) {
+	uint8_t buf[size];
+	File f;
+	f = LittleFS.open(filename, "w");
+	if (f) {
+		memcpy(buf, ptr, size);
+		f.write(buf, size);
+		f.close();
+		return true;
+	}
+	else return false;
+}
+
+bool writeVariables(int varid) {
+	switch (varid) {
+		case VARWRITEID_LAT:
+			return writeOneVariable("/.lat", (void*) &vm.locationLat, sizeof(float));
+			break;
+		case VARWRITEID_LONG:
+			return writeOneVariable("/.long", (void*) &vm.locationLong, sizeof(float));
+			break;
+		case VARWRITEID_TIMEZ:
+			return writeOneVariable("/.timez", (void*) &vm.locationTimeZone, sizeof(float));
+			break;
+		case VARWRITEID_POL:
+			return writeOneVariable("/.polar", (void*) &vm.modePolar, sizeof(float));
+			break;
+		case VARWRITEID_ANG:
+			return writeOneVariable("/.degrees", (void*) &vm.modeDegrees, sizeof(float));
+			break;
+		default:
+			return false;
+			break;
+	}
+}
+
+void readVariables() {
+	uint8_t buf[sizeof(float)];
+	File f;
+	f = LittleFS.open("/.lat", "r");
+	if (f) {
+		f.read(buf, sizeof(float));
+		f.close();
+	}
+	vm.locationLat = (float) *buf;
+
+	f = LittleFS.open("/.long", "r");
+	if (f) {
+		f.read(buf, sizeof(float));
+		f.close();
+	}
+	vm.locationLong = (float) *buf;
+
+	f = LittleFS.open("/.timez", "r");
+	if (f) {
+		f.read(buf, sizeof(float));
+		f.close();
+	}
+	vm.locationTimeZone = (float) *buf;
+}
+
+int initFS(){
+	LittleFS.begin();
+ 
+	//FSInfo info;
+	//LittleFS.info(info);
+	//unsigned int totalBytes = info.totalBytes;
+	//unsigned int usedBytes = info.usedBytes;
+	//unsigned int freeBytes  = totalBytes - usedBytes;
+	//unsigned int maxPath = info.maxPathLength;
+
+	File initf = LittleFS.open("/.ini", "r");
+
+	if (!initf) {
+		//init file was not found, format and create the file
+		LittleFS.format();
+		initf = LittleFS.open("/.ini", "w");
+		if (!initf) return -1;//fail
+		initf.print(__DATE__);
+		initf.print(__TIME__);
+		initf.close();
+		return 0;
+	}
+	initf.close();
+	return 1;
 }
 
 void clearUserInput(){
@@ -239,7 +327,7 @@ void showEntryView() {
 	if (meta != -1) {
 		peekn(&vm.userStack, vm.matvecStrC, vm.topEntryNum - vm.pointerRow);
 	} else {
-		strcpy(vm.matvecStrC, "SOFTWARE BUG!!");
+		strcpy(vm.matvecStrC, "No variables here.");
 	}
 	lcd.clear();
 	//stack item display routine for vectors, matrices and complex doubles
@@ -343,15 +431,15 @@ void setup() {
 	digitalWrite(LED_BUILTIN, LOW);	// turn the LED off (LOW is the voltage level)
 	vm.LEDState = false;
 
-    datetime_t alarm = {
+	datetime_t alarm = {
 		.year  = 2023,
-        .month = 9,
-        .day   = 15,
-        .dotw  = 5, // 0 is Sunday
-        .hour  = 0,
-        .min   = 0,
-        .sec   = 0
-    };
+		.month = 9,
+		.day   = 15,
+		.dotw  = 5, // 0 is Sunday
+		.hour  = 0,
+		.min   = 0,
+		.sec   = 0
+	};
 
 	vm.alarmHour = 0;
 	vm.alarmMin = 0;
@@ -360,12 +448,12 @@ void setup() {
 	vm.cmdPage = 0;
 	vm.altState = 0;
 
-    // Start the RTC
-    rtc_init();
-    rtc_set_datetime(&alarm);
+	// Start the RTC
+	rtc_init();
+	rtc_set_datetime(&alarm);
 	//vm.TS0RTCFreq = clock_get_hz(clk_rtc);
 
-    alarm.sec  = vm.alarmSec;
+	alarm.sec  = vm.alarmSec;
 	rtc_set_alarm(&alarm, &toggleLED);
 	vm.repeatingAlarm = true;
 
@@ -451,17 +539,26 @@ void setup() {
 	lcd.createChar(POLARIND, polarIndicator);
 	lcd.begin(DISPLAY_LINESIZE, DISPLAY_LINECOUNT); //20 cols, 4 rows
 	lcd.noCursor();
-	lcd.setCursor(1, 0);
-	lcd.print("....Toy Stacky....");
-	lcd.setCursor(1, 1);
-	lcd.print("   ....v1.1....   ");
+	lcd.setCursor(0, 0);
+	lcd.print(".....Toy Stacky.....");
+	lcd.setCursor(0, 1);
+	lcd.print("    ....v1.2....    ");
 	sprintf(version, "%s %s", __DATE__, __TIME__);
-	lcd.setCursor(1, 2);
-	lcd.print("     ..TS-0..     ");
+	lcd.setCursor(0, 2);
+	int fsstat = initFS();
+	if (fsstat == 1) 
+		lcd.print("      ..TS-0..    ok");
+	else if (fsstat == 0)
+		lcd.print("      ..TS-0..  init"); //only first time
+	else if (fsstat == -1)
+		lcd.print("      ..TS-0..  fail");
+	
 	lcd.setCursor(0, DISPLAY_LINECOUNT - 1);
 	lcd.print(version);
 	lcd.setCursor(DISPLAY_LINESIZE - 1, 3); //col, row
-	Serial.begin(115200); //works at 9600 ONLY!!
+	Serial.begin();
+	//readVariables();
+	Serial.ignoreFlowControl(true);
 }
 
 // the loop function runs over and over again forever
@@ -490,8 +587,12 @@ void processImmdOpKeyC (const char* str) {
 #include "ToyStacky-alt-mode-keyhandler.h"
 #include "ToyStacky-page-1-normal-mode-keyhandler.h"
 #include "ToyStacky-page-1-alt-mode-keyhandler.h"
-#include "ToyStacky-page-2-normal-mode-keyhandler.h"
-#include "ToyStacky-page-2-alt-mode-keyhandler.h"
+#include "ToyStacky-page-alpha-normal-mode-keyhandler.h"
+#include "ToyStacky-page-alpha-alt-mode-keyhandler.h"
+#include "ToyStacky-page-prog-normal-mode-keyhandler.h"
+#include "ToyStacky-page-prog-alt-mode-keyhandler.h"
+#include "ToyStacky-page-mu-normal-mode-keyhandler.h"
+#include "ToyStacky-page-mu-alt-mode-keyhandler.h"
 
 void goBackToNormalMode() {
 	//going back to normal view clear variables
@@ -519,7 +620,7 @@ void loop() {
 		}
 		if (vm.viewPage == NORMAL_VIEW) {
 			if (keyc == 'P' && (vm.altState == 0x0)) { //command page
-				if (vm.cmdPage < MAX_CMD_PAGES) vm.cmdPage++;
+				if (vm.cmdPage < MAX_CMD_PAGENUM) vm.cmdPage++;
 				else vm.cmdPage = 0;
 				keyTypePressed = 5;
 				if (vm.userInput[0] == '\0')
@@ -564,24 +665,36 @@ void loop() {
 						}
 					}
 				}
-				switch ((vm.cmdPage << 0x1) + (vm.altState & 0x1)) {
-					case 0: //page 0, normal
+				switch ((vm.cmdPage << 0x4) + (vm.altState & 0x1)) {
+					case 0x00: //page 0, normal
 						keyTypePressed = normalModeKeyhandler(keyc);
 						break;
-					case 1: //page 0, alt
+					case 0x01: //page 0, alt
 						keyTypePressed = altModeKeyhandler(keyc);
 						break;
-					case 2: //page 1, normal
+					case 0x10: //page 1, normal
 						keyTypePressed = normalPage1ModeKeyhandler(keyc);
 						break;
-					case 3: //page 1, alt
+					case 0x11: //page 1, alt
 						keyTypePressed = altPage1ModeKeyhandler(keyc);
 						break;
-					case 4: //page 2, normal
+					case 0x20: //page 2 (alpha), normal
 						keyTypePressed = normalPage2ModeKeyhandler(keyc);
 						break;
-					case 5: //page 2, alt
+					case 0x21: //page 2 (alpha), alt
 						keyTypePressed = altPage2ModeKeyhandler(keyc);
+						break;
+					case 0x30: //page 3 (prog pi), normal
+						keyTypePressed = normalPage3ModeKeyhandler(keyc);
+						break;
+					case 0x31: //page 3 (prog pi), alt
+						keyTypePressed = altPage3ModeKeyhandler(keyc);
+						break;
+					case 0x40: //page 4 (miscel mu), normal
+						keyTypePressed = normalPage4ModeKeyhandler(keyc);
+						break;
+					case 0x41: //page 4 (miscel mu), alt
+						keyTypePressed = altPage4ModeKeyhandler(keyc);
 						break;
 					default: //page 0, normal
 						keyTypePressed = normalModeKeyhandler(keyc);

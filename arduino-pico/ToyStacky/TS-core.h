@@ -9,7 +9,7 @@ License: GNU GPL v3
 #define MAX_MATVECSTR_LEN 4900 //enough for one 12x12 matrix of long double complex
 #define MAX_MATVECELEMENTS 150
 #define MAX_MATLEN 12
-#define MAX_CMD_PAGES 3
+#define MAX_CMD_PAGENUM 4
 #define MAX_TOKEN_LEN 129
 #define PICO_DOUBLE_PROPAGATE_NANS 1
 #define DISPLAY_STATUS_WIDTH 2
@@ -60,10 +60,19 @@ License: GNU GPL v3
 
 #define CMDPG_0 char(0xdb)
 #define CMDPG_1 char(0xd5)
-#define CMDPG_ALPHA char(0xe0) //alpha
-#define CMDPG_PROG char(0xf7) //pi
+#define CMDPG_2_ALPHA char(0xe0) //alpha
+#define CMDPG_3_PROG char(0xf7) //pi
 #define CMDPG_3 char(0xd6)
 #define CMDPG_4 char(0xd1)
+#define CMDPG_4_MU char(0xe4) //mu
+
+#define VARWRITEID_LAT 1 //latitude 
+#define VARWRITEID_LONG 2 //longitude
+#define VARWRITEID_TIMEZ 3 //time zone offset from UTC
+#define VARWRITEID_MOD 4 //modulus
+#define VARWRITEID_WID 5 //width
+#define VARWRITEID_POL 6 //cartesian/polar
+#define VARWRITEID_ANG 7 //deg/rad
 
 #define COMSTARTTOKENC '('
 #define VECSTARTTOKENC '['
@@ -273,9 +282,9 @@ typedef struct {
 	bool timerRunning;
 	bool repeatingAlarm;
 	bool LEDState;
-	float locationLat;
-	float locationLong;
-	float locationTimeZone;
+	long double locationLat;
+	long double locationLong;
+	long double locationTimeZone;
 	uint8_t alarmHour;
 	uint8_t alarmMin;
 	uint8_t alarmSec;

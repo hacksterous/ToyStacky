@@ -1,4 +1,4 @@
-//Page 2 is the Programming mode
+//Page 3 is the Programming mode
 /*
 	{'u','a','b','c'},
 	{'D','d','e','f'},
@@ -16,7 +16,7 @@
 	{'0','.','/','\n'}
 
 */
-int normalPage2ModeKeyhandler (char keyc) {
+int normalPage3ModeKeyhandler (char keyc) {
 	int keyTypePressed;
 	switch (keyc) {
 		default:

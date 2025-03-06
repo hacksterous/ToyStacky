@@ -17,11 +17,11 @@ void showCmdPageDegAlt (Machine* vm) {
 		case 1:
 			lcd.print(CMDPG_1); break;
 		case 2:
-			lcd.print(CMDPG_ALPHA); break;
+			lcd.print(CMDPG_2_ALPHA); break;
 		case 3:
-			lcd.print(CMDPG_PROG); break;
+			lcd.print(CMDPG_3_PROG); break;
 		case 4:
-			lcd.print(CMDPG_4); break;
+			lcd.print(CMDPG_4_MU); break;
 		default:
 			lcd.print(CMDPG_0); break;
 	}

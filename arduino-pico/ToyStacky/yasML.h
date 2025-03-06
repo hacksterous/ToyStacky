@@ -525,6 +525,8 @@ bool transpose(Matrix *m, Matrix* trans){
 	int i, j;
 	if(m == NULL)
 		return false;
+	trans->columns = m->rows;
+	trans->rows = m->columns;
 	for(i = 0; i < trans->columns; i++){
 		for(j = 0; j < trans->rows; j++)
 			trans->numbers[i][j] = m->numbers[j][i];
@@ -536,6 +538,8 @@ bool transposed(Matrixd *m, Matrixd* trans){
 	int i, j;
 	if(m == NULL)
 		return false;
+	trans->columns = m->rows;
+	trans->rows = m->columns;
 	for(i = 0; i < trans->columns; i++){
 		for(j = 0; j < trans->rows; j++)
 			trans->numbers[i][j] = m->numbers[j][i];

@@ -8,6 +8,8 @@ License: GNU GPL v3
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wrestrict"
+#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
 #include <stdarg.h> 
 #include <stdio.h>
 #include <stdint.h>
@@ -154,8 +156,6 @@ void toggleLED() {
 
 void zstrncpy (char*dest, const char* src, int len) {
 	//copy n chars -- don't use strncpy
-	//memset(dest, 0, len + 1);
-	//strncpy(dest, src, len);
 	if (len) {
 		*dest = '\0'; 
 		strncat(dest, src, len);
@@ -180,6 +180,7 @@ bool fn1ParamScalar(Machine* vm, const char* fnname, int fnindex, int isTrig, in
 #include "TS-core-numString.h"
 #include "TS-core-llist.h"
 #include "yasML.h"
+#include "day.h"
 
 void makeLDoubleStringFit(char*dest, char* src, int len) {
 	char expstr[10];
@@ -248,7 +249,14 @@ void makeComplexStringFit(char*dest, char* src, int len, int8_t barrier) {
 		return;
 	}
 
-	if (src[0] != '(') {
+	if (src[0] == '"') {
+		//string
+		zstrncpy(dest, &src[1], NUMBER_LINESIZE - barrier); //don't copy "s
+		char barrierind[] = {BARRIERIND, '\0'};
+		if (barrier) strcat(dest, barrierind);
+		return;
+	}
+	else if (src[0] != '(') {
 		//number is real
 		makeLDoubleStringFit(dest, src, NUMBER_LINESIZE - 1 - barrier);
 		addOFlowIndicator(dest, barrier);
@@ -644,5 +652,14 @@ void initMachine(Machine* vm) {
 	strcpy(vm->notationStr, "Lg");
 	vm->bigMod.length = -1;	
 	vm->width = 64; //max = 18446744073709551616
+
+	//zhr=5.5, latt=22.5726, longt=88.3639): Kolkata
+	//zhr=5.5, latt=12.9716, longt=77.5946): Bangalore
+
+	vm->locationLat = 12.9716;
+	vm->locationLong = 77.5946;
+	//vm->locationLat = 22.5726;
+	//vm->locationLong = 88.3639;
+	vm->locationTimeZone = 5.5;
 }
 
