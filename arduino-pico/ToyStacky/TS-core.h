@@ -291,6 +291,9 @@ typedef struct {
 
 	uint8_t precision;
 	char notationStr[3];
+	unsigned int month;
+	unsigned int year;
+	char* disp;
 
 } Machine;
 
@@ -298,9 +301,11 @@ extern Machine vm;
 
 extern LiquidCrystal lcd;
 
+bool hasDblQuotes(char* input);
+char* removeDblQuotes(char* input);
 bool fnOrOp2Param(Machine* vm, const char* token, int fnindex);
 void formatVariable(Machine* vm, char* str, int width);
-void showVariable(Machine* vm);
+void showVariable(Machine* vm, char* showStr);
 char* skip_whitespace(char* input);
 void zstrncpy (char*dest, const char* src, int len);
 char* splitIntoLines(char* str, int width, char* holdbuffer);

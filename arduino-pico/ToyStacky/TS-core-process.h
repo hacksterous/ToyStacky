@@ -276,13 +276,13 @@ bool process(Machine* vm, char* token) {
 			strcat(vm->matvecStrC, "]");
 			//printf("final vector %s\n", vm->matvecStrC);
 			push(&vm->userStack, vm->matvecStrC, METAVECTOR);
+		} else if (strcmp(token, "mm") == 0) {
 		} else if (strcmp(token, "day") == 0) {
 			int dd = 0;
 			int mm = 0;
 			int yyyy = 0;
 			int8_t meta = peek(&vm->userStack, NULL);
 			FAILANDRETURN((meta == -1), vm->error, "stack empty.Z", NULLFN)
-			FAILANDRETURN((meta != METAVECTOR), vm->error, "bad arg.V", NULLFN)
 			if (meta == METAVECTOR) {
 				//ToS is a vector, has dd, mm, yyyy
 				char* input = NULL;
@@ -305,6 +305,10 @@ bool process(Machine* vm, char* token) {
 					count++;
 				}
 			}
+			else if (meta == METASCALAR) {
+				//assume only date is
+			}
+			else FAILANDRETURN(true, vm->error, "bad arg.V", NULLFN)
 			Suntimes times;
 			long double srise = sun (vm->locationLat, vm->locationLong, vm->locationTimeZone, dd, mm, yyyy, &times);
 			tithiday (dd, mm, yyyy, srise, vm->locationTimeZone, vm->matvecStrA);
@@ -313,7 +317,7 @@ bool process(Machine* vm, char* token) {
 			vaaraday (dd, mm, yyyy, vm->locationTimeZone, vm->acc);
 			strcat(vm->matvecStrA, vm->acc);
 			strcat(vm->matvecStrA, "day ");
-			sprintf(vm->matvecStrB, "Sunrise:%d:%s%d:%s%d Sunset:%d:%s%d:%s%d Duration:%d:%s%d:%s%d", 
+			sprintf(vm->matvecStrB, "Sunrise:-%d:%s%d:%s%d Sunset:-%d:%s%d:%s%d Duration:-%d:%s%d:%s%d", 
 				times.sriseh, (times.srisem < 10)? "0":"", times.srisem, (times.srises < 10)? "0": "", times.srises, 
 				times.sseth, (times.ssetm < 10)? "0":"", times.ssetm, (times.ssets < 10)? "0": "", times.ssets, 
 				times.dlh, (times.dlm < 10)? "0": "", times.dlm, (times.dls < 10)? "0": "", times.dls);

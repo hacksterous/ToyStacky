@@ -52,17 +52,16 @@ void showModes (Machine* vm) {
 	lcd.setCursor(vm->cursorPos, 3);
 }
 
-int32_t splitStringOnSpaces(char* str, int width, bool* overlongp){
+int32_t splitStringOnSpacesDONTUSE(char* str, int width, bool* overlongp){
 	int i, j;
-	bool complexFound = false;
 	for (i = 0; i < width; i++) {
 		if (str[i] == ' ' || str[i] == '\0') {
 			break;
 		}
 	}
 	//handle when word is longer than width
-	if (i == width) {
-		if (str[width] != '\0' && str[width] != ' ') {
+	if (i >= width) {
+		if (str[i] != '\0' && str[i] != ' ') {
 			*overlongp = true;
 		}
 		return width;
@@ -70,7 +69,37 @@ int32_t splitStringOnSpaces(char* str, int width, bool* overlongp){
 	return i + 1;
 }
 
+int32_t splitStringOnSpaces(char* str, int width, bool* overlongp, bool debug){
+	int i, j;
+	for (i = 0; i < width; i++) {
+		if (str[i] == ' ' || str[i] == '\0') {
+			break;
+		}
+	}
+	if (debug) printf("---split: X done loop i = %d\n", i);
+	//handle when word is longer than width
+	if (i == width) {
+		if (str[i] != '\0' && str[i] != ' ') {
+			if (debug) printf("---split: X set overlong to true\n");
+			*overlongp = true;
+			return i - 1;
+		} else return i;
+		if (debug) printf("---split: A returning %d\n", i - 1);
+	}
+	else if (i > width) {
+		if (str[i] != '\0' && str[i] != ' ') {
+			if (debug) printf("---split: Y set overlong to true\n");
+			*overlongp = true;
+		}
+		if (debug) printf("---split: B returning %d\n", width);
+		return width;
+	}
+	if (debug) printf("---split: C returning %d\n", i + 1);
+	return i + 1;
+}
+
 void formatVariable(Machine* vm, char* str, int width){
+	bool debug = false;
 	int i;
 	int32_t next = 0;
 	bool overlong;
@@ -78,7 +107,13 @@ void formatVariable(Machine* vm, char* str, int width){
 	for (i = 0;; i++) {
 		overlong = false;
 		if (next >= vm->varLength) break;
-		int32_t incr = splitStringOnSpaces(str + next, width - 1, &overlong);
+		int32_t incr = splitStringOnSpaces(str + next, width, &overlong, false);
+		//if (str[next] == ' ') {
+		//	//first char is a space, skip it because incr will be 1
+		//	if (debug) printf("---format: incr = %d\n", incr);		
+		//	next += incr;
+		//	continue;
+		//}
 		if (incr == 1) {
 			next += 1;
 			i--; //skip empty string
@@ -93,7 +128,7 @@ void formatVariable(Machine* vm, char* str, int width){
 	vm->varFragCount = i;
 }
 
-void showVariable(Machine* vm) {
+void showVariable(Machine* vm, char* showStr) {
 	//formatVariable has already been called before
 	int32_t next;
 	int32_t index;
@@ -104,8 +139,11 @@ void showVariable(Machine* vm) {
 		next = (vm->varFragsArray[i] & 0x7fff0000) >> 16;
 		overlong = (vm->varFragsArray[i] & 0x80000000) >> 31;
 		//original variable string is in matvecStrC
-		zstrncpy(vm->coadiutor, &vm->matvecStrC[index], next - index);
-		lcd.setCursor(1, i - vm->topVarFragNum);
+		if (showStr == NULL)
+			zstrncpy(vm->coadiutor, &vm->matvecStrC[index], next - index);
+		else
+			zstrncpy(vm->coadiutor, showStr + index, next - index);
+		lcd.setCursor(2, i - vm->topVarFragNum);
 		lcd.print(vm->coadiutor);
 		if (overlong) lcd.print(OFLOWIND);
 		if (next >= vm->varLength) break;

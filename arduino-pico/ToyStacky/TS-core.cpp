@@ -248,10 +248,9 @@ void makeComplexStringFit(char*dest, char* src, int len, int8_t barrier) {
 		if (barrier) strcat(dest, barrierind);
 		return;
 	}
-
 	if (src[0] == '"') {
 		//string
-		zstrncpy(dest, &src[1], NUMBER_LINESIZE - barrier); //don't copy "s
+		zstrncpy(dest, src, NUMBER_LINESIZE - barrier);
 		char barrierind[] = {BARRIERIND, '\0'};
 		if (barrier) strcat(dest, barrierind);
 		return;

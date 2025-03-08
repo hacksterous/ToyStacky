@@ -288,14 +288,29 @@ char* removeDblQuotes(char* input) {
     if (input == NULL)
         return NULL; //bad input 
     int32_t len = strlen(input);
-    if (len == 2 && input[0] == '"' && input[1] == '"') {
-		input[0] = '\0';
-    } else if (len > 2 && input[0] == '"' && input[len - 1] == '"') {
+
+	if (len == 0 ) return input; //empty string
+
+    if (input[len - 1] == '"') {
         input[len - 1] = '\0'; 
-		input++;
     }
-	//printf ("removeDblQuotes: at end input is: %s\n", input);
-	return input;//single character -- can't reduce
+	if (input[0] == '"') {
+		input++;
+	}
+	return input;
+}
+
+char* removeDblQuotesDONTUSE(char* input) {
+    if (input == NULL)
+        return NULL; //bad input 
+    int32_t len = strlen(input);
+	if (input[0] == '"') {
+		input++;
+	}
+    if (input[len - 1] == '"') {
+        input[len - 1] = '\0'; 
+    }
+	return input;
 }
 
 bool addDblQuotes(char *input) {

@@ -158,6 +158,7 @@ static long double sun_esrl
 }
 
 static long double rev 
+//revolutions
 (long double x) {
 	return  x - floorl(x/360.0)*360.0;
 }

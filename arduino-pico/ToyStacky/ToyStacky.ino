@@ -95,26 +95,41 @@ bool writeVariables(int varid) {
 void readVariables() {
 	uint8_t buf[sizeof(float)];
 	File f;
+
+	f = LittleFS.open("/.month", "r");
+	if (f) {
+		f.read(buf, sizeof(float));
+		f.close();
+		vm.month = (int) *buf;
+	}
+
+	f = LittleFS.open("/.year", "r");
+	if (f) {
+		f.read(buf, sizeof(float));
+		f.close();
+		vm.year = (int) *buf;
+	}
+
 	f = LittleFS.open("/.lat", "r");
 	if (f) {
 		f.read(buf, sizeof(float));
 		f.close();
+		vm.locationLat = (float) *buf;
 	}
-	vm.locationLat = (float) *buf;
 
 	f = LittleFS.open("/.long", "r");
 	if (f) {
 		f.read(buf, sizeof(float));
 		f.close();
+		vm.locationLong = (float) *buf;
 	}
-	vm.locationLong = (float) *buf;
 
 	f = LittleFS.open("/.timez", "r");
 	if (f) {
 		f.read(buf, sizeof(float));
 		f.close();
+		vm.locationTimeZone = (float) *buf;
 	}
-	vm.locationTimeZone = (float) *buf;
 }
 
 int initFS(){
@@ -127,19 +142,19 @@ int initFS(){
 	//unsigned int freeBytes  = totalBytes - usedBytes;
 	//unsigned int maxPath = info.maxPathLength;
 
-	File initf = LittleFS.open("/.ini", "r");
+	File f = LittleFS.open("/.ini", "r");
 
-	if (!initf) {
+	if (!f) {
 		//init file was not found, format and create the file
 		LittleFS.format();
-		initf = LittleFS.open("/.ini", "w");
-		if (!initf) return -1;//fail
-		initf.print(__DATE__);
-		initf.print(__TIME__);
-		initf.close();
+		f = LittleFS.open("/.ini", "w");
+		if (!f) return -1;//fail
+		f.print(__DATE__);
+		f.print(__TIME__);
+		f.close();
 		return 0;
 	}
-	initf.close();
+	f.close();
 	return 1;
 }
 
@@ -178,7 +193,8 @@ void showViewPage(){
 		case VARLIST_VIEW: lcd.print(VARLISTIND);break;
 		case STATUS_VIEW: lcd.print(SIGMAIND);break;
 		case EDIT_VIEW:break; //showing alpha in cmd page location
-		default: lcd.print(' ');break; //NORMAL_VIEW
+		case NORMAL_VIEW:
+		default: lcd.print(' '); lcd.setCursor(DISPLAY_LINESIZE - 1, DISPLAY_LINECOUNT - 1); break; //NORMAL_VIEW
 	}
 }
 
@@ -332,9 +348,9 @@ void showEntryView() {
 	lcd.clear();
 	//stack item display routine for vectors, matrices and complex doubles
 	//only 19 columns - leave leftmost col for up/dn indication
-	formatVariable(&vm, vm.matvecStrC, DISPLAY_LINESIZE - 1);
-	showVariable(&vm);
-	showViewPage();
+	vm.disp = removeDblQuotes(vm.matvecStrC);
+	formatVariable(&vm, vm.disp, DISPLAY_LINESIZE - 2);
+	showVariable(&vm, vm.disp);
 }
 
 void updatesForRightMotion(){
@@ -557,7 +573,7 @@ void setup() {
 	lcd.print(version);
 	lcd.setCursor(DISPLAY_LINESIZE - 1, 3); //col, row
 	Serial.begin();
-	//readVariables();
+	readVariables();
 	Serial.ignoreFlowControl(true);
 }
 
@@ -600,6 +616,11 @@ void goBackToNormalMode() {
 	vm.topEntryNum = DISPLAY_LINECOUNT - 1;
 	vm.pointerRow = DISPLAY_LINECOUNT - 1;
 	vm.quickViewPage = 0;
+
+	vm.topVarFragNum = 0;
+	vm.varFragCount = 0;
+	vm.varLength = 0;
+
 	lcd.clear();
 	showStackHP(&vm, 0, DISPLAY_LINECOUNT - 1);
 	showModes(&vm);
@@ -742,16 +763,17 @@ void loop() {
 					break;
 			}
 		} else if (vm.viewPage == ENTRY_VIEW) { //single entry view mode
+			char* disp;
 			switch (keyc) {
 				case 'u': //up
 					keyTypePressed = 3;
 					if (vm.topVarFragNum > 0) vm.topVarFragNum--;
-					showVariable(&vm);
+					showVariable(&vm, vm.disp);
 					break;
 				case 'D': //down
 					keyTypePressed = 4;
 					if (vm.topVarFragNum < (vm.varFragCount - DISPLAY_LINECOUNT)) vm.topVarFragNum++;
-					showVariable(&vm);
+					showVariable(&vm, vm.disp);
 					break;
 				case '\b':
 					//going back to stack view clear variables
@@ -769,7 +791,6 @@ void loop() {
 					//variables used in the stack view are preserved
 					vm.viewPage = STACK_VIEW;
 					lcd.clear();
-					showViewPage();
 					//restore previous stack view
 					showStackHP(&vm, vm.topEntryNum - DISPLAY_LINECOUNT + 1, vm.topEntryNum);
 					lcd.setCursor(1, vm.pointerRow); //col, row
@@ -813,6 +834,7 @@ void loop() {
 					break;
 			}
 		}
+		showViewPage();
 	}
 	if (rp2040.fifo.pop_nb(&core1msg)) {
 		//non-blocking; until core 1 says done

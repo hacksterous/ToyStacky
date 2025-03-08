@@ -20,8 +20,20 @@
 int normalPage4ModeKeyhandler (char keyc) {
 	keyTypePressed = 0;
 	switch (keyc) {
+		case 'm':
+			processImmdOpKeyC("yyyy");
+			keyTypePressed = 1;
+			break;
+		case 'M':
+			processImmdOpKeyC("mm");
+			keyTypePressed = 1;
+			break;
 		case 'q':
 			processImmdOpKeyC("day");
+			keyTypePressed = 1;
+			break;
+		case 'p':
+			processImmdOpKeyC("loc");
 			keyTypePressed = 1;
 			break;
 		default:
