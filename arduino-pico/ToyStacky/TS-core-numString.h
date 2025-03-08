@@ -283,8 +283,6 @@ bool hasDblQuotes(char* input) {
 }
 
 char* removeDblQuotes(char* input) {
-	//printf ("removeDblQuotes: input is: %s\n", input);
-	if (input[0] != '"') return input;
     if (input == NULL)
         return NULL; //bad input 
     int32_t len = strlen(input);
