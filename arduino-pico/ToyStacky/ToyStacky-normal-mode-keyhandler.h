@@ -11,7 +11,7 @@ int normalModeKeyhandler (char keyc) {
 				vm.repeatingAlarm = false;
 			}
 			Serial.print(keyc);
-			SerialPrint(1, "\r");
+			//SerialPrint(1, "\r");
 	
 			if (vm.userInput[0] == '\0') {
 				strcpy(vm.userInput, "dup");
@@ -115,11 +115,11 @@ int normalModeKeyhandler (char keyc) {
 			keyTypePressed = 1;
 			if ((vm.userInputPos > 0) && (vm.userInputPos < STRING_SIZE - 1)) {
 				vm.userInput[vm.userInputPos++] = ' ';
-				SerialPrint(1, "\n\r");
+				//SerialPrint(1, "\n\r");
 			}
 			vm.userInput[vm.userInputPos++] = keyc;
 			vm.userInput[vm.userInputPos] = '\0';
-			SerialPrint(1, "\n\r");
+			//SerialPrint(1, "\n\r");
 			strcpy(vm.userInputInterpret, vm.userInput);
 			clearUserInput();
 			rp2040.fifo.push(CORE0_TO_CORE1_START);

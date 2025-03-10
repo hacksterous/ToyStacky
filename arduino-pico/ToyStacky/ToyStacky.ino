@@ -56,84 +56,116 @@ int keyTypePressed = -1;
 void printRegisters(Machine* vm) {
 }
 
-bool writeOneVariable(const char* filename, void* ptr, size_t size) {
-	uint8_t buf[size];
+int readVariablesFromFile() {
 	File f;
-	f = LittleFS.open(filename, "w");
-	if (f) {
-		memcpy(buf, ptr, size);
-		f.write(buf, size);
-		f.close();
-		return true;
-	}
-	else return false;
-}
+	union {
+		float f;
+		uint8_t buf[sizeof(float)];
+	} u;
 
-bool writeVariables(int varid) {
-	switch (varid) {
-		case VARWRITEID_LAT:
-			return writeOneVariable("/.lat", (void*) &vm.locationLat, sizeof(float));
-			break;
-		case VARWRITEID_LONG:
-			return writeOneVariable("/.long", (void*) &vm.locationLong, sizeof(float));
-			break;
-		case VARWRITEID_TIMEZ:
-			return writeOneVariable("/.timez", (void*) &vm.locationTimeZone, sizeof(float));
-			break;
-		case VARWRITEID_POL:
-			return writeOneVariable("/.polar", (void*) &vm.modePolar, sizeof(float));
-			break;
-		case VARWRITEID_ANG:
-			return writeOneVariable("/.degrees", (void*) &vm.modeDegrees, sizeof(float));
-			break;
-		default:
-			return false;
-			break;
-	}
-}
+	const char* filenames[] = {"/.month", "/.year",
+							"/.lat", "/.long",
+							"/.timez", ".degrees",
+							".polar"};
 
-void readVariables() {
-	uint8_t buf[sizeof(float)];
-	File f;
-
-	f = LittleFS.open("/.month", "r");
-	if (f) {
-		f.read(buf, sizeof(float));
-		f.close();
-		vm.month = (int) *buf;
+	for (int i = 0; i < 7; i++) {
+		f = LittleFS.open(filenames[i], "r");
+		if (f) {
+			if (f.read(&u.buf[0], sizeof(float)) == 0) {
+				sprintf(vm.error, "fread failed.");
+				f.close();
+				return 0;
+			}
+			f.close();
+			if (i == 0) vm.month = u.f;
+			else if (i == 1) vm.year = u.f;
+			else if (i == 2) vm.locationLat = u.f;
+			else if (i == 3) vm.locationLong = u.f;
+			else if (i == 4) vm.locationTimeZone = u.f;
+			else if (i == 5) vm.modeDegrees = (bool) u.f;
+			else if (i == 6) vm.modePolar = (bool) u.f;
+		} //if f is NULL, file might not have been created, don't flag error
 	}
 
-	f = LittleFS.open("/.year", "r");
-	if (f) {
-		f.read(buf, sizeof(float));
-		f.close();
-		vm.year = (int) *buf;
-	}
-
-	f = LittleFS.open("/.lat", "r");
-	if (f) {
-		f.read(buf, sizeof(float));
-		f.close();
-		vm.locationLat = (float) *buf;
-	}
-
-	f = LittleFS.open("/.long", "r");
-	if (f) {
-		f.read(buf, sizeof(float));
-		f.close();
-		vm.locationLong = (float) *buf;
-	}
-
-	f = LittleFS.open("/.timez", "r");
-	if (f) {
-		f.read(buf, sizeof(float));
-		f.close();
-		vm.locationTimeZone = (float) *buf;
-	}
+	//f = LittleFS.open("/.month", "r");
+	//if (f) {
+	//	if (f.read(&u.buf[0], sizeof(float)) == 0) {
+	//		sprintf(vm.error, ".month fread failed.");
+	//		f.close();
+	//		return 0;
+	//	}
+	//	f.close();
+	//	vm.month = u.f;
+	//}
+	//else {
+	//	sprintf(vm.error, ".month fread failed.");
+	//	return 0;
+	//}
+	//
+	//f = LittleFS.open("/.year", "r");
+	//if (f) {
+	//	if (f.read(&u.buf[0], sizeof(float)) == 0) {
+	//		f.close();
+	//		sprintf(vm.error, ".year fread failed.");
+	//		return 0;
+	//	}
+	//	f.close();
+	//	vm.year = u.f;
+	//} 
+	//else {
+	//	sprintf(vm.error, ".year fread failed.");
+	//	return 0;
+	//}
+	//
+	//f = LittleFS.open("/.lat", "r");
+	//if (f) {
+	//	if (f.read(&u.buf[0], sizeof(float)) == 0) {
+	//		f.close();
+	//		sprintf(vm.error, ".lat fread failed.");
+	//		return 0;
+	//	}
+	//	f.close();
+	//	vm.locationLat = u.f;
+	//}
+	//else {
+	//	sprintf(vm.error, ".lat fread failed.");
+	//	return 0;
+	//}
+	//
+	//f = LittleFS.open("/.long", "r");
+	//if (f) {
+	//	if (f.read(&u.buf[0], sizeof(float)) == 0) {
+	//		f.close();
+	//		sprintf(vm.error, ".long fread failed.");
+	//		return 0;
+	//	}
+	//	f.close();
+	//	vm.locationLong = u.f;
+	//}
+	//else {
+	//	sprintf(vm.error, ".long fread failed.");
+	//	return 0;
+	//}
+	//
+	//f = LittleFS.open("/.timez", "r");
+	//if (f) {
+	//	if (f.read(&u.buf[0], sizeof(float)) == 0) {
+	//		f.close();
+	//		sprintf(vm.error, ".timez fread failed.");
+	//		return 0;
+	//	}
+	//	f.close();
+	//	vm.locationTimeZone = u.f;
+	//}
+	//else {
+	//	sprintf(vm.error, ".timez fread failed.");
+	//	return 0;
+	//}
+	return (int) (sizeof(float));
 }
 
 int initFS(){
-	LittleFS.begin();
+	if (!LittleFS.begin()) return -1; //fail
  
 	//FSInfo info;
 	//LittleFS.info(info);
@@ -296,7 +328,7 @@ void updatesForLeftMotion() {
 			if (vm.userInputPos > 0)
 				vm.userInputPos--;
 			//no change in display, just move the cursor left
-			SerialPrint(2, "updatesForLeftMotion: 10 11 A case ", "\n\r");
+			//SerialPrint(2, "updatesForLeftMotion: 10 11 A case ", "\n\r");
 		} else if (vm.cursorPos == 1) {
 			if (vm.userInputPos == 2) {
 				//12<34... '<' indicator is cursor position 0, userInputPos points to input[2]='3'
@@ -306,7 +338,7 @@ void updatesForLeftMotion() {
 				lcd.print(vm.userDisplay);
 				//no decrement of vm.cursorPos
 				vm.userInputLeftOflow = false;
-				SerialPrint(2, "updatesForLeftMotion: 10 11 B case ", "\n\r");
+				//SerialPrint(2, "updatesForLeftMotion: 10 11 B case ", "\n\r");
 			} else if (vm.userInputPos > 2) {
 				vm.userInputPos--;
 				lcd.setCursor(0, 3); //col, row
@@ -316,7 +348,7 @@ void updatesForLeftMotion() {
 					//no right overflow
 					zstrncpy(vm.userDisplay, &vm.userInput[vm.userInputPos], DISPLAY_LINESIZE - 1);
 					lcd.print(vm.userDisplay);
-					SerialPrint(2, "updatesForLeftMotion: 10 11 C case ", "\n\r");
+					//SerialPrint(2, "updatesForLeftMotion: 10 11 C case ", "\n\r");
 				} else if ((len - vm.userInputPos) > (DISPLAY_LINESIZE - 1)) {
 					zstrncpy(vm.userDisplay, &vm.userInput[vm.userInputPos], DISPLAY_LINESIZE - 2);
 					lcd.print(vm.userDisplay);
@@ -404,7 +436,7 @@ void updatesForRightMotion(){
 				vm.userInputPos++;
 			}
 			//no change in display, just move the cursor right
-			SerialPrint(2, "updatesForRightMotion: 01 11 A case ", "\n\r");
+			//SerialPrint(2, "updatesForRightMotion: 01 11 A case ", "\n\r");
 		} else {
 			//cursor is just to the left of the right scroll off indicator
 			if (vm.userInputPos < len - 3) {
@@ -562,18 +594,18 @@ void setup() {
 	sprintf(version, "%s %s", __DATE__, __TIME__);
 	lcd.setCursor(0, 2);
 	int fsstat = initFS();
+	int fsstat2 = readVariablesFromFile();
 	if (fsstat == 1) 
 		lcd.print("      ..TS-0..    ok");
 	else if (fsstat == 0)
 		lcd.print("      ..TS-0..  init"); //only first time
-	else if (fsstat == -1)
+	else if (fsstat == -1 || fsstat2 == 0)
 		lcd.print("      ..TS-0..  fail");
 	
 	lcd.setCursor(0, DISPLAY_LINECOUNT - 1);
 	lcd.print(version);
 	lcd.setCursor(DISPLAY_LINESIZE - 1, 3); //col, row
 	Serial.begin();
-	readVariables();
 	Serial.ignoreFlowControl(true);
 }
 
@@ -590,10 +622,10 @@ void loop1() {
 void processImmdOpKeyC (const char* str) {
 	if ((vm.userInputPos > 0) && (vm.userInputPos < STRING_SIZE - 1)) {
 		vm.userInput[vm.userInputPos++] = ' ';
-		SerialPrint(1, "\n\r");
+		//SerialPrint(1, "\n\r");
 	}
 	strcpy(&vm.userInput[vm.userInputPos], str);
-	SerialPrint(1, "\n\r");
+	//SerialPrint(1, "\n\r");
 	strcpy(vm.userInputInterpret, vm.userInput);
 	clearUserInput();
 	rp2040.fifo.push(CORE0_TO_CORE1_START);

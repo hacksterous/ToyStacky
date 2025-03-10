@@ -276,11 +276,68 @@ bool process(Machine* vm, char* token) {
 			strcat(vm->matvecStrC, "]");
 			//printf("final vector %s\n", vm->matvecStrC);
 			push(&vm->userStack, vm->matvecStrC, METAVECTOR);
-		} else if (strcmp(token, "mm") == 0) {
+		#ifndef DESKTOP_PC
+		} else if (strcmp(token, "getm") == 0) {
+			sprintf(vm->acc, "%d", (int) vm->month);
+			push(&vm->userStack, vm->acc, METASCALAR);
+		} else if (strcmp(token, "gety") == 0) {
+			sprintf(vm->acc, "%d", (int) vm->year);
+			push(&vm->userStack, vm->acc, METASCALAR);
+		} else if (strcmp(token, "getla") == 0) {
+			sprintf(vm->acc, "%f", vm->locationLat);
+			push(&vm->userStack, vm->acc, METASCALAR);
+		} else if (strcmp(token, "getlo") == 0) {
+			sprintf(vm->acc, "%f", vm->locationLong);
+			push(&vm->userStack, vm->acc, METASCALAR);
+		} else if (strcmp(token, "gettz") == 0) {
+			sprintf(vm->acc, "%f", vm->locationTimeZone);
+			push(&vm->userStack, vm->acc, METASCALAR);
+		} else if (strcmp(token, "mm") == 0 || strcmp(token, "yyyy") == 0 ||
+				strcmp(token, "latt") == 0 || strcmp(token, "longt") == 0 ||
+				strcmp(token, "timez") == 0) {
+			int8_t meta = peek(&vm->userStack, vm->acc);
+			FAILANDRETURN((meta == -1), vm->error, "stack empty.Z1", NULLFN)
+			long double d;
+			success = stringToDouble(vm->acc, &d);
+			FAILANDRETURN(!success, vm->error, "bad arg.Z1", NULLFN)
+			if (strcmp(token, "mm") == 0) {
+				//store ToS in a file named ".month"
+				float mm = (float) d;
+				success = writeOneVariableToFile(".month", &mm);
+				FAILANDRETURN(!success, vm->error, "mm failed.", NULLFN)
+				vm->month = mm;
+			} else if (strcmp(token, "yyyy") == 0) {
+				//store ToS in a file named ".year"
+				float yyyy = (float) d;
+				success = writeOneVariableToFile(".year", &yyyy);
+				FAILANDRETURN(!success, vm->error, "yyyy failed.", NULLFN)
+				vm->year = yyyy;
+			} else if (strcmp(token, "latt") == 0) {
+				//store ToS in a file named ".lat"
+				float latt = (float) d;
+				success = writeOneVariableToFile(".lat", &latt);
+				FAILANDRETURN(!success, vm->error, "latt failed.", NULLFN)
+				vm->locationLat = latt;
+			} else if (strcmp(token, "longt") == 0) {
+				//store ToS in a file named ".long"
+				float longt = (float) d;
+				success = writeOneVariableToFile(".long", &longt);
+				FAILANDRETURN(!success, vm->error, "longt failed.", NULLFN)
+				vm->locationLong = longt;
+			} else if (strcmp(token, "timez") == 0) {
+				//store ToS in a file named ".timez"
+				float timez = (float) d;
+				success = writeOneVariableToFile(".timez", &timez);
+				FAILANDRETURN(!success, vm->error, "timez failed.", NULLFN)
+				vm->locationTimeZone = timez;
+			}
+			pop(&vm->userStack, NULL);
+		#endif
+		//} else if (strcmp(token, "daymore") == 0) {
 		} else if (strcmp(token, "day") == 0) {
-			int dd = 0;
-			int mm = 0;
-			int yyyy = 0;
+			int dd = 1;
+			int mm = (int) vm->month;
+			int yyyy = (int) vm->year;
 			int8_t meta = peek(&vm->userStack, NULL);
 			FAILANDRETURN((meta == -1), vm->error, "stack empty.Z", NULLFN)
 			if (meta == METAVECTOR) {
@@ -306,15 +363,20 @@ bool process(Machine* vm, char* token) {
 				}
 			}
 			else if (meta == METASCALAR) {
-				//assume only date is
+				//assume only date is at ToS
+				pop(&vm->userStack, vm->acc);
+				long double d;
+				success = stringToDouble(vm->acc, &d);
+				FAILANDRETURN(!success, vm->error, "bad arg.Z1", NULLFN)
+				dd = (int) d;
 			}
 			else FAILANDRETURN(true, vm->error, "bad arg.V", NULLFN)
 			Suntimes times;
-			long double srise = sun (vm->locationLat, vm->locationLong, vm->locationTimeZone, dd, mm, yyyy, &times);
-			tithiday (dd, mm, yyyy, srise, vm->locationTimeZone, vm->matvecStrA);
+			long double srise = sun ((long double) vm->locationLat, (long double) vm->locationLong, (long double) vm->locationTimeZone, dd, mm, yyyy, &times);
+			tithiday (dd, mm, yyyy, srise, (long double) vm->locationTimeZone, vm->matvecStrA);
 			printf("Tithi = %s\n", vm->matvecStrA);
 			strcat(vm->matvecStrA, " ");
-			vaaraday (dd, mm, yyyy, vm->locationTimeZone, vm->acc);
+			vaaraday (dd, mm, yyyy, (long double) vm->locationTimeZone, vm->acc);
 			strcat(vm->matvecStrA, vm->acc);
 			strcat(vm->matvecStrA, "day ");
 			sprintf(vm->matvecStrB, "Sunrise:-%d:%s%d:%s%d Sunset:-%d:%s%d:%s%d Duration:-%d:%s%d:%s%d", 

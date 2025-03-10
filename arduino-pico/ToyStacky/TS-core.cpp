@@ -26,6 +26,7 @@ License: GNU GPL v3
 #include <hardware/regs/rosc.h>
 #include <Arduino.h>
 #include "bigint.h"
+#include "LittleFS.h"
 #include "TS-core.h"
 
 const char* __TS_GLOBAL_ERRORCODE[] = { "undef arg",
@@ -38,21 +39,6 @@ const char* __TS_GLOBAL_ERRORCODE[] = { "undef arg",
 								"bad fn domain",
 								"+/-inf"
 								};
-
-#define FAILANDRETURN(failcondition,dest,src,fnptr)	\
-	if (failcondition) {							\
-		sprintf(dest, src);							\
-		if (fnptr != NULL) fnptr();					\
-		SerialPrint(3, "E:", dest, "\r\n");			\
-		return false;								\
-	}
-
-#define FAILANDRETURNVAR(failcondition,dest,src,var)\
-	if (failcondition) {							\
-		sprintf(dest, src, var);					\
-		SerialPrint(3, "E:", dest, "\r\n");			\
-		return false;								\
-	}
 
 #define GETEXECSTACKDATA(conditional, ifCondition, doingIf, execData)	\
 	conditional = ((execData >> 2) & 0x1);								\
@@ -79,22 +65,6 @@ ComplexDouble makeComplex(long double re, long double im) {
 }
 
 Machine vm;
-
-#undef __DEBUG_TOYSTACKY__
-#ifdef __DEBUG_TOYSTACKY__
-void SerialPrint(const int count, ...) {
-	char *str;
-    va_list args;
-	va_start(args, count);
-	for (int i = 0; i < count; i++) {
-		str = va_arg(args, char*);
-		Serial.print(str);
-	}
-    va_end(args);
-}
-#else
-void SerialPrint(const int count, ...) {}
-#endif
 
 //Von Neumann extractor: From the input stream, his extractor took bits, 
 //two at a time (first and second, then third and fourth, and so on). 
@@ -589,6 +559,19 @@ bool processPrint(Machine* vm, char* token) {
 	return true;
 }
 
+bool writeOneVariableToFile(const char* filename, float* ptr) {
+	uint8_t buf[sizeof(float)];
+	File f;
+	f = LittleFS.open(filename, "w");
+	if (f) {
+		memcpy(buf, ptr, sizeof(float));
+		f.write(buf, sizeof(float));
+		f.close();
+		return true;
+	}
+	else return false;
+}
+
 #include "TS-core-processPop.h"
 #include "TS-core-processDefaultPush.h"
 #include "TS-core-process.h"
@@ -660,5 +643,7 @@ void initMachine(Machine* vm) {
 	//vm->locationLat = 22.5726;
 	//vm->locationLong = 88.3639;
 	vm->locationTimeZone = 5.5;
+	vm->month = 3;
+	vm->year = 2025;
 }
 

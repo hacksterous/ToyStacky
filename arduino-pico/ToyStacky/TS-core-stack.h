@@ -5,8 +5,8 @@ void stackInit(Strack *s) {
 }
 
 bool stackIsEmpty(Strack *s) {
-	if (s->topLen == -1 && s->topStr != -1)
-		SerialPrint(1, "Stack warning: Strack top indices out of sync!\r\n");
+	//if (s->topLen == -1 && s->topStr != -1)
+		//SerialPrint(1, "Stack warning: Strack top indices out of sync!\r\n");
 	return (s->topLen == -1 || s->topStr == -1);
 }
 

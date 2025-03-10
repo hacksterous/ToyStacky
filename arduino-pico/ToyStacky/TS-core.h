@@ -66,14 +66,6 @@ License: GNU GPL v3
 #define CMDPG_4 char(0xd1)
 #define CMDPG_4_MU char(0xe4) //mu
 
-#define VARWRITEID_LAT 1 //latitude 
-#define VARWRITEID_LONG 2 //longitude
-#define VARWRITEID_TIMEZ 3 //time zone offset from UTC
-#define VARWRITEID_MOD 4 //modulus
-#define VARWRITEID_WID 5 //width
-#define VARWRITEID_POL 6 //cartesian/polar
-#define VARWRITEID_ANG 7 //deg/rad
-
 #define COMSTARTTOKENC '('
 #define VECSTARTTOKENC '['
 #define VECLASTTOKENC ']'
@@ -282,17 +274,17 @@ typedef struct {
 	bool timerRunning;
 	bool repeatingAlarm;
 	bool LEDState;
-	long double locationLat;
-	long double locationLong;
-	long double locationTimeZone;
+	float locationLat;
+	float locationLong;
+	float locationTimeZone;
 	uint8_t alarmHour;
 	uint8_t alarmMin;
 	uint8_t alarmSec;
 
 	uint8_t precision;
 	char notationStr[3];
-	unsigned int month;
-	unsigned int year;
+	float month;
+	float year;
 	char* disp;
 
 } Machine;
@@ -301,6 +293,7 @@ extern Machine vm;
 
 extern LiquidCrystal lcd;
 
+bool writeOneVariableToFile(const char* filename, float* ptr);
 bool hasDblQuotes(char* input);
 char* removeDblQuotes(char* input);
 bool fnOrOp2Param(Machine* vm, const char* token, int fnindex);
@@ -312,7 +305,6 @@ char* splitIntoLines(char* str, int width, char* holdbuffer);
 void clearDisplay (Machine* vm);
 void cleanUpModes (Machine* vm);
 int8_t peekn(Strack* s, char output[STRING_SIZE], int n);
-void SerialPrint(const int count, ...);
 void interpret(Machine* vm, char* sourceCode);
 void initMachine(Machine* vm);
 bool doubleToString(long double value, char* buf, uint8_t precision, char* notationStr);
@@ -324,5 +316,18 @@ void showStackHP(Machine* vm, int linestart, int linecount);
 void initStacks(Machine* vm);
 void eraseUserEntryLine();
 void toggleLED();
+
+#define FAILANDRETURN(failcondition,dest,src,fnptr)	\
+	if (failcondition) {							\
+		sprintf(dest, src);							\
+		if (fnptr != NULL) fnptr();					\
+		return false;								\
+	}
+
+#define FAILANDRETURNVAR(failcondition,dest,src,var)\
+	if (failcondition) {							\
+		sprintf(dest, src, var);					\
+		return false;								\
+	}
 
 #endif
