@@ -236,6 +236,9 @@ typedef struct {
 	long double locationLong;
 	long double locationTimeZone;
 
+	int month;
+	int year;
+
 	uint8_t precision;
 	char notationStr[3];
 
@@ -273,7 +276,7 @@ const char* mathfn1paramname[] = {
 						"sinh", "cosh", "tanh", "coth", 
 						"asinh", "acosh", "atanh", "acoth", 
 						"exp", "log10", "log", "log2", "sqrt", "cbrt", "conj",
-						"rad", "deg", "recip", "neg",						
+						"torad", "todeg", "recip", "neg",						
 						"abs", "arg", "re", "im"}; //the 1 param functions
 const int EXPFNINDEX = 18;
 const int NUMMATH1PARAMFN = 29;

@@ -1,3 +1,21 @@
+//Page 0 is Main mode
+/*
+	{'u','a','b','c'},
+	{'D','d','e','f'},
+	{'P','[','%','"'},
+	{'A','{','(','l'},
+
+	{'m','M','q','\b'},
+	{'p','s','X','t'},
+	{'x','z','n','T'},
+	{'@',' ','<','>'},
+
+	{'1','2','3','+'},
+	{'4','5','6','-'},
+	{'7','8','9','*'},
+	{'0','.','/','\n'}
+*/
+
 int altModeKeyhandler (char keyc) {
 	int keyTypePressed;
 	switch (keyc) {
@@ -19,10 +37,10 @@ int altModeKeyhandler (char keyc) {
 		case 'u':
 			if (vm.modeDegrees)
 				//to radians
-				processImmdOpKeyC("rad");
+				processImmdOpKeyC("torad");
 			else
 				//to degrees
-				processImmdOpKeyC("deg");
+				processImmdOpKeyC("todeg");
 			keyTypePressed = 1;
 			break;
 		case 'P': //alt + pag
@@ -44,7 +62,6 @@ int altModeKeyhandler (char keyc) {
 		case 'D': // D <-> R
 			keyTypePressed = 1;
 			vm.modeDegrees ^= true;
-			writeOneVariableToFile(".degrees", (float*) &vm.modeDegrees);
 			break;
 		case 'd':
 			//to decimal
@@ -165,7 +182,6 @@ int altModeKeyhandler (char keyc) {
 		case '5':
 			vm.modePolar ^= true;
 			keyTypePressed = 1;
-			writeOneVariableToFile(".polar", (float*) &vm.modePolar);
 			break;
 		case '6': //negate
 			if ((vm.userInputPos > 0) && (vm.userInputPos < STRING_SIZE - 1)) {

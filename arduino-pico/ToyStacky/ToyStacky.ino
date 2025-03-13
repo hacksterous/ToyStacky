@@ -63,12 +63,19 @@ int readVariablesFromFile() {
 		uint8_t buf[sizeof(float)];
 	} u;
 
-	const char* filenames[] = {"/.month", "/.year",
-							"/.lat", "/.long",
-							"/.timez", ".degrees",
-							".polar"};
+	const char* filenames[] = {
+							".month", 
+							".year",
+							".lat", 
+							".long",
+							".timez",
+							".polar",
+							".degrees",
+							".precision",
+							".cmdpage"
+							};
 
-	for (int i = 0; i < 7; i++) {
+	for (int i = 0; i < 9; i++) {
 		f = LittleFS.open(filenames[i], "r");
 		if (f) {
 			if (f.read(&u.buf[0], sizeof(float)) == 0) {
@@ -77,91 +84,34 @@ int readVariablesFromFile() {
 				return 0;
 			}
 			f.close();
-			if (i == 0) vm.month = u.f;
-			else if (i == 1) vm.year = u.f;
-			else if (i == 2) vm.locationLat = u.f;
-			else if (i == 3) vm.locationLong = u.f;
-			else if (i == 4) vm.locationTimeZone = u.f;
-			else if (i == 5) vm.modeDegrees = (bool) u.f;
-			else if (i == 6) vm.modePolar = (bool) u.f;
+			switch (i) {
+				case 0: vm.month = (int) u.f; break;
+				case 1: vm.year = (int) u.f; break;
+				case 2: vm.locationLat = u.f; break;
+				case 3: vm.locationLong = u.f; break;
+				case 4: vm.locationTimeZone = u.f; break;
+				case 5: vm.modePolar = (bool) u.f; break;
+				case 6: vm.modeDegrees = (bool) u.f; break;
+				case 7: vm.precision = (uint8_t) u.f; break;
+				case 8: vm.cmdPage = (int) u.f; break;
+			}
 		} //if f is NULL, file might not have been created, don't flag error
 	}
-
-	//f = LittleFS.open("/.month", "r");
-	//if (f) {
-	//	if (f.read(&u.buf[0], sizeof(float)) == 0) {
-	//		sprintf(vm.error, ".month fread failed.");
-	//		f.close();
-	//		return 0;
-	//	}
-	//	f.close();
-	//	vm.month = u.f;
-	//}
-	//else {
-	//	sprintf(vm.error, ".month fread failed.");
-	//	return 0;
-	//}
-	//
-	//f = LittleFS.open("/.year", "r");
-	//if (f) {
-	//	if (f.read(&u.buf[0], sizeof(float)) == 0) {
-	//		f.close();
-	//		sprintf(vm.error, ".year fread failed.");
-	//		return 0;
-	//	}
-	//	f.close();
-	//	vm.year = u.f;
-	//} 
-	//else {
-	//	sprintf(vm.error, ".year fread failed.");
-	//	return 0;
-	//}
-	//
-	//f = LittleFS.open("/.lat", "r");
-	//if (f) {
-	//	if (f.read(&u.buf[0], sizeof(float)) == 0) {
-	//		f.close();
-	//		sprintf(vm.error, ".lat fread failed.");
-	//		return 0;
-	//	}
-	//	f.close();
-	//	vm.locationLat = u.f;
-	//}
-	//else {
-	//	sprintf(vm.error, ".lat fread failed.");
-	//	return 0;
-	//}
-	//
-	//f = LittleFS.open("/.long", "r");
-	//if (f) {
-	//	if (f.read(&u.buf[0], sizeof(float)) == 0) {
-	//		f.close();
-	//		sprintf(vm.error, ".long fread failed.");
-	//		return 0;
-	//	}
-	//	f.close();
-	//	vm.locationLong = u.f;
-	//}
-	//else {
-	//	sprintf(vm.error, ".long fread failed.");
-	//	return 0;
-	//}
-	//
-	//f = LittleFS.open("/.timez", "r");
-	//if (f) {
-	//	if (f.read(&u.buf[0], sizeof(float)) == 0) {
-	//		f.close();
-	//		sprintf(vm.error, ".timez fread failed.");
-	//		return 0;
-	//	}
-	//	f.close();
-	//	vm.locationTimeZone = u.f;
-	//}
-	//else {
-	//	sprintf(vm.error, ".timez fread failed.");
-	//	return 0;
-	//}
-	return (int) (sizeof(float));
+	union {
+		bigint_t b;
+		uint8_t buf[sizeof(bigint_t)];
+	} u2;
+	f = LittleFS.open(".modulus", "r");
+	if (f) {
+		if (f.read(&u2.buf[0], sizeof(bigint_t)) == 0) {
+			sprintf(vm.error, "fread2 failed.");
+			f.close();
+			return 0;
+		}
+		f.close();
+		vm.bigMod = u2.b;
+	}
+	return 1;
 }
 
 int initFS(){
@@ -226,7 +176,9 @@ void showViewPage(){
 		case STATUS_VIEW: lcd.print(SIGMAIND);break;
 		case EDIT_VIEW:break; //showing alpha in cmd page location
 		case NORMAL_VIEW:
-		default: lcd.print(' '); lcd.setCursor(DISPLAY_LINESIZE - 1, DISPLAY_LINECOUNT - 1); break; //NORMAL_VIEW
+		default: 
+			showModes(&vm);
+			lcd.setCursor(DISPLAY_LINESIZE - 1, DISPLAY_LINECOUNT - 1); break; //NORMAL_VIEW
 	}
 }
 

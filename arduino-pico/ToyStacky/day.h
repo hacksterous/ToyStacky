@@ -290,7 +290,13 @@ static int nakshatra
 	//print ("nakshatra =", nakshatraList[nakshindex])
 	return nakshindex;
 }
-	
+
+static void nakshatraday 
+(int dd, int mm, int yyyy, long double hr, long double tz, char* nakshatraday){
+	int nakindex = nakshatra(dd, mm, yyyy, hr, tz);
+	strcpy(nakshatraday, nakshatraList[nakindex]);
+}
+
 static int yoga 
 (int dd, int mm, int yyyy, long double hr, long double tz){
 	long double d = ts_at_mn (dd, mm, yyyy, tz) + (hr/24.0);

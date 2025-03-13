@@ -42,6 +42,18 @@ int altPage4ModeKeyhandler (char keyc) {
 			processImmdOpKeyC("timez");
 			keyTypePressed = 1;
 			break;
+		case 'x':
+			processImmdOpKeyC("mode");
+			keyTypePressed = 1;
+			break;
+		case 'z':
+			processImmdOpKeyC("prec");
+			keyTypePressed = 1;
+			break;
+		case 'n':
+			processImmdOpKeyC("savmod");
+			keyTypePressed = 1;
+			break;
 		default:
 			//pass
 			keyTypePressed = altModeKeyhandler(keyc);

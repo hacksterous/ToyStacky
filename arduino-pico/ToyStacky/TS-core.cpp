@@ -559,6 +559,19 @@ bool processPrint(Machine* vm, char* token) {
 	return true;
 }
 
+bool writeBigintToFile(const char* filename, bigint_t* ptr) {
+	uint8_t buf[sizeof(bigint_t)];
+	File f;
+	f = LittleFS.open(filename, "w");
+	if (f) {
+		memcpy(buf, ptr, sizeof(bigint_t));
+		f.write(buf, sizeof(bigint_t));
+		f.close();
+		return true;
+	}
+	else return false;
+}
+
 bool writeOneVariableToFile(const char* filename, float* ptr) {
 	uint8_t buf[sizeof(float)];
 	File f;
@@ -632,7 +645,7 @@ void initMachine(Machine* vm) {
 	vm->precision = 15;
 	vm->quickViewPage = 0;
 	strcpy(vm->notationStr, "Lg");
-	vm->bigMod.length = -1;	
+	bigint_from_int(&vm->bigMod, 61);
 	vm->width = 64; //max = 18446744073709551616
 
 	//zhr=5.5, latt=22.5726, longt=88.3639): Kolkata

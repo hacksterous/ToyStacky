@@ -43,6 +43,18 @@ int normalPage4ModeKeyhandler (char keyc) {
 			processImmdOpKeyC("gettz");
 			keyTypePressed = 1;
 			break;
+		case 'x':
+			processImmdOpKeyC("getmode");
+			keyTypePressed = 1;
+			break;
+		case 'z':
+			processImmdOpKeyC("getprec");
+			keyTypePressed = 1;
+			break;
+		case 'n':
+			processImmdOpKeyC("getmod");
+			keyTypePressed = 1;
+			break;
 		default:
 			keyTypePressed = normalModeKeyhandler(keyc);
 			break;

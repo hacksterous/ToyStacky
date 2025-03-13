@@ -283,8 +283,8 @@ typedef struct {
 
 	uint8_t precision;
 	char notationStr[3];
-	float month;
-	float year;
+	int month;
+	int year;
 	char* disp;
 
 } Machine;
@@ -293,6 +293,7 @@ extern Machine vm;
 
 extern LiquidCrystal lcd;
 
+bool writeBigintToFile(const char* filename, bigint_t* ptr);
 bool writeOneVariableToFile(const char* filename, float* ptr);
 bool hasDblQuotes(char* input);
 char* removeDblQuotes(char* input);

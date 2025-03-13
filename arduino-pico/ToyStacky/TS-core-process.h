@@ -99,21 +99,23 @@ bool process(Machine* vm, char* token) {
 			FAILANDRETURN(temp > 255, vm->error, "width > 255.", NULLFN)
 			FAILANDRETURN(temp < 0, vm->error, "width < 0.", NULLFN)
 			vm->width = (uint8_t) temp;
-		} else if (strcmp(token, "mod") == 0) {
+		} else if (strcmp(token, "mod") == 0 || strcmp(token, "savmod") == 0) {
 			int8_t meta = peek(&vm->userStack, NULL);
 			FAILANDRETURN((meta == -1), vm->error, "stack empty.W", NULLFN)
 			FAILANDRETURN((meta != METASCALAR), vm->error, "only scalar.", NULLFN)
 			pop(&vm->userStack, vm->matvecStrC);
 			char* strC = removeDblQuotes(vm->matvecStrC);
-			if (strC[0] == 'x')
-				success = bigint_from_hex(&vm->bigC, strC);
-			else if (strC[0] == 'b')
-				success = bigint_from_bin(&vm->bigC, strC);
-			else
-				success = bigint_from_str(&vm->bigC, strC);
+			if (strC[0] == 'x') success = bigint_from_hex(&vm->bigC, strC);
+			else if (strC[0] == 'b') success = bigint_from_bin(&vm->bigC, strC);
+			else success = bigint_from_str(&vm->bigC, strC);
 			FAILANDRETURN(!success, vm->error, "bad mod val.", NULLFN)
 			vm->bigMod = vm->bigC;
-			return true;
+			if (strcmp(token, "savmod") == 0) {
+				#ifndef DESKTOP_PC
+				success = writeBigintToFile(".modulus", &vm->bigMod);	
+				FAILANDRETURN(!success, vm->error, "savmod failed.", NULLFN)
+				#endif
+			}
 		} else if (strcmp(token, "solv") == 0) {
 			success = polysolve(vm);
 		} else if (strcmp(token, "reim") == 0) {
@@ -278,58 +280,78 @@ bool process(Machine* vm, char* token) {
 			push(&vm->userStack, vm->matvecStrC, METAVECTOR);
 		#ifndef DESKTOP_PC
 		} else if (strcmp(token, "getm") == 0) {
-			sprintf(vm->acc, "%d", (int) vm->month);
-			push(&vm->userStack, vm->acc, METASCALAR);
+			sprintf(vm->acc, "\"Month: %d\"", (int) vm->month);
+			push(&vm->userStack, vm->acc, METASCALAR | METABARRIER);
 		} else if (strcmp(token, "gety") == 0) {
-			sprintf(vm->acc, "%d", (int) vm->year);
-			push(&vm->userStack, vm->acc, METASCALAR);
+			sprintf(vm->acc, "\"Year: %d\"", (int) vm->year);
+			push(&vm->userStack, vm->acc, METASCALAR | METABARRIER);
 		} else if (strcmp(token, "getla") == 0) {
-			sprintf(vm->acc, "%f", vm->locationLat);
-			push(&vm->userStack, vm->acc, METASCALAR);
+			sprintf(vm->acc, "\"Lattitude:%f\"", vm->locationLat);
+			push(&vm->userStack, vm->acc, METASCALAR | METABARRIER);
 		} else if (strcmp(token, "getlo") == 0) {
-			sprintf(vm->acc, "%f", vm->locationLong);
-			push(&vm->userStack, vm->acc, METASCALAR);
+			sprintf(vm->acc, "\"Longitude:%f\"", vm->locationLong);
+			push(&vm->userStack, vm->acc, METASCALAR | METABARRIER);
 		} else if (strcmp(token, "gettz") == 0) {
-			sprintf(vm->acc, "%f", vm->locationTimeZone);
-			push(&vm->userStack, vm->acc, METASCALAR);
+			sprintf(vm->acc, "\"Timezone:UTC+%f\"", vm->locationTimeZone);
+			push(&vm->userStack, vm->acc, METASCALAR | METABARRIER);
+		} else if (strcmp(token, "getmode") == 0) {
+			sprintf(vm->acc, "\"%s %s\"", (vm->modeDegrees)? "Degrees": "Radians", (vm->modePolar)? "Polar": "Cartesian");
+			push(&vm->userStack, vm->acc, METASCALAR | METABARRIER);
+		} else if (strcmp(token, "getprec") == 0) {
+			sprintf(vm->acc, "\"Precision:%d\"", vm->precision);
+			push(&vm->userStack, vm->acc, METASCALAR | METABARRIER);
+		} else if (strcmp(token, "getmod") == 0) {
+			bigint_tostring(&vm->bigMod, vm->matvecStrB, 0);
+			sprintf(vm->matvecStrA, "\"Modulus: %s\"", vm->matvecStrB);
+			push(&vm->userStack, vm->matvecStrA, METASCALAR | METABARRIER);
+		} else if (strcmp(token, "mode") == 0) {
+				//save modePolar, modeDegrees
+				float f = (float) vm->modePolar;
+				success = writeOneVariableToFile(".polar", &f);
+				f = (float) vm->modeDegrees;
+				success = writeOneVariableToFile(".degrees", &f) && success;
+				f = (float) vm->cmdPage;
+				success = writeOneVariableToFile(".cmdpage", &f) && success;
+				FAILANDRETURN(!success, vm->error, "mode save failed.", NULLFN)
 		} else if (strcmp(token, "mm") == 0 || strcmp(token, "yyyy") == 0 ||
 				strcmp(token, "latt") == 0 || strcmp(token, "longt") == 0 ||
+				strcmp(token, "prec") == 0 ||
 				strcmp(token, "timez") == 0) {
 			int8_t meta = peek(&vm->userStack, vm->acc);
 			FAILANDRETURN((meta == -1), vm->error, "stack empty.Z1", NULLFN)
 			long double d;
 			success = stringToDouble(vm->acc, &d);
 			FAILANDRETURN(!success, vm->error, "bad arg.Z1", NULLFN)
+			float f = (float) d;
 			if (strcmp(token, "mm") == 0) {
 				//store ToS in a file named ".month"
-				float mm = (float) d;
-				success = writeOneVariableToFile(".month", &mm);
+				success = writeOneVariableToFile(".month", &f);
 				FAILANDRETURN(!success, vm->error, "mm failed.", NULLFN)
-				vm->month = mm;
+				vm->month = (int) f;
+			} else if (strcmp(token, "prec") == 0) {
+				success = writeOneVariableToFile(".precision", &f);
+				FAILANDRETURN(!success, vm->error, "prec failed.", NULLFN)
+				vm->precision = (uint8_t) f;
 			} else if (strcmp(token, "yyyy") == 0) {
 				//store ToS in a file named ".year"
-				float yyyy = (float) d;
-				success = writeOneVariableToFile(".year", &yyyy);
+				success = writeOneVariableToFile(".year", &f);
 				FAILANDRETURN(!success, vm->error, "yyyy failed.", NULLFN)
-				vm->year = yyyy;
+				vm->year = (int) f;
 			} else if (strcmp(token, "latt") == 0) {
 				//store ToS in a file named ".lat"
-				float latt = (float) d;
-				success = writeOneVariableToFile(".lat", &latt);
+				success = writeOneVariableToFile(".lat", &f);
 				FAILANDRETURN(!success, vm->error, "latt failed.", NULLFN)
-				vm->locationLat = latt;
+				vm->locationLat = f;
 			} else if (strcmp(token, "longt") == 0) {
 				//store ToS in a file named ".long"
-				float longt = (float) d;
-				success = writeOneVariableToFile(".long", &longt);
+				success = writeOneVariableToFile(".long", &f);
 				FAILANDRETURN(!success, vm->error, "longt failed.", NULLFN)
-				vm->locationLong = longt;
+				vm->locationLong = f;
 			} else if (strcmp(token, "timez") == 0) {
 				//store ToS in a file named ".timez"
-				float timez = (float) d;
-				success = writeOneVariableToFile(".timez", &timez);
+				success = writeOneVariableToFile(".timez", &f);
 				FAILANDRETURN(!success, vm->error, "timez failed.", NULLFN)
-				vm->locationTimeZone = timez;
+				vm->locationTimeZone = f;
 			}
 			pop(&vm->userStack, NULL);
 		#endif
@@ -374,18 +396,20 @@ bool process(Machine* vm, char* token) {
 			Suntimes times;
 			long double srise = sun ((long double) vm->locationLat, (long double) vm->locationLong, (long double) vm->locationTimeZone, dd, mm, yyyy, &times);
 			tithiday (dd, mm, yyyy, srise, (long double) vm->locationTimeZone, vm->matvecStrA);
-			printf("Tithi = %s\n", vm->matvecStrA);
 			strcat(vm->matvecStrA, " ");
 			vaaraday (dd, mm, yyyy, (long double) vm->locationTimeZone, vm->acc);
 			strcat(vm->matvecStrA, vm->acc);
 			strcat(vm->matvecStrA, "day ");
-			sprintf(vm->matvecStrB, "Sunrise:-%d:%s%d:%s%d Sunset:-%d:%s%d:%s%d Duration:-%d:%s%d:%s%d", 
+			strcat(vm->matvecStrA, "Nakshatra:");
+			nakshatraday (dd, mm, yyyy, srise, (long double) vm->locationTimeZone, vm->acc);
+			strcat(vm->matvecStrA, vm->acc);
+			sprintf(vm->matvecStrB, " Sunrise:%d:%s%d:%s%d Sunset:%d:%s%d:%s%d Duration:%d:%s%d:%s%d", 
 				times.sriseh, (times.srisem < 10)? "0":"", times.srisem, (times.srises < 10)? "0": "", times.srises, 
 				times.sseth, (times.ssetm < 10)? "0":"", times.ssetm, (times.ssets < 10)? "0": "", times.ssets, 
 				times.dlh, (times.dlm < 10)? "0": "", times.dlm, (times.dls < 10)? "0": "", times.dls);
 			strcat(vm->matvecStrA, vm->matvecStrB);
 			addDblQuotes(vm->matvecStrA);
-			push(&vm->userStack, vm->matvecStrA, METABARRIER);
+			push(&vm->userStack, vm->matvecStrA, METASCALAR | METABARRIER);
 		} else if (strcmp(token, "lastx") == 0) {
 			push(&vm->userStack, vm->lastX, vm->lastXMeta);
 		} else if (strcmp(token, "lasty") == 0) {
