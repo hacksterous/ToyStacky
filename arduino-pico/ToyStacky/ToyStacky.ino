@@ -746,6 +746,7 @@ void loop() {
 				default:
 					break;
 			}
+			showViewPage(); 
 		} else if (vm.viewPage == ENTRY_VIEW) { //single entry view mode
 			char* disp;
 			switch (keyc) {
@@ -817,8 +818,8 @@ void loop() {
 				default:
 					break;
 			}
+			showViewPage(); 
 		}
-		showViewPage();
 	}
 	if (rp2040.fifo.pop_nb(&core1msg)) {
 		//non-blocking; until core 1 says done
