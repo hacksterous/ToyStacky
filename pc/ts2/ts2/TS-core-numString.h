@@ -13,7 +13,9 @@ char strIsRLC(char* str);
 bool stringToDouble(char* str, long double* dbl);
 bool stringToComplex(char *input, ComplexDouble* c);
 void reverse(char s[]);
-void itoa(int n, char s[]);
+#ifdef _UNIX
+void itoa(int n, char *s);
+#endif
 char* lcase(char* token);
 bool doubleToString(long double value, char* buf, uint8_t precision, char* notationStr);
 bool complexToString(ComplexDouble c, char* value, uint8_t precision, char* notationStr);

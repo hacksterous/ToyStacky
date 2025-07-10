@@ -229,8 +229,9 @@ void reverse(char s[]) {
 	}
 }
 
+#ifdef _UNIX
 /* itoa:  convert n to characters in s */
-void itoa(int n, char s[]) {
+void itoa(int n, char *s) {
 	int i, sign;
 
 	if ((sign = n) < 0)  /* record sign */
@@ -244,6 +245,7 @@ void itoa(int n, char s[]) {
 	s[i] = '\0';
 	reverse(s);
 }
+#endif
 
 char* lcase(char* token) {
 	for (int i = 0; token[i] != '\0'; i++) {
